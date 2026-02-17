@@ -35,7 +35,8 @@
         "Laravel Breeze or Fortify for auth scaffolding (adapted to Inertia/Vue)"
       ],
       "priority": 2,
-      "passes": false
+      "passes": true,
+      "inProgress": false
     },
     {
       "id": "US-003",
