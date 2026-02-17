@@ -86,7 +86,8 @@
         "Manual \"refresh\" pull-to-refresh gesture on article list triggers immediate fetch for current feed/category"
       ],
       "priority": 5,
-      "passes": false
+      "passes": false,
+      "inProgress": true
     },
     {
       "id": "US-006",

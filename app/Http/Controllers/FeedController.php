@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\FetchFeed;
 use App\Services\FeedParserService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -118,5 +119,23 @@ class FeedController extends Controller
         });
 
         return redirect()->route('dashboard')->with('success', 'Feed added successfully!');
+    }
+
+    public function refresh(Request $request)
+    {
+        $feedIds = $request->input('feed_ids', []);
+
+        if (empty($feedIds)) {
+            // Refresh all user feeds
+            $feeds = $request->user()->feeds;
+        } else {
+            $feeds = $request->user()->feeds()->whereIn('id', $feedIds)->get();
+        }
+
+        foreach ($feeds as $feed) {
+            FetchFeed::dispatch($feed);
+        }
+
+        return back()->with('success', 'Feeds are being refreshed.');
     }
 }

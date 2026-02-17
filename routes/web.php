@@ -25,6 +25,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/feeds/create', [FeedController::class, 'create'])->name('feeds.create');
     Route::post('/feeds/preview', [FeedController::class, 'preview'])->name('feeds.preview');
     Route::post('/feeds', [FeedController::class, 'store'])->name('feeds.store');
+    Route::post('/feeds/refresh', [FeedController::class, 'refresh'])->name('feeds.refresh');
 });
 
 require __DIR__.'/auth.php';
