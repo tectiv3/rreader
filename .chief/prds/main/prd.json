@@ -178,7 +178,8 @@
         "Reorder categories via drag handle or up/down controls"
       ],
       "priority": 10,
-      "passes": false
+      "passes": true,
+      "inProgress": false
     },
     {
       "id": "US-011",

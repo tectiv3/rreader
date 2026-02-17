@@ -28,6 +28,11 @@
 - Use `window.open(url, '_blank', 'noopener,noreferrer')` with URL protocol validation for external links
 - Category expand/collapse: separate toggle button (with `aria-expanded`) from category navigation button for accessibility
 - `chunkById()` for bulk operations like markAllAsRead to avoid memory issues at scale
+- Use `provide/inject` to communicate between page components and layout components (slots don't support events)
+- Bottom nav in `AppLayout.vue` (mobile only, `lg:hidden`); main content needs `pb-16 lg:pb-0` to avoid overlap
+- `usePage().props` gives access to Inertia shared props from any component (useful for active-state in nav)
+- Feed/category management page at `/feeds/manage` — `FeedController@manage` renders categories + uncategorized feeds
+- `CategoryController` handles CRUD + reorder; ownership verified via `user_id` check + `abort(404)`
 
 ---
 
@@ -176,4 +181,37 @@
   - `navigator.share()` is available on mobile browsers; fall back to `navigator.clipboard.writeText()` on desktop
   - Article show route uses Laravel route model binding (`Article $article`) — ensure user owns the feed via `$user->feeds()->pluck('feeds.id')->contains($article->feed_id)`
   - `window.history.back()` preserves scroll position in the article list automatically (browser behavior)
+---
+
+## 2026-02-17 - US-009
+- What was implemented: Read Later section — already had backend filtering (`filter=read_later`), sidebar link with badge, empty state, and article view toggle from previous stories. Added: swipe-to-remove gesture on mobile article cards in Read Later view (left swipe reveals red "Remove" background, optimistic UI removal), and a bottom navigation bar (mobile only, hidden on desktop via `lg:hidden`) with Menu (sidebar toggle), Read Later (bookmark), Feeds (all feeds), and Add Feed shortcuts. Bottom nav uses `provide/inject` pattern to communicate sidebar toggle from Index.vue to AppLayout.
+- Files changed:
+  - `resources/js/Layouts/AppLayout.vue` — Added mobile bottom navigation bar with 4 items (Menu, Read Later, Feeds, Add), active state highlighting, safe-area padding, hidden on desktop. Uses `inject('toggleSidebar')` for sidebar button. Main content `pb-16 lg:pb-0` to avoid overlap.
+  - `resources/js/Pages/Articles/Index.vue` — Added swipe-to-remove for Read Later view: touch event handlers (`onTouchStart/Move/End`), swipe state tracking, red reveal background with "Remove" label, optimistic removal via `allArticles.value.filter()` + async `toggleReadLater` POST. Added `provide('toggleSidebar')` for bottom nav. Mobile card wrapped in `overflow-hidden` container for swipe clipping.
+  - `.chief/prds/main/prd.json` — Marked US-009 as passes: true
+- **Learnings for future iterations:**
+  - Most Read Later functionality was already built incrementally by US-006/007/008 — the controller filter, sidebar link, empty state, and article view toggle were all in place
+  - Use `provide/inject` to communicate between page components and layout components (slots don't support events easily)
+  - Swipe gesture: track `startX` on touchstart, compute deltaX on touchmove, threshold check on touchend. Cap swipe distance with `Math.max(deltaX, -200)` to prevent over-swiping
+  - Optimistic UI removal: filter local `ref()` array immediately, then POST to server. No need to wait for response in swipe-to-remove scenarios
+  - Bottom nav `pb-safe` class handles iPhone home indicator safe area; main content needs `pb-16` to avoid being hidden behind the fixed bottom bar
+  - `usePage().props` gives access to Inertia shared props from any component — useful for active state in bottom nav
+---
+
+## 2026-02-17 - US-010
+- What was implemented: Feed & Category Management — full CRUD for categories (create, rename, delete with feed migration, reorder via up/down controls) and feeds (rename/override title, move between categories, unsubscribe with confirmation dialog). Dedicated management page at `/feeds/manage` accessible via "Edit" button in sidebar drawer header. Dark-themed, mobile-first design consistent with existing app patterns.
+- Files changed:
+  - `app/Http/Controllers/CategoryController.php` — New controller with store (create), update (rename), destroy (delete with optional feed migration), reorder (sort_order update) actions
+  - `app/Http/Controllers/FeedController.php` — Added manage() (renders management page with categories + uncategorized feeds), update() (rename title + move category), destroy() (unsubscribe/delete feed)
+  - `resources/js/Pages/Feeds/Manage.vue` — New management page with category sections (reorder up/down, rename inline, delete with move-feeds dialog), feed cards (rename inline, move via category dropdown, unsubscribe with confirmation), create new category form, empty state
+  - `resources/js/Components/SidebarDrawer.vue` — Added "Edit" button in drawer header linking to feeds.manage route
+  - `routes/web.php` — Added CategoryController import, routes: GET /feeds/manage, PUT /feeds/{feed}, DELETE /feeds/{feed}, POST /categories, PUT /categories/{category}, DELETE /categories/{category}, POST /categories/reorder
+  - `.chief/prds/main/prd.json` — Marked US-010 as passes: true
+- **Learnings for future iterations:**
+  - Use dedicated management pages for complex CRUD rather than overloading sidebar with edit mode — keeps sidebar simple and management UI spacious
+  - `router.delete()` in Inertia needs `data` option for request body (e.g., `{ data: { move_to_category_id: ... } }`)
+  - Category reorder via up/down buttons is simpler and more accessible than drag-and-drop — use array swap + POST new order
+  - Verify category/feed ownership with `user_id` check before allowing mutations — abort(404) for unauthorized access
+  - Use `preserveScroll: true` on all CRUD operations so user doesn't lose position on the page
+  - Inline editing (rename) with Escape key to cancel provides fast, non-disruptive UX
 ---

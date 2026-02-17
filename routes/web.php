@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ArticleController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -22,11 +23,20 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Feed subscription
+    // Feed management
+    Route::get('/feeds/manage', [FeedController::class, 'manage'])->name('feeds.manage');
     Route::get('/feeds/create', [FeedController::class, 'create'])->name('feeds.create');
     Route::post('/feeds/preview', [FeedController::class, 'preview'])->name('feeds.preview');
     Route::post('/feeds', [FeedController::class, 'store'])->name('feeds.store');
     Route::post('/feeds/refresh', [FeedController::class, 'refresh'])->name('feeds.refresh');
+    Route::put('/feeds/{feed}', [FeedController::class, 'update'])->name('feeds.update');
+    Route::delete('/feeds/{feed}', [FeedController::class, 'destroy'])->name('feeds.destroy');
+
+    // Categories
+    Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
+    Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+    Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+    Route::post('/categories/reorder', [CategoryController::class, 'reorder'])->name('categories.reorder');
 
     // Articles
     Route::get('/articles', [ArticleController::class, 'index'])->name('articles.index');

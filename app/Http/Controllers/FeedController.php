@@ -10,6 +10,56 @@ use Inertia\Inertia;
 
 class FeedController extends Controller
 {
+    public function manage(Request $request)
+    {
+        $user = $request->user();
+
+        $categories = $user->categories()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->with(['feeds' => function ($query) {
+                $query->orderBy('title');
+            }])
+            ->get()
+            ->map(function ($category) {
+                return [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'sort_order' => $category->sort_order,
+                    'feeds' => $category->feeds->map(function ($feed) {
+                        return [
+                            'id' => $feed->id,
+                            'title' => $feed->title,
+                            'feed_url' => $feed->feed_url,
+                            'favicon_url' => $feed->favicon_url,
+                        ];
+                    })->values()->all(),
+                ];
+            })
+            ->values()
+            ->all();
+
+        $uncategorizedFeeds = $user->feeds()
+            ->whereNull('category_id')
+            ->orderBy('title')
+            ->get()
+            ->map(function ($feed) {
+                return [
+                    'id' => $feed->id,
+                    'title' => $feed->title,
+                    'feed_url' => $feed->feed_url,
+                    'favicon_url' => $feed->favicon_url,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return Inertia::render('Feeds/Manage', [
+            'categories' => $categories,
+            'uncategorizedFeeds' => $uncategorizedFeeds,
+        ]);
+    }
+
     public function create(Request $request)
     {
         $categories = $request->user()->categories()->orderBy('sort_order')->get(['id', 'name']);
@@ -119,6 +169,44 @@ class FeedController extends Controller
         });
 
         return redirect()->route('dashboard')->with('success', 'Feed added successfully!');
+    }
+
+    public function update(Request $request, \App\Models\Feed $feed)
+    {
+        if ($feed->user_id !== $request->user()->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'category_id' => ['nullable', 'integer'],
+        ]);
+
+        // Verify category belongs to user if provided
+        if (!empty($validated['category_id'])) {
+            $category = $request->user()->categories()->find($validated['category_id']);
+            if (!$category) {
+                return back()->withErrors(['category_id' => 'Invalid category.']);
+            }
+        }
+
+        $feed->update([
+            'title' => $validated['title'],
+            'category_id' => $validated['category_id'] ?? null,
+        ]);
+
+        return back();
+    }
+
+    public function destroy(Request $request, \App\Models\Feed $feed)
+    {
+        if ($feed->user_id !== $request->user()->id) {
+            abort(404);
+        }
+
+        $feed->delete();
+
+        return back();
     }
 
     public function refresh(Request $request)
