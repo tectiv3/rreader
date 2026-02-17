@@ -515,34 +515,7 @@ function removeFromReadLater(article) {
     });
 }
 
-// Infinite scroll observer
-const observer = ref(null);
-
-function setupObserver() {
-    if (observer.value) observer.value.disconnect();
-
-    observer.value = new IntersectionObserver(
-        (entries) => {
-            if (entries[0].isIntersecting) {
-                loadMore();
-            }
-        },
-        { rootMargin: '200px' }
-    );
-}
-
-function onSentinel(el) {
-    if (el) {
-        setupObserver();
-        observer.value.observe(el);
-    } else if (observer.value) {
-        observer.value.disconnect();
-    }
-}
-
-onUnmounted(() => {
-    if (observer.value) observer.value.disconnect();
-});
+// Load more is now manual (button click) to avoid infinite scroll loops
 
 function formatLastUpdated(date) {
     return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -696,8 +669,14 @@ function formatLastUpdated(date) {
                 </div>
 
                 <!-- Infinite scroll sentinel -->
-                <div v-if="nextPageUrl" :ref="onSentinel" class="flex justify-center py-6">
-                    <div v-if="loadingMore" class="text-sm text-slate-600 dark:text-slate-500">Loading more...</div>
+                <div v-if="nextPageUrl" class="flex justify-center py-6">
+                    <button
+                        @click="loadMore"
+                        :disabled="loadingMore"
+                        class="rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                    >
+                        {{ loadingMore ? 'Loading...' : 'Load more articles' }}
+                    </button>
                 </div>
 
                 <!-- End of list -->
@@ -965,8 +944,14 @@ function formatLastUpdated(date) {
                 </div>
 
                 <!-- Infinite scroll sentinel -->
-                <div v-if="nextPageUrl" :ref="onSentinel" class="flex justify-center py-6">
-                    <div v-if="loadingMore" class="text-sm text-slate-600 dark:text-slate-500">Loading more...</div>
+                <div v-if="nextPageUrl" class="flex justify-center py-6">
+                    <button
+                        @click="loadMore"
+                        :disabled="loadingMore"
+                        class="rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                    >
+                        {{ loadingMore ? 'Loading...' : 'Load more articles' }}
+                    </button>
                 </div>
 
                 <!-- End of list -->
