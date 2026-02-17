@@ -39,6 +39,10 @@
 - Always `libxml_clear_errors()` and restore `libxml_use_internal_errors()` state after XML parsing
 - Sanitize URLs from OPML attributes — reject non-http(s) schemes to prevent XSS via `javascript:` URIs
 - Use `watch(() => props.preview, ..., { immediate: true })` to re-init selection state when Inertia props change
+- User preferences stored as JSON column on users table — `$casts => 'array'`, direct assignment (not in `$fillable`)
+- `useDarkMode` composable supports 3 modes: `dark`, `light`, `system` — stored in localStorage as `rreader-theme`
+- Settings routes: `settings.index` (GET), `settings.update` (PATCH), `settings.updateAccount` (PATCH), `settings.updatePassword` (PATCH)
+- Reuse existing Breeze auth routes (e.g. `route('logout')`) instead of duplicating auth logic
 
 ---
 
@@ -238,4 +242,27 @@
   - Use `uploadForm.processing` from Inertia's `useForm` instead of manual `isUploading` ref — single source of truth
   - `mimetypes:text/xml,application/xml,text/plain,text/x-opml` validation is more reliable than file extension check alone
   - Scope `FetchFeed` dispatch to `whereIn('feed_url', $selectedUrls)` to avoid re-dispatching for previously failed feeds
+---
+
+## 2026-02-17 - US-012
+- What was implemented: Settings screen with all sections — Appearance (Dark/Light/System theme toggle), Reading (article view mode, font size), Feeds (refresh interval, mark-as-read-on-scroll toggle), Account (name/email update), Password change, Data (Import/Export OPML links), About (version, source code link), and Logout button. Settings persisted per-user via JSON `settings` column on users table. Updated `useDarkMode` composable to support 3-mode theme (dark/light/system) with system media query listener and proper cleanup. Settings accessible from both bottom nav and sidebar drawer.
+- Files changed:
+  - `database/migrations/2026_02_17_140359_add_settings_to_users_table.php` — Add nullable JSON `settings` column to users table
+  - `app/Models/User.php` — Added `settings` to `$casts` as array
+  - `app/Http/Controllers/SettingsController.php` — New controller with index (render settings page with defaults merged), update (validate & persist preferences), updateAccount (name/email), updatePassword (current password verification)
+  - `resources/js/Pages/Settings/Index.vue` — New settings page with Appearance, Reading, Feeds, Account, Password, Data, About, and Logout sections. Dark-themed, mobile-first design consistent with app patterns
+  - `resources/js/Composables/useDarkMode.js` — Upgraded from boolean dark/light to 3-mode theme (dark/light/system) with sync localStorage read at module load, media query listener with cleanup, old key migration
+  - `resources/js/Layouts/AppLayout.vue` — Added Settings icon to bottom navigation bar with active state detection
+  - `resources/js/Components/SidebarDrawer.vue` — Added Settings link in drawer footer alongside Add Feed button
+  - `routes/web.php` — Added settings routes: GET /settings, PATCH /settings, PATCH /settings/account, PATCH /settings/password
+  - `.chief/prds/main/prd.json` — Marked US-012 as passes: true
+- **Learnings for future iterations:**
+  - Store user preferences as a JSON column on users table — simpler than a separate settings table, `$casts => 'array'` handles serialization automatically
+  - Don't add JSON settings column to `$fillable` — use direct assignment (`$user->settings = ...`) to prevent mass-assignment overwrites
+  - `useDarkMode` composable uses module-level singleton ref — any component calling it shares the same reactive state
+  - Read localStorage synchronously at module load (outside `onMounted`) to prevent theme flash on page load
+  - Always clean up `matchMedia` event listeners in `onUnmounted()` to prevent listener accumulation in Inertia SPA
+  - Use `watch(() => props.status, ...)` with `immediate: true` for flash messages that arrive via Inertia redirect — setup-time refs miss async prop updates
+  - Reuse existing Breeze logout route (`route('logout')`) instead of duplicating auth logic in new controllers
+  - Wrap toggle-button preference groups in `<form @submit.prevent>` for keyboard accessibility
 ---

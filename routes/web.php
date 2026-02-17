@@ -5,6 +5,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\OpmlController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -44,6 +45,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/opml/preview', [OpmlController::class, 'preview'])->name('opml.preview');
     Route::post('/opml/import', [OpmlController::class, 'import'])->name('opml.import');
     Route::get('/opml/export', [OpmlController::class, 'export'])->name('opml.export');
+
+    // Settings
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::patch('/settings', [SettingsController::class, 'update'])->name('settings.update');
+    Route::patch('/settings/account', [SettingsController::class, 'updateAccount'])->name('settings.updateAccount');
+    Route::patch('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.updatePassword');
 
     // Articles
     Route::get('/articles', [ArticleController::class, 'index'])->name('articles.index');
