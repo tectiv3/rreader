@@ -156,7 +156,7 @@ class FeedParserService
             $articles[] = [
                 'guid' => $entry->getId() ?: $entry->getLink() ?: md5($entry->getTitle().$entry->getDateCreated()?->format('c')),
                 'title' => $entry->getTitle(),
-                'author' => $entry->getAuthor()?->offsetGet('name') ?? null,
+                'author' => $entry->getAuthor()['name'] ?? null,
                 'content' => $entry->getContent(),
                 'summary' => $entry->getDescription(),
                 'url' => $entry->getLink(),

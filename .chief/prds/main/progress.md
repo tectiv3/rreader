@@ -49,6 +49,11 @@
 - For offline-aware actions: check `isOnline.value`, do optimistic UI update, then `enqueue('post', url, data)` for server sync later
 - `useToast` composable at `resources/js/Composables/useToast.js` — shared singleton toast queue, use `success(msg)` / `error(msg)` / `info(msg)` for snackbar notifications
 - Track Inertia navigation with `router.on('start'/'finish')` — returns cleanup functions; store in variables and call in `onUnmounted`
+- Desktop layout: 3-column flex with `height: calc(100vh - 3.5rem)` to fill viewport below header
+- Use `$request->wantsJson()` in controllers to serve both Inertia and JSON from same endpoint
+- `SidebarDrawer` supports `persistent` (static aside) and `collapsed` (icons only) props for desktop
+- Keyboard shortcuts: always guard with `e.target.tagName` check to avoid capturing in inputs
+- Article content styles must be unscoped (`<style>` not `<style scoped>`) for `v-html` content
 
 ---
 
@@ -339,4 +344,23 @@
   - Use `leaving` state with setTimeout for exit animations — set `leaving: true`, wait 300ms, then remove from array
   - `page-enter` CSS animation class applied to content wrapper gives subtle fade+slide-up on navigation without complex Vue transition groups
   - Optimistic mark-as-read on article tap: update local `ref()` array before `router.visit()` — the navigation will replace the component anyway, but it prevents flash of unread styling
+---
+
+## 2026-02-17 - US-017
+- What was implemented: Responsive Desktop Layout — 3-column layout on desktop (persistent sidebar, article list, inline article reader), keyboard shortcuts (j/k navigate, s save, m mark unread, Esc close), collapsible sidebar with localStorage persistence, hover states and cursor styles for desktop interaction. Mobile layout unchanged.
+- Files changed:
+  - `app/Http/Controllers/ArticleController.php` — Added `wantsJson()` check in `show()` to return JSON for desktop inline article loading
+  - `resources/js/Components/SidebarDrawer.vue` — Added `persistent` and `collapsed` props for desktop mode; persistent renders as static `<aside>` with collapse toggle, collapsed shows icons only; mobile drawer unchanged
+  - `resources/js/Pages/Articles/Index.vue` — Major refactor: `isDesktop` ref with resize listener, 3-column flex layout (sidebar + article list + reader panel), inline article loading via `fetch()` with JSON response, keyboard shortcut handler (j/k/s/m/Esc), selected article highlighting with blue border, article reader toolbar (read later, mark unread, open in browser, share), sidebar collapse toggle with localStorage, mobile layout preserved as-is
+  - `.chief/prds/main/prd.json` — Marked US-017 as passes: true
+- **Learnings for future iterations:**
+  - Use `$request->wantsJson()` to support both Inertia page renders and JSON API responses from the same controller method — enables desktop inline loading without new routes
+  - Desktop detection: `window.innerWidth >= 1024` with resize listener, matching the `lg:` Tailwind breakpoint
+  - `style="height: calc(100vh - 3.5rem)"` on the 3-column container accounts for the fixed header height (h-14 = 3.5rem)
+  - For inline article loading, use `fetch()` with `Accept: application/json` header rather than Inertia router — avoids page component replacement
+  - Selected article highlighting: combine `bg-blue-600/10` with `border-l-2 border-l-blue-500` for clear visual selection
+  - Keyboard shortcuts: check `e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable` to avoid capturing when user is typing
+  - `scrollIntoView({ block: 'nearest', behavior: 'smooth' })` keeps the selected article visible in the list without jarring jumps
+  - Sidebar collapsed state in localStorage (`rreader-sidebar-collapsed`) persists across sessions; `transition-all duration-200` on the aside provides smooth collapse animation
+  - Article content `.article-content` styles must be unscoped (`<style>` not `<style scoped>`) when used with `v-html` — scoped styles don't apply to dynamically inserted HTML
 ---
