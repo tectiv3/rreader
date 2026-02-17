@@ -3,6 +3,7 @@
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\FeedController;
+use App\Http\Controllers\OpmlController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -37,6 +38,12 @@ Route::middleware('auth')->group(function () {
     Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
     Route::post('/categories/reorder', [CategoryController::class, 'reorder'])->name('categories.reorder');
+
+    // OPML Import/Export
+    Route::get('/opml/import', [OpmlController::class, 'index'])->name('opml.index');
+    Route::post('/opml/preview', [OpmlController::class, 'preview'])->name('opml.preview');
+    Route::post('/opml/import', [OpmlController::class, 'import'])->name('opml.import');
+    Route::get('/opml/export', [OpmlController::class, 'export'])->name('opml.export');
 
     // Articles
     Route::get('/articles', [ArticleController::class, 'index'])->name('articles.index');

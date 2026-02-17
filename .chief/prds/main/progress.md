@@ -33,6 +33,12 @@
 - `usePage().props` gives access to Inertia shared props from any component (useful for active-state in nav)
 - Feed/category management page at `/feeds/manage` — `FeedController@manage` renders categories + uncategorized feeds
 - `CategoryController` handles CRUD + reorder; ownership verified via `user_id` check + `abort(404)`
+- OPML import uses session storage for parsed data (don't trust client-submitted parsed OPML)
+- `OpmlService` handles parse/import/export; `OpmlController` at `/opml/*` routes
+- Use `simplexml_load_string()` for OPML parsing (lighter than laminas-feed for non-RSS XML)
+- Always `libxml_clear_errors()` and restore `libxml_use_internal_errors()` state after XML parsing
+- Sanitize URLs from OPML attributes — reject non-http(s) schemes to prevent XSS via `javascript:` URIs
+- Use `watch(() => props.preview, ..., { immediate: true })` to re-init selection state when Inertia props change
 
 ---
 
@@ -214,4 +220,22 @@
   - Verify category/feed ownership with `user_id` check before allowing mutations — abort(404) for unauthorized access
   - Use `preserveScroll: true` on all CRUD operations so user doesn't lose position on the page
   - Inline editing (rename) with Escape key to cancel provides fast, non-disruptive UX
+---
+
+## 2026-02-17 - US-011
+- What was implemented: OPML Import & Export — file upload with .opml/.xml support, XML parsing with `simplexml_load_string()`, preview of feeds with duplicate detection, selectable feeds with select-all toggle, session-based data storage for secure import, category mapping from OPML folder outlines, nested category flattening, export as OPML 2.0 with XMLWriter. Dark-themed mobile-first UI consistent with existing pages.
+- Files changed:
+  - `app/Services/OpmlService.php` — New service: parse OPML XML (categories + uncategorized feeds, nested flattening), import feeds with duplicate skip + category find-or-create, export user subscriptions as OPML 2.0 XML. URL scheme validation, libxml error cleanup, title/name truncation.
+  - `app/Http/Controllers/OpmlController.php` — New controller: index (render import page), preview (upload + parse + session store + duplicate marking), import (read from session + import + dispatch FetchFeed for new feeds), export (download OPML file).
+  - `resources/js/Pages/Opml/Import.vue` — New page: file upload with drag-style label, preview with categories/uncategorized sections, per-feed checkboxes with duplicate marking (strikethrough + "subscribed" label), select-all toggle, import button with count, export download button. Uses `watch` for reactive selection state.
+  - `routes/web.php` — Added OpmlController import, routes: GET /opml/import, POST /opml/preview, POST /opml/import, GET /opml/export
+- **Learnings for future iterations:**
+  - Store parsed OPML in session rather than sending back to client and trusting re-submitted data — prevents fabricated import requests
+  - `simplexml_load_string()` is sufficient for OPML parsing (no need for laminas-feed which is for RSS/Atom)
+  - Always wrap `libxml_use_internal_errors(true)` in try/finally with `libxml_clear_errors()` and state restore
+  - Sanitize all URLs from OPML attributes — reject non-http(s) schemes to prevent XSS via `javascript:` or `data:` URIs
+  - Use `watch(() => props.preview, ..., { immediate: true })` instead of one-time `if` block for selection init — handles re-uploads
+  - Use `uploadForm.processing` from Inertia's `useForm` instead of manual `isUploading` ref — single source of truth
+  - `mimetypes:text/xml,application/xml,text/plain,text/x-opml` validation is more reliable than file extension check alone
+  - Scope `FetchFeed` dispatch to `whereIn('feed_url', $selectedUrls)` to avoid re-dispatching for previously failed feeds
 ---
