@@ -1,16 +1,32 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
+import SidebarDrawer from '@/Components/SidebarDrawer.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { ref, computed, onUnmounted, watch } from 'vue';
 
 const props = defineProps({
     articles: Object,
     unreadCount: Number,
+    filterTitle: String,
+    activeFeedId: Number,
+    activeCategoryId: Number,
+    activeFilter: String,
+    sidebar: Object,
 });
 
 const loading = ref(false);
 const loadingMore = ref(false);
 const markingAllRead = ref(false);
+const sidebarOpen = ref(false);
+
+// Local copy of articles to avoid mutating props
+const allArticles = ref([...props.articles.data]);
+const nextPageUrl = ref(props.articles.next_page_url);
+
+watch(() => props.articles, (newArticles) => {
+    allArticles.value = [...newArticles.data];
+    nextPageUrl.value = newArticles.next_page_url;
+});
 
 // Group articles by date
 const groupedArticles = computed(() => {
@@ -20,7 +36,7 @@ const groupedArticles = computed(() => {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    for (const article of props.articles.data) {
+    for (const article of allArticles.value) {
         const pubDate = new Date(article.published_at);
         pubDate.setHours(0, 0, 0, 0);
 
@@ -62,7 +78,6 @@ function timeAgo(dateString) {
 }
 
 function openArticle(article) {
-    // Mark as read
     if (!article.is_read) {
         router.post(route('articles.markAsRead'), {
             article_ids: [article.id],
@@ -72,15 +87,26 @@ function openArticle(article) {
         });
     }
     // TODO: Navigate to article view (US-008)
-    // For now, open the article URL in a new tab
     if (article.url) {
-        window.open(article.url, '_blank');
+        try {
+            const url = new URL(article.url);
+            if (url.protocol === 'http:' || url.protocol === 'https:') {
+                window.open(url.href, '_blank', 'noopener,noreferrer');
+            }
+        } catch {
+            // Invalid URL, ignore
+        }
     }
 }
 
 function markAllAsRead() {
     markingAllRead.value = true;
-    router.post(route('articles.markAllAsRead'), {}, {
+    const data = {};
+    if (props.activeFeedId) data.feed_id = props.activeFeedId;
+    if (props.activeCategoryId) data.category_id = props.activeCategoryId;
+    if (props.activeFilter) data.filter = props.activeFilter;
+
+    router.post(route('articles.markAllAsRead'), data, {
         preserveScroll: true,
         onFinish: () => {
             markingAllRead.value = false;
@@ -89,19 +115,17 @@ function markAllAsRead() {
 }
 
 function loadMore() {
-    if (!props.articles.next_page_url || loadingMore.value) return;
+    if (!nextPageUrl.value || loadingMore.value) return;
 
     loadingMore.value = true;
-    router.get(props.articles.next_page_url, {}, {
+    router.get(nextPageUrl.value, {}, {
         preserveState: true,
         preserveScroll: true,
         only: ['articles'],
         onSuccess: (page) => {
-            // Merge new articles into existing data
             const newArticles = page.props.articles;
-            props.articles.data.push(...newArticles.data);
-            props.articles.next_page_url = newArticles.next_page_url;
-            props.articles.current_page = newArticles.current_page;
+            allArticles.value.push(...newArticles.data);
+            nextPageUrl.value = newArticles.next_page_url;
         },
         onFinish: () => {
             loadingMore.value = false;
@@ -111,7 +135,10 @@ function loadMore() {
 
 function refreshFeeds() {
     loading.value = true;
-    router.post(route('feeds.refresh'), {}, {
+    const data = {};
+    if (props.activeFeedId) data.feed_ids = [props.activeFeedId];
+
+    router.post(route('feeds.refresh'), data, {
         preserveScroll: true,
         onFinish: () => {
             loading.value = false;
@@ -121,7 +148,6 @@ function refreshFeeds() {
 
 // Infinite scroll observer
 const observer = ref(null);
-const sentinel = ref(null);
 
 function setupObserver() {
     if (observer.value) observer.value.disconnect();
@@ -140,16 +166,34 @@ function onSentinel(el) {
     if (el) {
         setupObserver();
         observer.value.observe(el);
+    } else if (observer.value) {
+        observer.value.disconnect();
     }
 }
+
+onUnmounted(() => {
+    if (observer.value) observer.value.disconnect();
+});
 </script>
 
 <template>
     <Head title="Articles" />
 
     <AppLayout>
+        <template #header-left>
+            <button
+                @click="sidebarOpen = true"
+                class="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors -ml-2"
+                aria-label="Open sidebar"
+            >
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+            </button>
+        </template>
+
         <template #title>
-            All Feeds
+            {{ filterTitle }}
             <span
                 v-if="unreadCount > 0"
                 class="ml-2 inline-flex items-center rounded-full bg-blue-600 px-2 py-0.5 text-xs font-medium text-white"
@@ -159,7 +203,6 @@ function onSentinel(el) {
         </template>
 
         <template #header-right>
-            <!-- Refresh button -->
             <button
                 @click="refreshFeeds"
                 :disabled="loading"
@@ -174,7 +217,6 @@ function onSentinel(el) {
                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" />
                 </svg>
             </button>
-            <!-- Mark all as read button -->
             <button
                 v-if="unreadCount > 0"
                 @click="markAllAsRead"
@@ -188,14 +230,28 @@ function onSentinel(el) {
             </button>
         </template>
 
+        <SidebarDrawer
+            :open="sidebarOpen"
+            :sidebar="sidebar"
+            :active-feed-id="activeFeedId"
+            :active-category-id="activeCategoryId"
+            :active-filter="activeFilter"
+            @close="sidebarOpen = false"
+        />
+
         <!-- Empty state -->
-        <div v-if="articles.data.length === 0" class="flex flex-col items-center justify-center px-4 py-20 text-center">
+        <div v-if="allArticles.length === 0" class="flex flex-col items-center justify-center px-4 py-20 text-center">
             <svg class="h-16 w-16 text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
             </svg>
-            <h3 class="mt-4 text-lg font-medium text-slate-300">No articles yet</h3>
-            <p class="mt-2 text-sm text-slate-500">Subscribe to feeds to start seeing articles here.</p>
+            <h3 class="mt-4 text-lg font-medium text-slate-300">
+                {{ activeFilter === 'read_later' ? 'No saved articles' : 'No articles yet' }}
+            </h3>
+            <p class="mt-2 text-sm text-slate-500">
+                {{ activeFilter === 'read_later' ? 'Save articles from your feeds to read later.' : 'Subscribe to feeds to start seeing articles here.' }}
+            </p>
             <a
+                v-if="!activeFilter"
                 :href="route('feeds.create')"
                 class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
             >
@@ -224,7 +280,7 @@ function onSentinel(el) {
                                         v-if="article.feed?.favicon_url"
                                         :src="article.feed.favicon_url"
                                         class="h-3.5 w-3.5 rounded-sm"
-                                        :alt="article.feed.title"
+                                        alt=""
                                     />
                                     <span class="truncate">{{ article.feed?.title }}</span>
                                     <span>&middot;</span>
@@ -269,7 +325,7 @@ function onSentinel(el) {
                                 v-if="article.feed?.favicon_url"
                                 :src="article.feed.favicon_url"
                                 class="h-4 w-4 shrink-0 rounded-sm"
-                                :alt="article.feed.title"
+                                alt=""
                             />
                             <span class="w-32 shrink-0 truncate text-xs text-slate-500">{{ article.feed?.title }}</span>
                             <h3
@@ -288,7 +344,7 @@ function onSentinel(el) {
             </div>
 
             <!-- Infinite scroll sentinel -->
-            <div v-if="articles.next_page_url" :ref="onSentinel" class="flex justify-center py-6">
+            <div v-if="nextPageUrl" :ref="onSentinel" class="flex justify-center py-6">
                 <div v-if="loadingMore" class="text-sm text-slate-500">Loading more...</div>
             </div>
 
