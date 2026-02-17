@@ -2,7 +2,9 @@
 import { useDarkMode } from '@/Composables/useDarkMode.js';
 import { useOnlineStatus } from '@/Composables/useOnlineStatus.js';
 import { useOfflineQueue } from '@/Composables/useOfflineQueue.js';
+import ToastContainer from '@/Components/ToastContainer.vue';
 import { router, usePage } from '@inertiajs/vue3';
+import ArticleListSkeleton from '@/Components/ArticleListSkeleton.vue';
 import { inject, ref, onMounted, onUnmounted } from 'vue';
 
 const { isDark, toggle } = useDarkMode();
@@ -11,6 +13,25 @@ useOfflineQueue(); // Initialize queue — auto-flushes when back online
 
 const page = usePage();
 const toggleSidebar = inject('toggleSidebar', null);
+
+// Navigation loading state for skeleton screens
+const isNavigating = ref(false);
+let removeStartListener = null;
+let removeFinishListener = null;
+
+onMounted(() => {
+    removeStartListener = router.on('start', () => {
+        isNavigating.value = true;
+    });
+    removeFinishListener = router.on('finish', () => {
+        isNavigating.value = false;
+    });
+});
+
+onUnmounted(() => {
+    removeStartListener?.();
+    removeFinishListener?.();
+});
 
 function navigateTo(params) {
     router.get(route('articles.index', params), {}, { preserveState: false });
@@ -88,8 +109,15 @@ onUnmounted(() => {
 
         <!-- Main content -->
         <main class="pb-16 lg:pb-0">
-            <slot />
+            <!-- Skeleton loading during navigation -->
+            <ArticleListSkeleton v-if="isNavigating" />
+            <div v-else class="page-enter">
+                <slot />
+            </div>
         </main>
+
+        <!-- Toast notifications -->
+        <ToastContainer />
 
         <!-- Bottom navigation bar (mobile only) -->
         <nav class="fixed bottom-0 inset-x-0 z-40 border-t border-slate-800 bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-slate-900/80 lg:hidden pb-safe transition-transform duration-300"

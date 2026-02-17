@@ -279,7 +279,8 @@
         "Toast/snackbar notifications for background actions (\"Feed refreshed\", \"Article saved\")"
       ],
       "priority": 16,
-      "passes": false
+      "passes": true,
+      "inProgress": false
     },
     {
       "id": "US-017",

@@ -2,9 +2,10 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SidebarDrawer from '@/Components/SidebarDrawer.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { ref, computed, onUnmounted, watch, provide } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, provide } from 'vue';
 import { useOnlineStatus } from '@/Composables/useOnlineStatus.js';
 import { useOfflineQueue } from '@/Composables/useOfflineQueue.js';
+import { useToast } from '@/Composables/useToast.js';
 
 const props = defineProps({
     articles: Object,
@@ -19,6 +20,7 @@ const props = defineProps({
 const isReadLaterView = computed(() => props.activeFilter === 'read_later');
 const { isOnline } = useOnlineStatus();
 const { enqueue } = useOfflineQueue();
+const { success } = useToast();
 
 // Track when data was last fetched
 const lastUpdatedAt = ref(new Date());
@@ -33,6 +35,45 @@ const loading = ref(false);
 const loadingMore = ref(false);
 const markingAllRead = ref(false);
 const sidebarOpen = ref(false);
+
+// Pull-to-refresh state
+const pullDistance = ref(0);
+const isPulling = ref(false);
+const isRefreshing = ref(false);
+const PULL_THRESHOLD = 80;
+let pullStartY = 0;
+
+function onPullStart(e) {
+    if (window.scrollY > 0 || isRefreshing.value) return;
+    pullStartY = e.touches[0].clientY;
+    isPulling.value = true;
+}
+
+function onPullMove(e) {
+    if (!isPulling.value || isRefreshing.value) return;
+    if (window.scrollY > 0) {
+        isPulling.value = false;
+        pullDistance.value = 0;
+        return;
+    }
+    const deltaY = e.touches[0].clientY - pullStartY;
+    if (deltaY > 0) {
+        // Dampen the pull distance for a rubber-band feel
+        pullDistance.value = Math.min(deltaY * 0.5, 120);
+    }
+}
+
+function onPullEnd() {
+    if (!isPulling.value) return;
+    isPulling.value = false;
+    if (pullDistance.value >= PULL_THRESHOLD && !isRefreshing.value) {
+        isRefreshing.value = true;
+        pullDistance.value = 60; // Hold at spinner position
+        refreshFeeds();
+    } else {
+        pullDistance.value = 0;
+    }
+}
 
 // Local copy of articles to avoid mutating props
 const allArticles = ref([...props.articles.data]);
@@ -93,6 +134,13 @@ function timeAgo(dateString) {
 }
 
 function openArticle(article) {
+    // Optimistic UI: mark as read immediately before navigation
+    if (!article.is_read) {
+        const idx = allArticles.value.findIndex(a => a.id === article.id);
+        if (idx !== -1) {
+            allArticles.value[idx] = { ...allArticles.value[idx], is_read: true };
+        }
+    }
     router.visit(route('articles.show', article.id));
 }
 
@@ -108,6 +156,7 @@ function markAllAsRead() {
         allArticles.value = allArticles.value.map(a => ({ ...a, is_read: true }));
         enqueue('post', route('articles.markAllAsRead'), data);
         markingAllRead.value = false;
+        success('All marked as read');
         return;
     }
 
@@ -115,6 +164,7 @@ function markAllAsRead() {
         preserveScroll: true,
         onFinish: () => {
             markingAllRead.value = false;
+            success('All marked as read');
         },
     });
 }
@@ -147,6 +197,9 @@ function refreshFeeds() {
         preserveScroll: true,
         onFinish: () => {
             loading.value = false;
+            isRefreshing.value = false;
+            pullDistance.value = 0;
+            success('Feeds refreshed');
         },
     });
 }
@@ -310,6 +363,33 @@ function formatLastUpdated(date) {
             @close="sidebarOpen = false"
         />
 
+        <!-- Pull-to-refresh indicator -->
+        <div
+            class="flex items-center justify-center overflow-hidden transition-all duration-200 lg:hidden"
+            :style="{ height: pullDistance + 'px' }"
+            :class="{ 'transition-none': isPulling }"
+        >
+            <div class="flex flex-col items-center gap-1">
+                <svg
+                    class="h-5 w-5 text-slate-400 transition-transform duration-200"
+                    :class="{ 'animate-spin': isRefreshing }"
+                    :style="!isRefreshing ? { transform: `rotate(${Math.min(pullDistance / PULL_THRESHOLD, 1) * 360}deg)` } : {}"
+                    fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+                >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" />
+                </svg>
+                <span v-if="!isRefreshing && pullDistance >= PULL_THRESHOLD" class="text-[10px] text-slate-500">Release to refresh</span>
+                <span v-else-if="isRefreshing" class="text-[10px] text-slate-500">Refreshing...</span>
+            </div>
+        </div>
+
+        <!-- Scrollable area with pull-to-refresh touch handlers -->
+        <div
+            @touchstart.passive="onPullStart"
+            @touchmove.passive="onPullMove"
+            @touchend="onPullEnd"
+        >
+
         <!-- Empty state -->
         <div v-if="allArticles.length === 0" class="flex flex-col items-center justify-center px-4 py-20 text-center">
             <svg class="h-16 w-16 text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
@@ -447,5 +527,6 @@ function formatLastUpdated(date) {
                 Last updated at {{ formatLastUpdated(lastUpdatedAt) }}
             </div>
         </div>
+        </div><!-- end pull-to-refresh touch area -->
     </AppLayout>
 </template>

@@ -47,6 +47,8 @@
 - `useOfflineQueue` composable at `resources/js/Composables/useOfflineQueue.js` — localStorage-backed action queue, auto-flushes on reconnection
 - Workbox runtime caching: `NetworkFirst` for Inertia pages (5s timeout), `CacheFirst` for images/favicons
 - For offline-aware actions: check `isOnline.value`, do optimistic UI update, then `enqueue('post', url, data)` for server sync later
+- `useToast` composable at `resources/js/Composables/useToast.js` — shared singleton toast queue, use `success(msg)` / `error(msg)` / `info(msg)` for snackbar notifications
+- Track Inertia navigation with `router.on('start'/'finish')` — returns cleanup functions; store in variables and call in `onUnmounted`
 
 ---
 
@@ -317,4 +319,24 @@
   - localStorage queue for offline actions is simple and reliable — use sequential Promise chain for flush to avoid race conditions
   - Optimistic UI updates (mark as read locally, toggle bookmark state) provide instant feedback offline; server sync happens transparently on reconnection
   - Don't re-queue actions that fail on flush — they may be stale (e.g., article already deleted or state already changed)
+---
+
+## 2026-02-17 - US-016
+- What was implemented: Pull-to-refresh & Loading States — touch-based pull-to-refresh gesture on mobile article list (damped rubber-band pull with spinner, threshold at 80px), skeleton loading screens during Inertia page navigation (ArticleListSkeleton component with mobile card and desktop compact variants), page fade-in transition animation via CSS keyframes, toast/snackbar notification system (useToast composable + ToastContainer component) with success/error/info types and auto-dismiss, optimistic mark-as-read on article tap, toast notifications on feed refresh, mark all as read, save/remove read later, mark as unread, and clipboard copy.
+- Files changed:
+  - `resources/js/Composables/useToast.js` — New composable: module-level singleton toast array, show/dismiss/success/error/info methods, auto-dismiss with configurable duration, leaving animation state
+  - `resources/js/Components/ToastContainer.vue` — New component: fixed bottom position (above bottom nav on mobile), fade-in/out transitions, success/error/info color variants, dismiss button, accessible role="status"
+  - `resources/js/Components/ArticleListSkeleton.vue` — New component: animated skeleton loading placeholders matching article list layout (mobile card + desktop compact), pulse animation
+  - `resources/js/Layouts/AppLayout.vue` — Added ToastContainer, ArticleListSkeleton during navigation, Inertia router.on('start'/'finish') for navigation state tracking, page-enter animation class
+  - `resources/js/Pages/Articles/Index.vue` — Added pull-to-refresh touch handlers (onPullStart/Move/End with damping), pull indicator with rotating/spinning icon, refreshFeeds shows toast, markAllAsRead shows toast, optimistic mark-as-read on openArticle
+  - `resources/js/Pages/Articles/Show.vue` — Added toast notifications for toggleReadLater, markAsUnread, and clipboard copy fallback
+  - `resources/css/app.css` — Added page-fade-in keyframe animation and .page-enter class
+- **Learnings for future iterations:**
+  - Pull-to-refresh: check `window.scrollY > 0` to avoid triggering when not at top; dampen pull distance with `* 0.5` for rubber-band feel
+  - Use `router.on('start')` / `router.on('finish')` to track Inertia navigation state — returns cleanup functions to remove listeners
+  - Skeleton components should match the exact layout structure of the real content (same gaps, heights, widths) for seamless transition
+  - Toast composable uses module-level singleton `ref([])` — any component calling `useToast()` shares the same toast queue
+  - Use `leaving` state with setTimeout for exit animations — set `leaving: true`, wait 300ms, then remove from array
+  - `page-enter` CSS animation class applied to content wrapper gives subtle fade+slide-up on navigation without complex Vue transition groups
+  - Optimistic mark-as-read on article tap: update local `ref()` array before `router.visit()` — the navigation will replace the component anyway, but it prevents flash of unread styling
 ---

@@ -4,6 +4,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import { useOnlineStatus } from '@/Composables/useOnlineStatus.js';
 import { useOfflineQueue } from '@/Composables/useOfflineQueue.js';
+import { useToast } from '@/Composables/useToast.js';
 
 const props = defineProps({
     article: Object,
@@ -11,6 +12,7 @@ const props = defineProps({
 
 const { isOnline } = useOnlineStatus();
 const { enqueue } = useOfflineQueue();
+const { success } = useToast();
 
 const isReadLater = ref(props.article.is_read_later ?? false);
 const togglingReadLater = ref(false);
@@ -49,6 +51,7 @@ function toggleReadLater() {
         isReadLater.value = !isReadLater.value;
         enqueue('post', route('articles.toggleReadLater', props.article.id), {});
         togglingReadLater.value = false;
+        success(isReadLater.value ? 'Article saved' : 'Removed from Read Later');
         return;
     }
 
@@ -56,6 +59,7 @@ function toggleReadLater() {
         preserveScroll: true,
         onSuccess: () => {
             isReadLater.value = !isReadLater.value;
+            success(isReadLater.value ? 'Article saved' : 'Removed from Read Later');
         },
         onFinish: () => {
             togglingReadLater.value = false;
@@ -69,6 +73,7 @@ function markAsUnread() {
     if (!isOnline.value) {
         enqueue('post', route('articles.markAsUnread', props.article.id), {});
         markingUnread.value = false;
+        success('Marked as unread');
         return;
     }
 
@@ -76,6 +81,7 @@ function markAsUnread() {
         preserveScroll: true,
         onFinish: () => {
             markingUnread.value = false;
+            success('Marked as unread');
         },
     });
 }
@@ -104,7 +110,9 @@ function shareArticle() {
     } else {
         // Fallback: copy URL to clipboard
         if (props.article.url) {
-            navigator.clipboard.writeText(props.article.url).catch(() => {});
+            navigator.clipboard.writeText(props.article.url).then(() => {
+                success('Link copied to clipboard');
+            }).catch(() => {});
         }
     }
 }
