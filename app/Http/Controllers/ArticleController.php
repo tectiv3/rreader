@@ -288,6 +288,10 @@ class ArticleController extends Controller
             ],
         ]);
 
+        if ($request->wantsJson()) {
+            return response()->json(['article' => $article]);
+        }
+
         return Inertia::render('Articles/Show', [
             'article' => $article,
         ]);

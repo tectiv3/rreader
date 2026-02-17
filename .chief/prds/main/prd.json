@@ -295,7 +295,8 @@
         "Proper hover states and cursor styles for desktop interaction"
       ],
       "priority": 17,
-      "passes": false
+      "passes": true,
+      "inProgress": false
     }
   ]
 }
