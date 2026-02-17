@@ -11,6 +11,10 @@
 - Use `text-base` on form inputs for mobile (prevents iOS auto-zoom on focus)
 - Use `focus:ring-offset-slate-900` on dark backgrounds for proper focus ring visibility
 - Breeze components default to light theme — always replace gray/indigo with slate/blue palette
+- Database is SQLite with foreign keys enabled
+- Use `text()` for URL columns in migrations (URLs can exceed 255 chars)
+- `foreignId()->constrained()` already creates an index — don't add redundant `$table->index()` on FK columns
+- Use composite indexes for boolean filters (e.g. `['user_id', 'is_read']` not just `'is_read'`)
 
 ---
 
@@ -56,4 +60,23 @@
   - Use `text-base` on inputs for mobile to prevent iOS auto-zoom on focus (16px minimum)
   - Use `focus:ring-offset-slate-900` on dark backgrounds so focus rings look correct
   - GuestLayout was already dark-themed from US-001, so auth pages just needed component and page-level color fixes
+---
+
+## 2026-02-17 - US-003
+- What was implemented: Core database schema and Eloquent models for categories, feeds, articles, and user_articles pivot table. All migrations with proper foreign keys, cascading deletes, and optimized indexes. Models with full relationship definitions (User hasMany Categories/Feeds, Feed belongsTo Category, Feed hasMany Articles, User belongsToMany Articles via pivot).
+- Files changed:
+  - `database/migrations/2026_02_17_000001_create_categories_table.php` — categories table (id, user_id FK, name, sort_order)
+  - `database/migrations/2026_02_17_000002_create_feeds_table.php` — feeds table (id, user_id FK, category_id nullable FK, title, feed_url, site_url, description, favicon_url, last_fetched_at)
+  - `database/migrations/2026_02_17_000003_create_articles_table.php` — articles table (id, feed_id FK, guid unique per feed, title, author, content, summary, url, image_url, published_at)
+  - `database/migrations/2026_02_17_000004_create_user_articles_table.php` — user_articles pivot (user_id, article_id, is_read, is_read_later, read_at)
+  - `app/Models/Category.php` — Category model with user/feeds relationships
+  - `app/Models/Feed.php` — Feed model with user/category/articles relationships
+  - `app/Models/Article.php` — Article model with feed/users relationships
+  - `app/Models/UserArticle.php` — UserArticle pivot model with user/article relationships
+  - `app/Models/User.php` — Added categories(), feeds(), articles() relationships
+- **Learnings for future iterations:**
+  - `foreignId()->constrained()` automatically creates an index on the FK column — no need for additional `$table->index()`
+  - Use `text()` instead of `string()` for URL columns — real-world URLs often exceed 255 characters
+  - Boolean column indexes alone have near-zero selectivity — use composite indexes like `['user_id', 'is_read']`
+  - SQLite handles `cascadeOnDelete()` and `nullOnDelete()` correctly with foreign keys enabled
 ---

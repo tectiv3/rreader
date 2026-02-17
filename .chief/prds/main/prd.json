@@ -51,7 +51,8 @@
         "Database indexes on frequently queried columns (user_id, feed_id, is_read, published_at, guid)"
       ],
       "priority": 3,
-      "passes": false
+      "passes": true,
+      "inProgress": false
     },
     {
       "id": "US-004",
