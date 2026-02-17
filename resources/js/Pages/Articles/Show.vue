@@ -125,7 +125,7 @@ function shareArticle() {
         <template #header-left>
             <button
                 @click="goBack"
-                class="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors -ml-2"
+                class="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors -ml-2"
                 aria-label="Go back"
             >
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -144,7 +144,7 @@ function shareArticle() {
                 @click="toggleReadLater"
                 :disabled="togglingReadLater"
                 class="rounded-lg p-2 transition-colors"
-                :class="isReadLater ? 'text-blue-400 hover:bg-slate-800' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'"
+                :class="isReadLater ? 'text-blue-400 hover:bg-slate-200 dark:hover:bg-slate-800' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200'"
                 :aria-label="isReadLater ? 'Remove from Read Later' : 'Save to Read Later'"
             >
                 <svg class="h-5 w-5" :fill="isReadLater ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -156,7 +156,7 @@ function shareArticle() {
             <button
                 @click="markAsUnread"
                 :disabled="markingUnread"
-                class="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors"
+                class="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
                 aria-label="Mark as unread"
             >
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -168,7 +168,7 @@ function shareArticle() {
             <button
                 v-if="article.url"
                 @click="openInBrowser"
-                class="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors"
+                class="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
                 aria-label="Open in browser"
             >
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -179,7 +179,7 @@ function shareArticle() {
             <!-- Share -->
             <button
                 @click="shareArticle"
-                class="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors"
+                class="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
                 aria-label="Share article"
             >
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -192,10 +192,10 @@ function shareArticle() {
         <article class="mx-auto max-w-3xl px-4 py-6">
             <!-- Article header -->
             <header class="mb-6">
-                <h1 class="text-2xl font-bold leading-tight text-slate-100">
+                <h1 class="text-2xl font-bold leading-tight text-slate-900 dark:text-slate-100">
                     {{ article.title }}
                 </h1>
-                <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-400">
+                <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
                     <div class="flex items-center gap-2">
                         <img
                             v-if="article.feed?.favicon_url"
@@ -212,13 +212,13 @@ function shareArticle() {
 
             <!-- Article body -->
             <div
-                class="article-content prose prose-invert max-w-none prose-headings:text-slate-200 prose-p:text-slate-300 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-200 prose-code:text-blue-300 prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-800 prose-img:rounded-lg prose-blockquote:border-slate-700 prose-blockquote:text-slate-400"
+                class="article-content prose max-w-none dark:prose-invert prose-headings:text-slate-800 dark:prose-headings:text-slate-200 prose-p:text-slate-700 dark:prose-p:text-slate-300 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-800 dark:prose-strong:text-slate-200 prose-code:text-blue-300 prose-pre:bg-slate-50 dark:prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-200 dark:prose-pre:border-slate-800 prose-img:rounded-lg prose-blockquote:border-slate-300 dark:prose-blockquote:border-slate-700 prose-blockquote:text-slate-500 dark:prose-blockquote:text-slate-400"
                 v-html="article.content || article.summary"
             />
 
             <!-- Fallback: if no content or summary -->
             <div v-if="!article.content && !article.summary" class="py-12 text-center">
-                <p class="text-slate-400">No article content available.</p>
+                <p class="text-slate-500 dark:text-slate-400">No article content available.</p>
                 <button
                     v-if="article.url"
                     @click="openInBrowser"
@@ -229,10 +229,10 @@ function shareArticle() {
             </div>
 
             <!-- Bottom actions -->
-            <footer class="mt-8 flex items-center justify-between border-t border-slate-800 pt-6">
+            <footer class="mt-8 flex items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-6">
                 <button
                     @click="goBack"
-                    class="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 transition-colors"
+                    class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
                 >
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -244,7 +244,7 @@ function shareArticle() {
                         @click="toggleReadLater"
                         :disabled="togglingReadLater"
                         class="flex items-center gap-1.5 text-sm transition-colors"
-                        :class="isReadLater ? 'text-blue-400' : 'text-slate-400 hover:text-slate-200'"
+                        :class="isReadLater ? 'text-blue-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'"
                     >
                         <svg class="h-4 w-4" :fill="isReadLater ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
@@ -254,7 +254,7 @@ function shareArticle() {
                     <button
                         v-if="article.url"
                         @click="openInBrowser"
-                        class="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors"
+                        class="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
                     >
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />

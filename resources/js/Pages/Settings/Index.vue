@@ -84,6 +84,17 @@ const logout = () => {
 
 <template>
     <AppLayout>
+        <template #header-left>
+            <button
+                @click="router.visit(route('articles.index'))"
+                class="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors -ml-2"
+                aria-label="Go back"
+            >
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                </svg>
+            </button>
+        </template>
         <template #title>Settings</template>
 
         <Head title="Settings" />
@@ -98,19 +109,19 @@ const logout = () => {
                 leave-from-class="opacity-100 translate-y-0"
                 leave-to-class="opacity-0 -translate-y-2"
             >
-                <div v-if="showStatus && status" class="rounded-lg bg-green-900/50 border border-green-800 px-4 py-3 text-sm text-green-300">
+                <div v-if="showStatus && status" class="rounded-lg bg-green-50 dark:bg-green-900/50 border border-green-300 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-300">
                     {{ status }}
                 </div>
             </Transition>
 
             <form @submit.prevent="savePrefs">
             <!-- Appearance -->
-            <div class="rounded-xl bg-slate-900 p-5 mb-5">
-                <h2 class="text-base font-medium text-slate-200 mb-4">Appearance</h2>
+            <div class="rounded-xl bg-slate-50 dark:bg-slate-900 p-5 mb-5">
+                <h2 class="text-base font-medium text-slate-800 dark:text-slate-200 mb-4">Appearance</h2>
 
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm text-slate-300 mb-2">Theme</label>
+                        <label class="block text-sm text-slate-700 dark:text-slate-300 mb-2">Theme</label>
                         <div class="grid grid-cols-3 gap-2">
                             <button
                                 v-for="opt in [{ value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }, { value: 'system', label: 'System' }]"
@@ -119,7 +130,7 @@ const logout = () => {
                                 class="rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
                                 :class="prefsForm.theme === opt.value
                                     ? 'bg-blue-600 text-white'
-                                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'"
+                                    : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'"
                             >
                                 {{ opt.label }}
                             </button>
@@ -129,12 +140,12 @@ const logout = () => {
             </div>
 
             <!-- Reading -->
-            <div class="rounded-xl bg-slate-900 p-5 mb-5">
-                <h2 class="text-base font-medium text-slate-200 mb-4">Reading</h2>
+            <div class="rounded-xl bg-slate-50 dark:bg-slate-900 p-5 mb-5">
+                <h2 class="text-base font-medium text-slate-800 dark:text-slate-200 mb-4">Reading</h2>
 
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm text-slate-300 mb-2">Default article view</label>
+                        <label class="block text-sm text-slate-700 dark:text-slate-300 mb-2">Default article view</label>
                         <div class="grid grid-cols-2 gap-2">
                             <button
                                 v-for="opt in [{ value: 'full', label: 'Full content' }, { value: 'summary', label: 'Summary' }]"
@@ -143,7 +154,7 @@ const logout = () => {
                                 class="rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
                                 :class="prefsForm.article_view === opt.value
                                     ? 'bg-blue-600 text-white'
-                                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'"
+                                    : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'"
                             >
                                 {{ opt.label }}
                             </button>
@@ -151,7 +162,7 @@ const logout = () => {
                     </div>
 
                     <div>
-                        <label class="block text-sm text-slate-300 mb-2">Font size</label>
+                        <label class="block text-sm text-slate-700 dark:text-slate-300 mb-2">Font size</label>
                         <div class="grid grid-cols-3 gap-2">
                             <button
                                 v-for="opt in [{ value: 'small', label: 'Small' }, { value: 'medium', label: 'Medium' }, { value: 'large', label: 'Large' }]"
@@ -160,7 +171,7 @@ const logout = () => {
                                 class="rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
                                 :class="prefsForm.font_size === opt.value
                                     ? 'bg-blue-600 text-white'
-                                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'"
+                                    : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'"
                             >
                                 {{ opt.label }}
                             </button>
@@ -170,16 +181,16 @@ const logout = () => {
             </div>
 
             <!-- Feeds -->
-            <div class="rounded-xl bg-slate-900 p-5 mb-5">
-                <h2 class="text-base font-medium text-slate-200 mb-4">Feeds</h2>
+            <div class="rounded-xl bg-slate-50 dark:bg-slate-900 p-5 mb-5">
+                <h2 class="text-base font-medium text-slate-800 dark:text-slate-200 mb-4">Feeds</h2>
 
                 <div class="space-y-4">
                     <div>
-                        <label for="refresh_interval" class="block text-sm text-slate-300 mb-2">Refresh interval (minutes)</label>
+                        <label for="refresh_interval" class="block text-sm text-slate-700 dark:text-slate-300 mb-2">Refresh interval (minutes)</label>
                         <select
                             id="refresh_interval"
                             v-model.number="prefsForm.refresh_interval"
-                            class="w-full rounded-lg border-slate-700 bg-slate-800 text-sm text-slate-200 focus:border-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
+                            class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-200 focus:border-blue-500 focus:ring-blue-500 focus:ring-offset-white dark:focus:ring-offset-slate-900"
                         >
                             <option :value="5">5 minutes</option>
                             <option :value="15">15 minutes</option>
@@ -193,12 +204,12 @@ const logout = () => {
                     </div>
 
                     <div class="flex items-center justify-between">
-                        <label for="mark_read_on_scroll" class="text-sm text-slate-300">Mark as read on scroll</label>
+                        <label for="mark_read_on_scroll" class="text-sm text-slate-700 dark:text-slate-300">Mark as read on scroll</label>
                         <button
                             id="mark_read_on_scroll"
                             @click="prefsForm.mark_read_on_scroll = !prefsForm.mark_read_on_scroll"
                             class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-                            :class="prefsForm.mark_read_on_scroll ? 'bg-blue-600' : 'bg-slate-700'"
+                            :class="prefsForm.mark_read_on_scroll ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'"
                             role="switch"
                             :aria-checked="prefsForm.mark_read_on_scroll"
                         >
@@ -222,35 +233,35 @@ const logout = () => {
             </form>
 
             <!-- Account -->
-            <div class="rounded-xl bg-slate-900 p-5">
-                <h2 class="text-base font-medium text-slate-200 mb-4">Account</h2>
+            <div class="rounded-xl bg-slate-50 dark:bg-slate-900 p-5">
+                <h2 class="text-base font-medium text-slate-800 dark:text-slate-200 mb-4">Account</h2>
 
                 <form @submit.prevent="saveAccount" class="space-y-4">
                     <div>
-                        <label for="name" class="block text-sm text-slate-300 mb-1">Name</label>
+                        <label for="name" class="block text-sm text-slate-700 dark:text-slate-300 mb-1">Name</label>
                         <input
                             id="name"
                             v-model="accountForm.name"
                             type="text"
-                            class="w-full rounded-lg border-slate-700 bg-slate-800 text-base text-slate-200 focus:border-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
+                            class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-base text-slate-800 dark:text-slate-200 focus:border-blue-500 focus:ring-blue-500 focus:ring-offset-white dark:focus:ring-offset-slate-900"
                         />
                         <InputError class="mt-1" :message="accountForm.errors.name" />
                     </div>
 
                     <div>
-                        <label for="email" class="block text-sm text-slate-300 mb-1">Email</label>
+                        <label for="email" class="block text-sm text-slate-700 dark:text-slate-300 mb-1">Email</label>
                         <input
                             id="email"
                             v-model="accountForm.email"
                             type="email"
-                            class="w-full rounded-lg border-slate-700 bg-slate-800 text-base text-slate-200 focus:border-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
+                            class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-base text-slate-800 dark:text-slate-200 focus:border-blue-500 focus:ring-blue-500 focus:ring-offset-white dark:focus:ring-offset-slate-900"
                         />
                         <InputError class="mt-1" :message="accountForm.errors.email" />
                     </div>
 
                     <button
                         type="submit"
-                        class="w-full rounded-lg bg-slate-800 px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-slate-700 disabled:opacity-25"
+                        class="w-full rounded-lg bg-slate-200 dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-800 dark:text-slate-200 transition hover:bg-slate-300 dark:hover:bg-slate-700 disabled:opacity-25"
                         :disabled="accountForm.processing"
                     >
                         {{ accountForm.processing ? 'Updating...' : 'Update Account' }}
@@ -259,45 +270,45 @@ const logout = () => {
             </div>
 
             <!-- Change Password -->
-            <div class="rounded-xl bg-slate-900 p-5">
-                <h2 class="text-base font-medium text-slate-200 mb-4">Change Password</h2>
+            <div class="rounded-xl bg-slate-50 dark:bg-slate-900 p-5">
+                <h2 class="text-base font-medium text-slate-800 dark:text-slate-200 mb-4">Change Password</h2>
 
                 <form @submit.prevent="savePassword" class="space-y-4">
                     <div>
-                        <label for="current_password" class="block text-sm text-slate-300 mb-1">Current password</label>
+                        <label for="current_password" class="block text-sm text-slate-700 dark:text-slate-300 mb-1">Current password</label>
                         <input
                             id="current_password"
                             v-model="passwordForm.current_password"
                             type="password"
-                            class="w-full rounded-lg border-slate-700 bg-slate-800 text-base text-slate-200 focus:border-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
+                            class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-base text-slate-800 dark:text-slate-200 focus:border-blue-500 focus:ring-blue-500 focus:ring-offset-white dark:focus:ring-offset-slate-900"
                         />
                         <InputError class="mt-1" :message="passwordForm.errors.current_password" />
                     </div>
 
                     <div>
-                        <label for="password" class="block text-sm text-slate-300 mb-1">New password</label>
+                        <label for="password" class="block text-sm text-slate-700 dark:text-slate-300 mb-1">New password</label>
                         <input
                             id="password"
                             v-model="passwordForm.password"
                             type="password"
-                            class="w-full rounded-lg border-slate-700 bg-slate-800 text-base text-slate-200 focus:border-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
+                            class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-base text-slate-800 dark:text-slate-200 focus:border-blue-500 focus:ring-blue-500 focus:ring-offset-white dark:focus:ring-offset-slate-900"
                         />
                         <InputError class="mt-1" :message="passwordForm.errors.password" />
                     </div>
 
                     <div>
-                        <label for="password_confirmation" class="block text-sm text-slate-300 mb-1">Confirm new password</label>
+                        <label for="password_confirmation" class="block text-sm text-slate-700 dark:text-slate-300 mb-1">Confirm new password</label>
                         <input
                             id="password_confirmation"
                             v-model="passwordForm.password_confirmation"
                             type="password"
-                            class="w-full rounded-lg border-slate-700 bg-slate-800 text-base text-slate-200 focus:border-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
+                            class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-base text-slate-800 dark:text-slate-200 focus:border-blue-500 focus:ring-blue-500 focus:ring-offset-white dark:focus:ring-offset-slate-900"
                         />
                     </div>
 
                     <button
                         type="submit"
-                        class="w-full rounded-lg bg-slate-800 px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-slate-700 disabled:opacity-25"
+                        class="w-full rounded-lg bg-slate-200 dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-800 dark:text-slate-200 transition hover:bg-slate-300 dark:hover:bg-slate-700 disabled:opacity-25"
                         :disabled="passwordForm.processing"
                     >
                         {{ passwordForm.processing ? 'Updating...' : 'Update Password' }}
@@ -306,15 +317,15 @@ const logout = () => {
             </div>
 
             <!-- Data -->
-            <div class="rounded-xl bg-slate-900 p-5">
-                <h2 class="text-base font-medium text-slate-200 mb-4">Data</h2>
+            <div class="rounded-xl bg-slate-50 dark:bg-slate-900 p-5">
+                <h2 class="text-base font-medium text-slate-800 dark:text-slate-200 mb-4">Data</h2>
 
                 <div class="space-y-3">
                     <a
                         :href="route('opml.index')"
-                        class="flex w-full items-center gap-3 rounded-lg bg-slate-800 px-4 py-3 text-sm text-slate-200 transition hover:bg-slate-700"
+                        class="flex w-full items-center gap-3 rounded-lg bg-slate-200 dark:bg-slate-800 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 transition hover:bg-slate-300 dark:hover:bg-slate-700"
                     >
-                        <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <svg class="h-5 w-5 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                         </svg>
                         Import OPML
@@ -322,9 +333,9 @@ const logout = () => {
 
                     <button
                         @click="exportOpml"
-                        class="flex w-full items-center gap-3 rounded-lg bg-slate-800 px-4 py-3 text-sm text-slate-200 transition hover:bg-slate-700"
+                        class="flex w-full items-center gap-3 rounded-lg bg-slate-200 dark:bg-slate-800 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 transition hover:bg-slate-300 dark:hover:bg-slate-700"
                     >
-                        <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <svg class="h-5 w-5 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12M12 16.5V3" />
                         </svg>
                         Export OPML
@@ -333,13 +344,13 @@ const logout = () => {
             </div>
 
             <!-- About -->
-            <div class="rounded-xl bg-slate-900 p-5">
-                <h2 class="text-base font-medium text-slate-200 mb-3">About</h2>
+            <div class="rounded-xl bg-slate-50 dark:bg-slate-900 p-5">
+                <h2 class="text-base font-medium text-slate-800 dark:text-slate-200 mb-3">About</h2>
 
-                <div class="space-y-2 text-sm text-slate-400">
+                <div class="space-y-2 text-sm text-slate-500 dark:text-slate-400">
                     <div class="flex justify-between">
                         <span>Version</span>
-                        <span class="text-slate-300">1.0.0</span>
+                        <span class="text-slate-700 dark:text-slate-300">1.0.0</span>
                     </div>
                     <div class="flex justify-between">
                         <span>Source code</span>
@@ -353,7 +364,7 @@ const logout = () => {
             <!-- Logout -->
             <button
                 @click="logout"
-                class="w-full rounded-lg bg-red-900/50 border border-red-800 px-4 py-3 text-sm font-medium text-red-300 transition hover:bg-red-900/70"
+                class="w-full rounded-lg bg-red-50 dark:bg-red-900/50 border border-red-300 dark:border-red-800 px-4 py-3 text-sm font-medium text-red-700 dark:text-red-300 transition hover:bg-red-100 dark:hover:bg-red-900/70"
             >
                 Log Out
             </button>

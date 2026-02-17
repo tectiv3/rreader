@@ -120,16 +120,16 @@ const exportOpml = () => {
 
         <div class="mx-auto max-w-lg px-4 py-6 space-y-5">
             <!-- Import Section -->
-            <div class="rounded-xl bg-slate-900 p-5">
-                <h2 class="text-base font-medium text-slate-200 mb-1">Import OPML</h2>
-                <p class="text-sm text-slate-400 mb-4">
+            <div class="rounded-xl bg-slate-50 dark:bg-slate-900 p-5">
+                <h2 class="text-base font-medium text-slate-800 dark:text-slate-200 mb-1">Import OPML</h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
                     Upload an .opml or .xml file to import feeds from another reader.
                 </p>
 
                 <form @submit.prevent="uploadFile">
                     <div>
                         <label
-                            class="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-700 bg-slate-800 px-4 py-6 text-sm text-slate-400 transition hover:border-slate-600 hover:text-slate-300"
+                            class="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 bg-white px-4 py-6 text-sm text-slate-500 dark:text-slate-400 transition hover:border-slate-400 hover:text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-slate-600 dark:hover:text-slate-300"
                             :class="{ 'border-blue-500 text-blue-400': uploadForm.file }"
                         >
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -162,24 +162,24 @@ const exportOpml = () => {
             </div>
 
             <!-- Preview Section -->
-            <div v-if="preview" class="rounded-xl bg-slate-900 p-5">
+            <div v-if="preview" class="rounded-xl bg-slate-50 dark:bg-slate-900 p-5">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-base font-medium text-slate-200">
+                    <h2 class="text-base font-medium text-slate-800 dark:text-slate-200">
                         Preview
-                        <span class="text-sm font-normal text-slate-400">
+                        <span class="text-sm font-normal text-slate-500 dark:text-slate-400">
                             ({{ totalFeeds }} feeds found<span v-if="duplicateCount">, {{ duplicateCount }} already subscribed</span>)
                         </span>
                     </h2>
                 </div>
 
                 <!-- Select all toggle -->
-                <div class="flex items-center gap-2 mb-3 pb-3 border-b border-slate-800">
-                    <label class="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                <div class="flex items-center gap-2 mb-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+                    <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
                         <input
                             type="checkbox"
                             :checked="allSelected"
                             @change="toggleAll"
-                            class="rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
+                            class="rounded border-slate-300 bg-white text-blue-500 focus:ring-blue-500 focus:ring-offset-white dark:border-slate-600 dark:bg-slate-800 dark:focus:ring-offset-slate-900"
                         />
                         Select all new feeds ({{ allNewFeeds.length }})
                     </label>
@@ -187,8 +187,8 @@ const exportOpml = () => {
 
                 <!-- Categories -->
                 <div v-for="(category, catIdx) in preview.categories" :key="catIdx" class="mb-4">
-                    <h3 class="text-sm font-medium text-slate-300 mb-2 flex items-center gap-1.5">
-                        <svg class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <h3 class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
+                        <svg class="h-4 w-4 text-slate-600 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                         </svg>
                         {{ category.name }}
@@ -199,14 +199,14 @@ const exportOpml = () => {
                             v-for="(feed, feedIdx) in category.feeds"
                             :key="feedIdx"
                             class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition"
-                            :class="feed.is_duplicate ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800'"
+                            :class="feed.is_duplicate ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800'"
                         >
                             <input
                                 type="checkbox"
                                 :checked="feed.is_duplicate ? false : isFeedSelected(feed.feed_url)"
                                 :disabled="feed.is_duplicate"
                                 @change="toggleFeed(feed.feed_url)"
-                                class="rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900 disabled:opacity-40"
+                                class="rounded border-slate-300 bg-white text-blue-500 focus:ring-blue-500 focus:ring-offset-white dark:border-slate-600 dark:bg-slate-800 dark:focus:ring-offset-slate-900 disabled:opacity-40"
                             />
                             <img
                                 v-if="feed.favicon_url"
@@ -214,18 +214,18 @@ const exportOpml = () => {
                                 class="h-4 w-4 rounded"
                                 @error="$event.target.style.display = 'none'"
                             />
-                            <span class="flex-1 truncate" :class="feed.is_duplicate ? 'text-slate-500 line-through' : 'text-slate-200'">
+                            <span class="flex-1 truncate" :class="feed.is_duplicate ? 'text-slate-500 line-through' : 'text-slate-800 dark:text-slate-200'">
                                 {{ feed.title }}
                             </span>
-                            <span v-if="feed.is_duplicate" class="text-xs text-slate-500 shrink-0">subscribed</span>
+                            <span v-if="feed.is_duplicate" class="text-xs text-slate-600 dark:text-slate-500 shrink-0">subscribed</span>
                         </label>
                     </div>
                 </div>
 
                 <!-- Uncategorized -->
                 <div v-if="preview.uncategorized.length > 0" class="mb-4">
-                    <h3 class="text-sm font-medium text-slate-300 mb-2 flex items-center gap-1.5">
-                        <svg class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <h3 class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
+                        <svg class="h-4 w-4 text-slate-600 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 5c7.18 0 13 5.82 13 13M6 11a7 7 0 017 7m-6 0a1 1 0 110-2 1 1 0 010 2z" />
                         </svg>
                         Uncategorized
@@ -236,14 +236,14 @@ const exportOpml = () => {
                             v-for="(feed, feedIdx) in preview.uncategorized"
                             :key="feedIdx"
                             class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition"
-                            :class="feed.is_duplicate ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-800'"
+                            :class="feed.is_duplicate ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800'"
                         >
                             <input
                                 type="checkbox"
                                 :checked="feed.is_duplicate ? false : isFeedSelected(feed.feed_url)"
                                 :disabled="feed.is_duplicate"
                                 @change="toggleFeed(feed.feed_url)"
-                                class="rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900 disabled:opacity-40"
+                                class="rounded border-slate-300 bg-white text-blue-500 focus:ring-blue-500 focus:ring-offset-white dark:border-slate-600 dark:bg-slate-800 dark:focus:ring-offset-slate-900 disabled:opacity-40"
                             />
                             <img
                                 v-if="feed.favicon_url"
@@ -251,10 +251,10 @@ const exportOpml = () => {
                                 class="h-4 w-4 rounded"
                                 @error="$event.target.style.display = 'none'"
                             />
-                            <span class="flex-1 truncate" :class="feed.is_duplicate ? 'text-slate-500 line-through' : 'text-slate-200'">
+                            <span class="flex-1 truncate" :class="feed.is_duplicate ? 'text-slate-500 line-through' : 'text-slate-800 dark:text-slate-200'">
                                 {{ feed.title }}
                             </span>
-                            <span v-if="feed.is_duplicate" class="text-xs text-slate-500 shrink-0">subscribed</span>
+                            <span v-if="feed.is_duplicate" class="text-xs text-slate-600 dark:text-slate-500 shrink-0">subscribed</span>
                         </label>
                     </div>
                 </div>
@@ -275,15 +275,15 @@ const exportOpml = () => {
             </div>
 
             <!-- Export Section -->
-            <div class="rounded-xl bg-slate-900 p-5">
-                <h2 class="text-base font-medium text-slate-200 mb-1">Export OPML</h2>
-                <p class="text-sm text-slate-400 mb-4">
+            <div class="rounded-xl bg-slate-50 dark:bg-slate-900 p-5">
+                <h2 class="text-base font-medium text-slate-800 dark:text-slate-200 mb-1">Export OPML</h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
                     Download your subscriptions as an OPML file for backup or migration.
                 </p>
 
                 <button
                     @click="exportOpml"
-                    class="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-800 px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-slate-700"
+                    class="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-200 dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-800 dark:text-slate-200 transition hover:bg-slate-300 dark:hover:bg-slate-700"
                 >
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />

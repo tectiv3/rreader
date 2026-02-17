@@ -71,8 +71,8 @@ const toggleNewCategory = () => {
 
         <div class="mx-auto max-w-lg px-4 py-6">
             <!-- Step 1: Enter URL -->
-            <div class="rounded-xl bg-slate-900 p-5">
-                <h2 class="text-base font-medium text-slate-200 mb-4">Feed URL</h2>
+            <div class="rounded-xl bg-slate-50 dark:bg-slate-900 p-5">
+                <h2 class="text-base font-medium text-slate-800 dark:text-slate-200 mb-4">Feed URL</h2>
 
                 <form @submit.prevent="discoverFeed">
                     <div>
@@ -85,7 +85,7 @@ const toggleNewCategory = () => {
                             required
                             autofocus
                         />
-                        <p class="mt-1.5 text-xs text-slate-500">
+                        <p class="mt-1.5 text-xs text-slate-600 dark:text-slate-500">
                             Enter a website URL or direct RSS/Atom feed URL
                         </p>
                         <InputError class="mt-2" :message="searchForm.errors.url" />
@@ -106,7 +106,7 @@ const toggleNewCategory = () => {
             </div>
 
             <!-- Step 2: Preview & Subscribe -->
-            <div v-if="preview" class="mt-5 rounded-xl bg-slate-900 p-5">
+            <div v-if="preview" class="mt-5 rounded-xl bg-slate-50 dark:bg-slate-900 p-5">
                 <div class="flex items-start gap-3 mb-4">
                     <img
                         v-if="preview.favicon_url"
@@ -115,13 +115,13 @@ const toggleNewCategory = () => {
                         @error="$event.target.style.display = 'none'"
                     />
                     <div class="min-w-0 flex-1">
-                        <h3 class="text-base font-medium text-slate-100 truncate">
+                        <h3 class="text-base font-medium text-slate-900 dark:text-slate-100 truncate">
                             {{ preview.title || 'Untitled Feed' }}
                         </h3>
-                        <p v-if="preview.description" class="mt-1 text-sm text-slate-400 line-clamp-2">
+                        <p v-if="preview.description" class="mt-1 text-sm text-slate-500 dark:text-slate-400 line-clamp-2">
                             {{ preview.description }}
                         </p>
-                        <p class="mt-1 text-xs text-slate-500">
+                        <p class="mt-1 text-xs text-slate-600 dark:text-slate-500">
                             {{ preview.article_count }} articles found
                         </p>
                     </div>
@@ -148,7 +148,7 @@ const toggleNewCategory = () => {
                             <select
                                 id="category"
                                 v-model="subscribeForm.category_id"
-                                class="mt-1 block w-full rounded-lg border-slate-700 bg-slate-800 text-base text-slate-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                class="mt-1 block w-full rounded-lg border-slate-300 bg-white text-base text-slate-800 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                             >
                                 <option value="">No category</option>
                                 <option

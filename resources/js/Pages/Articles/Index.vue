@@ -557,7 +557,7 @@ function formatLastUpdated(date) {
             <!-- Mobile: hamburger to open drawer -->
             <button
                 @click="sidebarOpen = true"
-                class="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors -ml-2 lg:hidden"
+                class="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors -ml-2 lg:hidden"
                 aria-label="Open sidebar"
             >
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -580,7 +580,7 @@ function formatLastUpdated(date) {
             <button
                 @click="refreshFeeds"
                 :disabled="loading"
-                class="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors cursor-pointer"
+                class="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
                 aria-label="Refresh feeds"
             >
                 <svg
@@ -595,7 +595,7 @@ function formatLastUpdated(date) {
                 v-if="unreadCount > 0"
                 @click="markAllAsRead"
                 :disabled="markingAllRead"
-                class="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors cursor-pointer"
+                class="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
                 aria-label="Mark all as read"
             >
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -633,13 +633,13 @@ function formatLastUpdated(date) {
             <!-- Center: Article list -->
             <div
                 ref="articleListEl"
-                class="flex flex-col border-r border-slate-800 overflow-y-auto"
+                class="flex flex-col border-r border-slate-200 dark:border-slate-800 overflow-y-auto"
                 :class="selectedArticle ? 'w-96 shrink-0' : 'flex-1'"
             >
                 <!-- Desktop compact article list -->
                 <template v-for="(articles, dateLabel) in groupedArticles" :key="dateLabel">
-                    <div class="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/95 px-4 py-2 backdrop-blur">
-                        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500">{{ dateLabel }}</h2>
+                    <div class="sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 px-4 py-2 backdrop-blur">
+                        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-500">{{ dateLabel }}</h2>
                     </div>
                     <div>
                         <button
@@ -647,11 +647,11 @@ function formatLastUpdated(date) {
                             :key="article.id"
                             :id="`article-row-${article.id}`"
                             @click="openArticle(article)"
-                            class="flex w-full items-center gap-3 border-b border-slate-800/50 px-4 py-2.5 text-left transition-colors cursor-pointer"
+                            class="flex w-full items-center gap-3 border-b border-slate-200/50 dark:border-slate-800/50 px-4 py-2.5 text-left transition-colors cursor-pointer"
                             :class="[
                                 selectedArticleId === article.id
                                     ? 'bg-blue-600/10 border-l-2 border-l-blue-500'
-                                    : 'hover:bg-slate-900/50',
+                                    : 'hover:bg-slate-100/50 dark:hover:bg-slate-900/50',
                             ]"
                         >
                             <img
@@ -660,30 +660,30 @@ function formatLastUpdated(date) {
                                 class="h-4 w-4 shrink-0 rounded-sm"
                                 alt=""
                             />
-                            <span class="w-32 shrink-0 truncate text-xs text-slate-500">{{ article.feed?.title }}</span>
+                            <span class="w-32 shrink-0 truncate text-xs text-slate-600 dark:text-slate-500">{{ article.feed?.title }}</span>
                             <h3
                                 class="min-w-0 flex-1 truncate text-sm"
-                                :class="article.is_read ? 'text-slate-500 font-normal' : 'text-slate-100 font-medium'"
+                                :class="article.is_read ? 'text-slate-600 dark:text-slate-500 font-normal' : 'text-slate-900 dark:text-slate-100 font-medium'"
                             >
                                 {{ article.title }}
                             </h3>
-                            <span v-if="article.summary && !selectedArticle" class="hidden xl:block w-64 shrink-0 truncate text-xs text-slate-600">
+                            <span v-if="article.summary && !selectedArticle" class="hidden xl:block w-64 shrink-0 truncate text-xs text-slate-500 dark:text-slate-600">
                                 {{ article.summary }}
                             </span>
-                            <span class="w-12 shrink-0 text-right text-xs text-slate-600">{{ timeAgo(article.published_at) }}</span>
+                            <span class="w-12 shrink-0 text-right text-xs text-slate-500 dark:text-slate-600">{{ timeAgo(article.published_at) }}</span>
                         </button>
                     </div>
                 </template>
 
                 <!-- Empty state (desktop) -->
                 <div v-if="allArticles.length === 0" class="flex flex-col items-center justify-center px-4 py-20 text-center">
-                    <svg class="h-16 w-16 text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                    <svg class="h-16 w-16 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                     </svg>
-                    <h3 class="mt-4 text-lg font-medium text-slate-300">
+                    <h3 class="mt-4 text-lg font-medium text-slate-700 dark:text-slate-300">
                         {{ activeFilter === 'read_later' ? 'No saved articles' : 'No articles yet' }}
                     </h3>
-                    <p class="mt-2 text-sm text-slate-500">
+                    <p class="mt-2 text-sm text-slate-600 dark:text-slate-500">
                         {{ activeFilter === 'read_later' ? 'Save articles from your feeds to read later.' : 'Subscribe to feeds to start seeing articles here.' }}
                     </p>
                     <a
@@ -697,16 +697,16 @@ function formatLastUpdated(date) {
 
                 <!-- Infinite scroll sentinel -->
                 <div v-if="nextPageUrl" :ref="onSentinel" class="flex justify-center py-6">
-                    <div v-if="loadingMore" class="text-sm text-slate-500">Loading more...</div>
+                    <div v-if="loadingMore" class="text-sm text-slate-600 dark:text-slate-500">Loading more...</div>
                 </div>
 
                 <!-- End of list -->
-                <div v-else-if="allArticles.length > 0" class="py-8 text-center text-sm text-slate-600">
+                <div v-else-if="allArticles.length > 0" class="py-8 text-center text-sm text-slate-500 dark:text-slate-600">
                     You're all caught up
                 </div>
 
                 <!-- Last updated timestamp (shown when offline) -->
-                <div v-if="!isOnline" class="pb-4 text-center text-xs text-slate-600">
+                <div v-if="!isOnline" class="pb-4 text-center text-xs text-slate-500 dark:text-slate-600">
                     Last updated at {{ formatLastUpdated(lastUpdatedAt) }}
                 </div>
             </div>
@@ -728,10 +728,10 @@ function formatLastUpdated(date) {
                 <!-- Article content -->
                 <template v-if="selectedArticle">
                     <!-- Reader toolbar -->
-                    <div class="sticky top-0 z-10 flex items-center justify-between border-b border-slate-800 bg-slate-950/95 px-4 py-2 backdrop-blur">
+                    <div class="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 px-4 py-2 backdrop-blur">
                         <button
                             @click="closeArticlePanel"
-                            class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors cursor-pointer"
+                            class="rounded-lg p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
                             aria-label="Close article"
                         >
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -744,7 +744,7 @@ function formatLastUpdated(date) {
                                 @click="toggleReadLaterInline"
                                 :disabled="togglingReadLater"
                                 class="rounded-lg p-1.5 transition-colors cursor-pointer"
-                                :class="selectedIsReadLater ? 'text-blue-400 hover:bg-slate-800' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'"
+                                :class="selectedIsReadLater ? 'text-blue-400 hover:bg-slate-200 dark:hover:bg-slate-800' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200'"
                                 :aria-label="selectedIsReadLater ? 'Remove from Read Later' : 'Save to Read Later'"
                             >
                                 <svg class="h-5 w-5" :fill="selectedIsReadLater ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -755,7 +755,7 @@ function formatLastUpdated(date) {
                             <button
                                 @click="markAsUnreadInline"
                                 :disabled="markingUnread"
-                                class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors cursor-pointer"
+                                class="rounded-lg p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
                                 aria-label="Mark as unread"
                             >
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -766,7 +766,7 @@ function formatLastUpdated(date) {
                             <button
                                 v-if="selectedArticle.url"
                                 @click="openInBrowserInline"
-                                class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors cursor-pointer"
+                                class="rounded-lg p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
                                 aria-label="Open in browser"
                             >
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -776,7 +776,7 @@ function formatLastUpdated(date) {
                             <!-- Share -->
                             <button
                                 @click="shareArticleInline"
-                                class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors cursor-pointer"
+                                class="rounded-lg p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
                                 aria-label="Share article"
                             >
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -789,10 +789,10 @@ function formatLastUpdated(date) {
                     <!-- Article body -->
                     <article class="mx-auto max-w-3xl px-6 py-6">
                         <header class="mb-6">
-                            <h1 class="text-2xl font-bold leading-tight text-slate-100">
+                            <h1 class="text-2xl font-bold leading-tight text-slate-900 dark:text-slate-100">
                                 {{ selectedArticle.title }}
                             </h1>
-                            <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-400">
+                            <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
                                 <div class="flex items-center gap-2">
                                     <img
                                         v-if="selectedArticle.feed?.favicon_url"
@@ -808,12 +808,12 @@ function formatLastUpdated(date) {
                         </header>
 
                         <div
-                            class="article-content prose prose-invert max-w-none prose-headings:text-slate-200 prose-p:text-slate-300 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-200 prose-code:text-blue-300 prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-800 prose-img:rounded-lg prose-blockquote:border-slate-700 prose-blockquote:text-slate-400"
+                            class="article-content prose max-w-none dark:prose-invert prose-headings:text-slate-800 dark:prose-headings:text-slate-200 prose-p:text-slate-700 dark:prose-p:text-slate-300 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-800 dark:prose-strong:text-slate-200 prose-code:text-blue-300 prose-pre:bg-slate-50 dark:prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-200 dark:prose-pre:border-slate-800 prose-img:rounded-lg prose-blockquote:border-slate-300 dark:prose-blockquote:border-slate-700 prose-blockquote:text-slate-500 dark:prose-blockquote:text-slate-400"
                             v-html="selectedArticle.content || selectedArticle.summary"
                         />
 
                         <div v-if="!selectedArticle.content && !selectedArticle.summary" class="py-12 text-center">
-                            <p class="text-slate-400">No article content available.</p>
+                            <p class="text-slate-500 dark:text-slate-400">No article content available.</p>
                             <button
                                 v-if="selectedArticle.url"
                                 @click="openInBrowserInline"
@@ -824,12 +824,12 @@ function formatLastUpdated(date) {
                         </div>
 
                         <!-- Keyboard shortcut hints -->
-                        <div class="mt-8 border-t border-slate-800 pt-4 text-xs text-slate-600">
-                            <span class="font-medium text-slate-500">Shortcuts:</span>
-                            <span class="ml-2"><kbd class="rounded bg-slate-800 px-1.5 py-0.5 text-slate-400">j</kbd>/<kbd class="rounded bg-slate-800 px-1.5 py-0.5 text-slate-400">k</kbd> navigate</span>
-                            <span class="ml-2"><kbd class="rounded bg-slate-800 px-1.5 py-0.5 text-slate-400">s</kbd> save</span>
-                            <span class="ml-2"><kbd class="rounded bg-slate-800 px-1.5 py-0.5 text-slate-400">m</kbd> mark unread</span>
-                            <span class="ml-2"><kbd class="rounded bg-slate-800 px-1.5 py-0.5 text-slate-400">Esc</kbd> close</span>
+                        <div class="mt-8 border-t border-slate-200 dark:border-slate-800 pt-4 text-xs text-slate-500 dark:text-slate-600">
+                            <span class="font-medium text-slate-600 dark:text-slate-500">Shortcuts:</span>
+                            <span class="ml-2"><kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 text-slate-500 dark:text-slate-400">j</kbd>/<kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 text-slate-500 dark:text-slate-400">k</kbd> navigate</span>
+                            <span class="ml-2"><kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 text-slate-500 dark:text-slate-400">s</kbd> save</span>
+                            <span class="ml-2"><kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 text-slate-500 dark:text-slate-400">m</kbd> mark unread</span>
+                            <span class="ml-2"><kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 text-slate-500 dark:text-slate-400">Esc</kbd> close</span>
                         </div>
                     </article>
                 </template>
@@ -838,13 +838,13 @@ function formatLastUpdated(date) {
             <!-- Empty reader state (no article selected) -->
             <div
                 v-else-if="allArticles.length > 0"
-                class="flex flex-1 flex-col items-center justify-center text-slate-600"
+                class="flex flex-1 flex-col items-center justify-center text-slate-500 dark:text-slate-600"
             >
-                <svg class="h-16 w-16 text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                <svg class="h-16 w-16 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                 </svg>
                 <p class="mt-4 text-sm">Select an article to read</p>
-                <p class="mt-1 text-xs text-slate-700">Use <kbd class="rounded bg-slate-800 px-1.5 py-0.5 text-slate-500">j</kbd>/<kbd class="rounded bg-slate-800 px-1.5 py-0.5 text-slate-500">k</kbd> to navigate</p>
+                <p class="mt-1 text-xs text-slate-400 dark:text-slate-700">Use <kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 text-slate-600 dark:text-slate-500">j</kbd>/<kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 text-slate-600 dark:text-slate-500">k</kbd> to navigate</p>
             </div>
         </div>
 
@@ -858,15 +858,15 @@ function formatLastUpdated(date) {
             >
                 <div class="flex flex-col items-center gap-1">
                     <svg
-                        class="h-5 w-5 text-slate-400 transition-transform duration-200"
+                        class="h-5 w-5 text-slate-500 dark:text-slate-400 transition-transform duration-200"
                         :class="{ 'animate-spin': isRefreshing }"
                         :style="!isRefreshing ? { transform: `rotate(${Math.min(pullDistance / PULL_THRESHOLD, 1) * 360}deg)` } : {}"
                         fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
                     >
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" />
                     </svg>
-                    <span v-if="!isRefreshing && pullDistance >= PULL_THRESHOLD" class="text-[10px] text-slate-500">Release to refresh</span>
-                    <span v-else-if="isRefreshing" class="text-[10px] text-slate-500">Refreshing...</span>
+                    <span v-if="!isRefreshing && pullDistance >= PULL_THRESHOLD" class="text-[10px] text-slate-600 dark:text-slate-500">Release to refresh</span>
+                    <span v-else-if="isRefreshing" class="text-[10px] text-slate-600 dark:text-slate-500">Refreshing...</span>
                 </div>
             </div>
 
@@ -879,13 +879,13 @@ function formatLastUpdated(date) {
 
             <!-- Empty state -->
             <div v-if="allArticles.length === 0" class="flex flex-col items-center justify-center px-4 py-20 text-center">
-                <svg class="h-16 w-16 text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                <svg class="h-16 w-16 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                 </svg>
-                <h3 class="mt-4 text-lg font-medium text-slate-300">
+                <h3 class="mt-4 text-lg font-medium text-slate-700 dark:text-slate-300">
                     {{ activeFilter === 'read_later' ? 'No saved articles' : 'No articles yet' }}
                 </h3>
-                <p class="mt-2 text-sm text-slate-500">
+                <p class="mt-2 text-sm text-slate-600 dark:text-slate-500">
                     {{ activeFilter === 'read_later' ? 'Save articles from your feeds to read later.' : 'Subscribe to feeds to start seeing articles here.' }}
                 </p>
                 <a
@@ -902,14 +902,14 @@ function formatLastUpdated(date) {
                 <!-- Mobile view: card layout -->
                 <div>
                     <template v-for="(articles, dateLabel) in groupedArticles" :key="dateLabel">
-                        <div class="sticky top-14 z-10 border-b border-slate-800 bg-slate-950/95 px-4 py-2 backdrop-blur">
-                            <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500">{{ dateLabel }}</h2>
+                        <div class="sticky top-14 z-10 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 px-4 py-2 backdrop-blur">
+                            <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-500">{{ dateLabel }}</h2>
                         </div>
                         <div>
                             <div
                                 v-for="article in articles"
                                 :key="article.id"
-                                class="relative overflow-hidden border-b border-slate-800/50"
+                                class="relative overflow-hidden border-b border-slate-200/50 dark:border-slate-800/50"
                             >
                                 <!-- Swipe reveal background (Read Later view only) -->
                                 <div
@@ -926,11 +926,11 @@ function formatLastUpdated(date) {
                                     @touchstart="onTouchStart(article.id, $event)"
                                     @touchmove="onTouchMove(article.id, $event)"
                                     @touchend="onTouchEnd(article.id, article)"
-                                    class="relative flex w-full gap-3 bg-slate-950 px-4 py-3 text-left transition-colors hover:bg-slate-900/50 active:bg-slate-800/50"
+                                    class="relative flex w-full gap-3 bg-white dark:bg-slate-950 px-4 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50 active:bg-slate-100 dark:active:bg-slate-800/50"
                                     :style="isReadLaterView ? getSwipeStyle(article.id) : {}"
                                 >
                                     <div class="min-w-0 flex-1">
-                                        <div class="flex items-center gap-2 text-xs text-slate-500">
+                                        <div class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-500">
                                             <img
                                                 v-if="article.feed?.favicon_url"
                                                 :src="article.feed.favicon_url"
@@ -943,11 +943,11 @@ function formatLastUpdated(date) {
                                         </div>
                                         <h3
                                             class="mt-1 text-sm leading-snug"
-                                            :class="article.is_read ? 'text-slate-500 font-normal' : 'text-slate-100 font-semibold'"
+                                            :class="article.is_read ? 'text-slate-600 dark:text-slate-500 font-normal' : 'text-slate-900 dark:text-slate-100 font-semibold'"
                                         >
                                             {{ article.title }}
                                         </h3>
-                                        <p v-if="article.summary" class="mt-0.5 line-clamp-2 text-xs text-slate-500">
+                                        <p v-if="article.summary" class="mt-0.5 line-clamp-2 text-xs text-slate-600 dark:text-slate-500">
                                             {{ article.summary }}
                                         </p>
                                     </div>
@@ -966,16 +966,16 @@ function formatLastUpdated(date) {
 
                 <!-- Infinite scroll sentinel -->
                 <div v-if="nextPageUrl" :ref="onSentinel" class="flex justify-center py-6">
-                    <div v-if="loadingMore" class="text-sm text-slate-500">Loading more...</div>
+                    <div v-if="loadingMore" class="text-sm text-slate-600 dark:text-slate-500">Loading more...</div>
                 </div>
 
                 <!-- End of list -->
-                <div v-else class="py-8 text-center text-sm text-slate-600">
+                <div v-else class="py-8 text-center text-sm text-slate-500 dark:text-slate-600">
                     You're all caught up
                 </div>
 
                 <!-- Last updated timestamp (shown when offline) -->
-                <div v-if="!isOnline" class="pb-4 text-center text-xs text-slate-600">
+                <div v-if="!isOnline" class="pb-4 text-center text-xs text-slate-500 dark:text-slate-600">
                     Last updated at {{ formatLastUpdated(lastUpdatedAt) }}
                 </div>
             </div>
