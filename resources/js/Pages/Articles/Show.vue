@@ -2,10 +2,15 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
+import { useOnlineStatus } from '@/Composables/useOnlineStatus.js';
+import { useOfflineQueue } from '@/Composables/useOfflineQueue.js';
 
 const props = defineProps({
     article: Object,
 });
+
+const { isOnline } = useOnlineStatus();
+const { enqueue } = useOfflineQueue();
 
 const isReadLater = ref(props.article.is_read_later ?? false);
 const togglingReadLater = ref(false);
@@ -39,6 +44,14 @@ function goBack() {
 
 function toggleReadLater() {
     togglingReadLater.value = true;
+
+    if (!isOnline.value) {
+        isReadLater.value = !isReadLater.value;
+        enqueue('post', route('articles.toggleReadLater', props.article.id), {});
+        togglingReadLater.value = false;
+        return;
+    }
+
     router.post(route('articles.toggleReadLater', props.article.id), {}, {
         preserveScroll: true,
         onSuccess: () => {
@@ -52,6 +65,13 @@ function toggleReadLater() {
 
 function markAsUnread() {
     markingUnread.value = true;
+
+    if (!isOnline.value) {
+        enqueue('post', route('articles.markAsUnread', props.article.id), {});
+        markingUnread.value = false;
+        return;
+    }
+
     router.post(route('articles.markAsUnread', props.article.id), {}, {
         preserveScroll: true,
         onFinish: () => {

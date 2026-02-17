@@ -43,6 +43,10 @@
 - `useDarkMode` composable supports 3 modes: `dark`, `light`, `system` — stored in localStorage as `rreader-theme`
 - Settings routes: `settings.index` (GET), `settings.update` (PATCH), `settings.updateAccount` (PATCH), `settings.updatePassword` (PATCH)
 - Reuse existing Breeze auth routes (e.g. `route('logout')`) instead of duplicating auth logic
+- `useOnlineStatus` composable at `resources/js/Composables/useOnlineStatus.js` — shared singleton `isOnline` ref with event listener reference counting
+- `useOfflineQueue` composable at `resources/js/Composables/useOfflineQueue.js` — localStorage-backed action queue, auto-flushes on reconnection
+- Workbox runtime caching: `NetworkFirst` for Inertia pages (5s timeout), `CacheFirst` for images/favicons
+- For offline-aware actions: check `isOnline.value`, do optimistic UI update, then `enqueue('post', url, data)` for server sync later
 
 ---
 
@@ -294,4 +298,23 @@
   - Always use `{ passive: true }` on scroll event listeners for performance (tells browser handler won't call `preventDefault()`)
   - When using `inject('toggleSidebar', null)` with optional chaining `?.()`, the Menu button silently does nothing on pages that don't provide the injection — add a fallback navigation action
   - Prefer Tailwind utility classes (`bottom-0`) over inline `:style` bindings for static positioning values
+---
+
+## 2026-02-17 - US-015
+- What was implemented: Offline Support & Caching — enhanced Workbox runtime caching for Inertia page responses (NetworkFirst with 5s timeout), article images (CacheFirst, 200 entries, 30 days), external images (CacheFirst, 300 entries, 14 days), and favicons (CacheFirst). Created `useOnlineStatus` composable for reactive online/offline detection with shared singleton ref and event listener lifecycle management. Created `useOfflineQueue` composable for queuing offline actions (mark read, toggle read later, mark unread) in localStorage and auto-flushing when back online. Added offline indicator banner in AppLayout (amber, sticky below header). Integrated offline queue into Articles/Index.vue (markAllAsRead, removeFromReadLater) and Articles/Show.vue (toggleReadLater, markAsUnread) with optimistic UI updates. Added "last updated" timestamp display on article list when offline.
+- Files changed:
+  - `vite.config.js` — Added runtime caching rules for Inertia pages (NetworkFirst), article images, external images, and favicons
+  - `resources/js/Composables/useOnlineStatus.js` — New composable: reactive `isOnline` ref from navigator.onLine with online/offline event listeners, shared singleton with reference counting for cleanup
+  - `resources/js/Composables/useOfflineQueue.js` — New composable: localStorage-backed action queue, sequential flush on reconnection, enqueue API for offline actions
+  - `resources/js/Layouts/AppLayout.vue` — Added offline banner (amber, sticky top-14), imported useOnlineStatus and useOfflineQueue
+  - `resources/js/Pages/Articles/Index.vue` — Integrated offline queue for markAllAsRead and removeFromReadLater with optimistic UI, added lastUpdatedAt tracking and display when offline
+  - `resources/js/Pages/Articles/Show.vue` — Integrated offline queue for toggleReadLater and markAsUnread with optimistic UI
+  - `.chief/prds/main/prd.json` — Marked US-015 as passes: true
+- **Learnings for future iterations:**
+  - Use `NetworkFirst` with `networkTimeoutSeconds: 5` for Inertia page caching — falls back to cache quickly when offline but always serves fresh content when online
+  - Workbox `urlPattern` can be a function receiving `{ request, url }` — useful for matching Inertia requests by checking `X-Inertia` header or `request.mode === 'navigate'`
+  - Shared composable state (singleton refs at module level) with reference-counted event listeners prevents listener accumulation across Inertia page navigations
+  - localStorage queue for offline actions is simple and reliable — use sequential Promise chain for flush to avoid race conditions
+  - Optimistic UI updates (mark as read locally, toggle bookmark state) provide instant feedback offline; server sync happens transparently on reconnection
+  - Don't re-queue actions that fail on flush — they may be stale (e.g., article already deleted or state already changed)
 ---

@@ -3,6 +3,8 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import SidebarDrawer from '@/Components/SidebarDrawer.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { ref, computed, onUnmounted, watch, provide } from 'vue';
+import { useOnlineStatus } from '@/Composables/useOnlineStatus.js';
+import { useOfflineQueue } from '@/Composables/useOfflineQueue.js';
 
 const props = defineProps({
     articles: Object,
@@ -15,6 +17,14 @@ const props = defineProps({
 });
 
 const isReadLaterView = computed(() => props.activeFilter === 'read_later');
+const { isOnline } = useOnlineStatus();
+const { enqueue } = useOfflineQueue();
+
+// Track when data was last fetched
+const lastUpdatedAt = ref(new Date());
+watch(() => props.articles, () => {
+    lastUpdatedAt.value = new Date();
+});
 
 // Provide sidebar toggle for bottom nav in AppLayout
 provide('toggleSidebar', () => { sidebarOpen.value = true; });
@@ -92,6 +102,14 @@ function markAllAsRead() {
     if (props.activeFeedId) data.feed_id = props.activeFeedId;
     if (props.activeCategoryId) data.category_id = props.activeCategoryId;
     if (props.activeFilter) data.filter = props.activeFilter;
+
+    if (!isOnline.value) {
+        // Optimistic UI: mark all visible articles as read locally
+        allArticles.value = allArticles.value.map(a => ({ ...a, is_read: true }));
+        enqueue('post', route('articles.markAllAsRead'), data);
+        markingAllRead.value = false;
+        return;
+    }
 
     router.post(route('articles.markAllAsRead'), data, {
         preserveScroll: true,
@@ -182,6 +200,12 @@ function isSwipingArticle(articleId) {
 function removeFromReadLater(article) {
     // Remove from local list immediately (optimistic)
     allArticles.value = allArticles.value.filter(a => a.id !== article.id);
+
+    if (!isOnline.value) {
+        enqueue('post', route('articles.toggleReadLater', article.id), {});
+        return;
+    }
+
     // Send toggle request to server
     router.post(route('articles.toggleReadLater', article.id), {}, {
         preserveScroll: true,
@@ -217,6 +241,10 @@ function onSentinel(el) {
 onUnmounted(() => {
     if (observer.value) observer.value.disconnect();
 });
+
+function formatLastUpdated(date) {
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
 </script>
 
 <template>
@@ -412,6 +440,11 @@ onUnmounted(() => {
             <!-- End of list -->
             <div v-else class="py-8 text-center text-sm text-slate-600">
                 You're all caught up
+            </div>
+
+            <!-- Last updated timestamp (shown when offline) -->
+            <div v-if="!isOnline" class="pb-4 text-center text-xs text-slate-600">
+                Last updated at {{ formatLastUpdated(lastUpdatedAt) }}
             </div>
         </div>
     </AppLayout>

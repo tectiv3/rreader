@@ -264,7 +264,8 @@
         "Graceful degradation: show cached content with \"last updated\" timestamp"
       ],
       "priority": 15,
-      "passes": false
+      "passes": true,
+      "inProgress": false
     },
     {
       "id": "US-016",
