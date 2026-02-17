@@ -78,25 +78,7 @@ function timeAgo(dateString) {
 }
 
 function openArticle(article) {
-    if (!article.is_read) {
-        router.post(route('articles.markAsRead'), {
-            article_ids: [article.id],
-        }, {
-            preserveScroll: true,
-            preserveState: true,
-        });
-    }
-    // TODO: Navigate to article view (US-008)
-    if (article.url) {
-        try {
-            const url = new URL(article.url);
-            if (url.protocol === 'http:' || url.protocol === 'https:') {
-                window.open(url.href, '_blank', 'noopener,noreferrer');
-            }
-        } catch {
-            // Invalid URL, ignore
-        }
-    }
+    router.visit(route('articles.show', article.id));
 }
 
 function markAllAsRead() {

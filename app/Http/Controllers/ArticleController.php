@@ -262,4 +262,72 @@ class ArticleController extends Controller
 
         return back();
     }
+
+    public function show(Request $request, Article $article)
+    {
+        $user = $request->user();
+
+        // Ensure the article belongs to one of the user's feeds
+        $userFeedIds = $user->feeds()->pluck('feeds.id');
+        if (!$userFeedIds->contains($article->feed_id)) {
+            abort(404);
+        }
+
+        $article->load('feed:id,title,favicon_url,site_url');
+
+        // Get read state
+        $userArticle = $user->articles()->where('article_id', $article->id)->first();
+        $article->is_read = $userArticle?->pivot?->is_read ?? false;
+        $article->is_read_later = $userArticle?->pivot?->is_read_later ?? false;
+
+        // Mark as read
+        $user->articles()->syncWithoutDetaching([
+            $article->id => [
+                'is_read' => true,
+                'read_at' => now(),
+            ],
+        ]);
+
+        return Inertia::render('Articles/Show', [
+            'article' => $article,
+        ]);
+    }
+
+    public function toggleReadLater(Request $request, Article $article)
+    {
+        $user = $request->user();
+        $userFeedIds = $user->feeds()->pluck('feeds.id');
+        if (!$userFeedIds->contains($article->feed_id)) {
+            abort(404);
+        }
+
+        $existing = $user->articles()->where('article_id', $article->id)->first();
+        $isReadLater = !($existing?->pivot?->is_read_later ?? false);
+
+        $user->articles()->syncWithoutDetaching([
+            $article->id => [
+                'is_read_later' => $isReadLater,
+            ],
+        ]);
+
+        return back();
+    }
+
+    public function markAsUnread(Request $request, Article $article)
+    {
+        $user = $request->user();
+        $userFeedIds = $user->feeds()->pluck('feeds.id');
+        if (!$userFeedIds->contains($article->feed_id)) {
+            abort(404);
+        }
+
+        $user->articles()->syncWithoutDetaching([
+            $article->id => [
+                'is_read' => false,
+                'read_at' => null,
+            ],
+        ]);
+
+        return back();
+    }
 }

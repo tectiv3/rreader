@@ -86,8 +86,8 @@
         "Manual \"refresh\" pull-to-refresh gesture on article list triggers immediate fetch for current feed/category"
       ],
       "priority": 5,
-      "passes": false,
-      "inProgress": true
+      "passes": true,
+      "inProgress": false
     },
     {
       "id": "US-006",
@@ -105,7 +105,8 @@
         "Desktop view: compact single-line list layout (feed name, title, excerpt, time) as shown in Feedly desktop"
       ],
       "priority": 6,
-      "passes": false
+      "passes": true,
+      "inProgress": false
     },
     {
       "id": "US-007",
@@ -123,7 +124,8 @@
         "Smooth slide animation, dark themed, overlay on content"
       ],
       "priority": 7,
-      "passes": false
+      "passes": true,
+      "inProgress": false
     },
     {
       "id": "US-008",
@@ -141,7 +143,8 @@
         "Swipe gestures: swipe right to go back (optional progressive enhancement)"
       ],
       "priority": 8,
-      "passes": false
+      "passes": true,
+      "inProgress": false
     },
     {
       "id": "US-009",

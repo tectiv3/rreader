@@ -30,8 +30,11 @@ Route::middleware('auth')->group(function () {
 
     // Articles
     Route::get('/articles', [ArticleController::class, 'index'])->name('articles.index');
+    Route::get('/articles/{article}', [ArticleController::class, 'show'])->name('articles.show');
     Route::post('/articles/mark-read', [ArticleController::class, 'markAsRead'])->name('articles.markAsRead');
     Route::post('/articles/mark-all-read', [ArticleController::class, 'markAllAsRead'])->name('articles.markAllAsRead');
+    Route::post('/articles/{article}/toggle-read-later', [ArticleController::class, 'toggleReadLater'])->name('articles.toggleReadLater');
+    Route::post('/articles/{article}/mark-unread', [ArticleController::class, 'markAsUnread'])->name('articles.markAsUnread');
 });
 
 require __DIR__.'/auth.php';
