@@ -282,3 +282,16 @@
   - Debounce search input with 300ms delay to avoid excessive requests while still feeling responsive
   - Use `type="search"` on the input element for native browser clear button and mobile keyboard optimization
 ---
+
+## 2026-02-17 - US-014
+- What was implemented: Bottom Navigation Bar refinement — reduced to 5 items matching Feedly's layout (hamburger/Menu, bookmark/Read Later, grid/Feeds, RSS+/Add Feed, magnifying glass/Search), removed Settings from bottom nav (already accessible via sidebar drawer). Added scroll-direction hide/show behavior (nav hides on scroll down, reappears on scroll up) with smooth CSS transform transition. Updated icons: Feeds uses grid icon, Add Feed uses RSS+ combined icon. Fixed Menu button fallback when `toggleSidebar` inject is not provided (navigates to articles index instead of silently failing). Replaced redundant inline `:style` with Tailwind `bottom-0` class.
+- Files changed:
+  - `resources/js/Layouts/AppLayout.vue` — Reduced bottom nav from 6 to 5 items, added scroll-direction show/hide with passive scroll listener and proper cleanup, updated Feeds icon to grid, Add Feed icon to RSS+, fixed Menu button fallback for pages without sidebar, added `bottom-0` class replacing inline style
+  - `.chief/prds/main/prd.json` — Marked US-014 as passes: true
+- **Learnings for future iterations:**
+  - Use `translate-y-full` / `translate-y-0` with `transition-transform duration-300` for smooth bottom nav show/hide — GPU-accelerated and avoids layout thrashing
+  - Scroll-direction detection: track `lastScrollY`, use a threshold (10px) dead zone to prevent jitter from sub-pixel scroll events
+  - Always use `{ passive: true }` on scroll event listeners for performance (tells browser handler won't call `preventDefault()`)
+  - When using `inject('toggleSidebar', null)` with optional chaining `?.()`, the Menu button silently does nothing on pages that don't provide the injection — add a fallback navigation action
+  - Prefer Tailwind utility classes (`bottom-0`) over inline `:style` bindings for static positioning values
+---
