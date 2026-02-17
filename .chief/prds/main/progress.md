@@ -15,6 +15,10 @@
 - Use `text()` for URL columns in migrations (URLs can exceed 255 chars)
 - `foreignId()->constrained()` already creates an index — don't add redundant `$table->index()` on FK columns
 - Use composite indexes for boolean filters (e.g. `['user_id', 'is_read']` not just `'is_read'`)
+- `laminas/laminas-feed` for RSS/Atom parsing — `FeedReader::importString($xml)` to parse feed content
+- Services go in `app/Services/` — inject via controller method parameters (Laravel auto-resolves)
+- Feed-related routes: `feeds.create` (GET), `feeds.preview` (POST), `feeds.store` (POST)
+- Use `Http::timeout(15)->withUserAgent('RReader/1.0')` for external HTTP requests
 
 ---
 
@@ -79,4 +83,21 @@
   - Use `text()` instead of `string()` for URL columns — real-world URLs often exceed 255 characters
   - Boolean column indexes alone have near-zero selectivity — use composite indexes like `['user_id', 'is_read']`
   - SQLite handles `cascadeOnDelete()` and `nullOnDelete()` correctly with foreign keys enabled
+---
+
+## 2026-02-17 - US-004
+- What was implemented: Feed subscription feature — users can add RSS/Atom feeds by URL with auto-discovery, preview feed details before subscribing, optionally assign categories (existing or new), and initial articles are fetched and stored on subscription.
+- Files changed:
+  - `app/Services/FeedParserService.php` — New service for RSS/Atom feed parsing using laminas/laminas-feed, with auto-discovery from HTML pages, URL normalization, and article extraction
+  - `app/Http/Controllers/FeedController.php` — New controller with create (form), preview (discover + validate), and store (subscribe + fetch articles) actions
+  - `resources/js/Pages/Feeds/Create.vue` — New Add Feed page with URL input, loading states, feed preview card, category selection (existing or new), dark-themed mobile-first design
+  - `routes/web.php` — Added authenticated routes: GET /feeds/create, POST /feeds/preview, POST /feeds
+  - `composer.json` — Added laminas/laminas-feed dependency for RSS/Atom parsing
+- **Learnings for future iterations:**
+  - `laminas/laminas-feed` is the go-to PHP library for RSS/Atom parsing — use `FeedReader::importString()` for parsing XML content
+  - Feed auto-discovery works by looking for `<link>` tags with `type="application/rss+xml"` or `application/atom+xml` in HTML pages
+  - Author data from laminas-feed returns an ArrayObject — use `$entry->getAuthor()?->offsetGet('name')` to get the name string
+  - Always normalize URLs by prepending `https://` if no scheme is present
+  - Use `Http::timeout(15)->withUserAgent('RReader/1.0')` for external feed fetching to be a good citizen
+  - Inertia's `useForm().post()` with `preserveScroll: true` keeps the page position during preview requests
 ---
