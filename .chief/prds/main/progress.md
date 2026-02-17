@@ -266,3 +266,19 @@
   - Reuse existing Breeze logout route (`route('logout')`) instead of duplicating auth logic in new controllers
   - Wrap toggle-button preference groups in `<form @submit.prevent>` for keyboard accessibility
 ---
+
+## 2026-02-17 - US-013
+- What was implemented: Search Articles feature — full-text search across article titles and content with debounced input (300ms), loading indicator, search scoped to all feeds by default (supports feed_id/category_id params for scoping), search results in same card format as article list (mobile cards + desktop compact rows), infinite scroll pagination on results, clear button, empty state for no results, initial state with helpful prompt. Search accessible from bottom navigation bar (magnifying glass icon) with active state highlighting. JSON API response support for potential future use.
+- Files changed:
+  - `app/Http/Controllers/ArticleController.php` — Added `search()` method with LIKE-based full-text search across title and content, feed/category scoping, pagination, and JSON response support
+  - `resources/js/Pages/Articles/Search.vue` — New search page with debounced input, loading spinner, clear button, mobile card layout and desktop compact layout (matching article list), infinite scroll, empty state, initial search prompt
+  - `resources/js/Layouts/AppLayout.vue` — Added Search icon to bottom navigation bar between Add and Settings, with active state detection
+  - `routes/web.php` — Added `GET /articles/search` route (before `{article}` to avoid route conflict)
+  - `.chief/prds/main/prd.json` — Marked US-013 as passes: true
+- **Learnings for future iterations:**
+  - Place specific routes like `/articles/search` before parameterized routes like `/articles/{article}` to avoid Laravel treating "search" as an article ID
+  - SQLite `LIKE` is case-insensitive by default for ASCII characters — sufficient for basic full-text search without needing a separate search index
+  - Use `wantsJson()` to support both Inertia page renders and JSON API responses from the same controller method
+  - Debounce search input with 300ms delay to avoid excessive requests while still feeling responsive
+  - Use `type="search"` on the input element for native browser clear button and mobile keyboard optimization
+---

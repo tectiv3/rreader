@@ -53,6 +53,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.updatePassword');
 
     // Articles
+    Route::get('/articles/search', [ArticleController::class, 'search'])->name('articles.search');
     Route::get('/articles', [ArticleController::class, 'index'])->name('articles.index');
     Route::get('/articles/{article}', [ArticleController::class, 'show'])->name('articles.show');
     Route::post('/articles/mark-read', [ArticleController::class, 'markAsRead'])->name('articles.markAsRead');

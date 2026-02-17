@@ -313,6 +313,71 @@ class ArticleController extends Controller
         return back();
     }
 
+    public function search(Request $request)
+    {
+        $request->validate([
+            'q' => 'required|string|min:1|max:255',
+            'feed_id' => 'nullable|integer',
+            'category_id' => 'nullable|integer',
+        ]);
+
+        $user = $request->user();
+        $allFeedIds = $user->feeds()->pluck('feeds.id');
+        $q = $request->input('q');
+
+        // Determine scope
+        $feedIds = $allFeedIds;
+        $feedId = $request->input('feed_id');
+        $categoryId = $request->input('category_id');
+
+        if ($feedId) {
+            $feed = $user->feeds()->where('feeds.id', $feedId)->first();
+            if ($feed) {
+                $feedIds = collect([$feed->id]);
+            }
+        } elseif ($categoryId) {
+            $category = $user->categories()->where('id', $categoryId)->first();
+            if ($category) {
+                $catFeedIds = $category->feeds()->pluck('feeds.id');
+                if ($catFeedIds->isNotEmpty()) {
+                    $feedIds = $catFeedIds;
+                }
+            }
+        }
+
+        $articles = Article::whereIn('feed_id', $feedIds)
+            ->where(function ($query) use ($q) {
+                $query->where('articles.title', 'like', "%{$q}%")
+                    ->orWhere('articles.content', 'like', "%{$q}%");
+            })
+            ->with('feed:id,title,favicon_url')
+            ->leftJoin('user_articles', function ($join) use ($user) {
+                $join->on('articles.id', '=', 'user_articles.article_id')
+                    ->where('user_articles.user_id', '=', $user->id);
+            })
+            ->select([
+                'articles.*',
+                'user_articles.is_read',
+                'user_articles.is_read_later',
+            ])
+            ->orderByDesc('articles.published_at')
+            ->paginate(30)
+            ->withQueryString();
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'articles' => $articles,
+            ]);
+        }
+
+        return Inertia::render('Articles/Search', [
+            'articles' => $articles,
+            'query' => $q,
+            'feedId' => $feedId ? (int) $feedId : null,
+            'categoryId' => $categoryId ? (int) $categoryId : null,
+        ]);
+    }
+
     public function markAsUnread(Request $request, Article $article)
     {
         $user = $request->user();
