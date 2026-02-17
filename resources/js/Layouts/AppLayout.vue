@@ -1,7 +1,16 @@
 <script setup>
 import { useDarkMode } from '@/Composables/useDarkMode.js';
+import { router, usePage } from '@inertiajs/vue3';
+import { inject } from 'vue';
 
 const { isDark, toggle } = useDarkMode();
+
+const page = usePage();
+const toggleSidebar = inject('toggleSidebar', null);
+
+function navigateTo(params) {
+    router.get(route('articles.index', params), {}, { preserveState: false });
+}
 </script>
 
 <template>
@@ -38,9 +47,65 @@ const { isDark, toggle } = useDarkMode();
         </header>
 
         <!-- Main content -->
-        <main class="pb-safe">
+        <main class="pb-16 lg:pb-0">
             <slot />
         </main>
+
+        <!-- Bottom navigation bar (mobile only) -->
+        <nav class="fixed bottom-0 inset-x-0 z-40 border-t border-slate-800 bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-slate-900/80 lg:hidden pb-safe"
+             aria-label="Bottom navigation">
+            <div class="flex h-14 items-center justify-around px-2">
+                <!-- Sidebar toggle -->
+                <button
+                    @click="toggleSidebar?.()"
+                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 text-slate-400 hover:text-slate-200 transition-colors"
+                    aria-label="Open sidebar"
+                >
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
+                    <span class="text-[10px]">Menu</span>
+                </button>
+
+                <!-- Read Later -->
+                <button
+                    @click="navigateTo({ filter: 'read_later' })"
+                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors"
+                    :class="page.props.activeFilter === 'read_later' ? 'text-amber-500' : 'text-slate-400 hover:text-slate-200'"
+                    aria-label="Read Later"
+                >
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                    </svg>
+                    <span class="text-[10px]">Read Later</span>
+                </button>
+
+                <!-- All Feeds -->
+                <button
+                    @click="navigateTo({})"
+                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors"
+                    :class="!page.props.activeFilter && !page.props.activeFeedId && !page.props.activeCategoryId ? 'text-blue-500' : 'text-slate-400 hover:text-slate-200'"
+                    aria-label="All feeds"
+                >
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12.75 19.5v-.75a7.5 7.5 0 00-7.5-7.5H4.5m0-6.75h.75c7.87 0 14.25 6.38 14.25 14.25v.75M6 18.75a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                    </svg>
+                    <span class="text-[10px]">Feeds</span>
+                </button>
+
+                <!-- Add Feed -->
+                <button
+                    @click="router.visit(route('feeds.create'))"
+                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 text-slate-400 hover:text-slate-200 transition-colors"
+                    aria-label="Add feed"
+                >
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    <span class="text-[10px]">Add</span>
+                </button>
+            </div>
+        </nav>
     </div>
 </template>
 

@@ -2,7 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SidebarDrawer from '@/Components/SidebarDrawer.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { ref, computed, onUnmounted, watch } from 'vue';
+import { ref, computed, onUnmounted, watch, provide } from 'vue';
 
 const props = defineProps({
     articles: Object,
@@ -13,6 +13,11 @@ const props = defineProps({
     activeFilter: String,
     sidebar: Object,
 });
+
+const isReadLaterView = computed(() => props.activeFilter === 'read_later');
+
+// Provide sidebar toggle for bottom nav in AppLayout
+provide('toggleSidebar', () => { sidebarOpen.value = true; });
 
 const loading = ref(false);
 const loadingMore = ref(false);
@@ -125,6 +130,62 @@ function refreshFeeds() {
         onFinish: () => {
             loading.value = false;
         },
+    });
+}
+
+// Swipe-to-remove for Read Later view
+const swipeState = ref({});
+const SWIPE_THRESHOLD = 100;
+
+function onTouchStart(articleId, e) {
+    if (!isReadLaterView.value) return;
+    swipeState.value[articleId] = {
+        startX: e.touches[0].clientX,
+        currentX: 0,
+        swiping: false,
+    };
+}
+
+function onTouchMove(articleId, e) {
+    const state = swipeState.value[articleId];
+    if (!state) return;
+    const deltaX = e.touches[0].clientX - state.startX;
+    // Only allow left swipe (negative deltaX)
+    if (deltaX < -10) {
+        state.swiping = true;
+        state.currentX = Math.max(deltaX, -200);
+    }
+}
+
+function onTouchEnd(articleId, article) {
+    const state = swipeState.value[articleId];
+    if (!state) return;
+    if (state.currentX < -SWIPE_THRESHOLD) {
+        removeFromReadLater(article);
+    }
+    delete swipeState.value[articleId];
+}
+
+function getSwipeStyle(articleId) {
+    const state = swipeState.value[articleId];
+    if (!state || !state.swiping) return {};
+    return {
+        transform: `translateX(${state.currentX}px)`,
+        transition: 'none',
+    };
+}
+
+function isSwipingArticle(articleId) {
+    return swipeState.value[articleId]?.swiping ?? false;
+}
+
+function removeFromReadLater(article) {
+    // Remove from local list immediately (optimistic)
+    allArticles.value = allArticles.value.filter(a => a.id !== article.id);
+    // Send toggle request to server
+    router.post(route('articles.toggleReadLater', article.id), {}, {
+        preserveScroll: true,
+        preserveState: true,
     });
 }
 
@@ -250,42 +311,60 @@ onUnmounted(() => {
                         <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500">{{ dateLabel }}</h2>
                     </div>
                     <div>
-                        <button
+                        <div
                             v-for="article in articles"
                             :key="article.id"
-                            @click="openArticle(article)"
-                            class="flex w-full gap-3 border-b border-slate-800/50 px-4 py-3 text-left transition-colors hover:bg-slate-900/50 active:bg-slate-800/50"
+                            class="relative overflow-hidden border-b border-slate-800/50"
                         >
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center gap-2 text-xs text-slate-500">
-                                    <img
-                                        v-if="article.feed?.favicon_url"
-                                        :src="article.feed.favicon_url"
-                                        class="h-3.5 w-3.5 rounded-sm"
-                                        alt=""
-                                    />
-                                    <span class="truncate">{{ article.feed?.title }}</span>
-                                    <span>&middot;</span>
-                                    <span class="shrink-0">{{ timeAgo(article.published_at) }}</span>
-                                </div>
-                                <h3
-                                    class="mt-1 text-sm leading-snug"
-                                    :class="article.is_read ? 'text-slate-500 font-normal' : 'text-slate-100 font-semibold'"
-                                >
-                                    {{ article.title }}
-                                </h3>
-                                <p v-if="article.summary" class="mt-0.5 line-clamp-2 text-xs text-slate-500">
-                                    {{ article.summary }}
-                                </p>
+                            <!-- Swipe reveal background (Read Later view only) -->
+                            <div
+                                v-if="isReadLaterView && isSwipingArticle(article.id)"
+                                class="absolute inset-0 flex items-center justify-end bg-red-600/90 px-6"
+                            >
+                                <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l1.664 1.664M21 21l-1.5-1.5m-5.533-1.8a3.75 3.75 0 01-5.3-5.3m5.3 5.3l-5.3-5.3m5.3 5.3L17.25 21m-1.35-1.35L21 21m-5.533-1.8L9.7 13.133m0 0l-1.225-1.225M9.7 13.133L3 6.433" />
+                                </svg>
+                                <span class="ml-2 text-sm font-medium text-white">Remove</span>
                             </div>
-                            <img
-                                v-if="article.image_url"
-                                :src="article.image_url"
-                                class="h-16 w-16 shrink-0 rounded-lg object-cover"
-                                :alt="article.title"
-                                loading="lazy"
-                            />
-                        </button>
+                            <button
+                                @click="!isSwipingArticle(article.id) && openArticle(article)"
+                                @touchstart="onTouchStart(article.id, $event)"
+                                @touchmove="onTouchMove(article.id, $event)"
+                                @touchend="onTouchEnd(article.id, article)"
+                                class="relative flex w-full gap-3 bg-slate-950 px-4 py-3 text-left transition-colors hover:bg-slate-900/50 active:bg-slate-800/50"
+                                :style="isReadLaterView ? getSwipeStyle(article.id) : {}"
+                            >
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2 text-xs text-slate-500">
+                                        <img
+                                            v-if="article.feed?.favicon_url"
+                                            :src="article.feed.favicon_url"
+                                            class="h-3.5 w-3.5 rounded-sm"
+                                            alt=""
+                                        />
+                                        <span class="truncate">{{ article.feed?.title }}</span>
+                                        <span>&middot;</span>
+                                        <span class="shrink-0">{{ timeAgo(article.published_at) }}</span>
+                                    </div>
+                                    <h3
+                                        class="mt-1 text-sm leading-snug"
+                                        :class="article.is_read ? 'text-slate-500 font-normal' : 'text-slate-100 font-semibold'"
+                                    >
+                                        {{ article.title }}
+                                    </h3>
+                                    <p v-if="article.summary" class="mt-0.5 line-clamp-2 text-xs text-slate-500">
+                                        {{ article.summary }}
+                                    </p>
+                                </div>
+                                <img
+                                    v-if="article.image_url"
+                                    :src="article.image_url"
+                                    class="h-16 w-16 shrink-0 rounded-lg object-cover"
+                                    :alt="article.title"
+                                    loading="lazy"
+                                />
+                            </button>
+                        </div>
                     </div>
                 </template>
             </div>

@@ -160,7 +160,8 @@
         "Empty state with helpful message when no saved articles"
       ],
       "priority": 9,
-      "passes": false
+      "passes": true,
+      "inProgress": false
     },
     {
       "id": "US-010",
