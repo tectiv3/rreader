@@ -178,41 +178,13 @@ let touchStartY = 0
 const SWIPE_THRESHOLD = 80
 const SWIPE_ANGLE_LIMIT = 30 // degrees — must be mostly horizontal
 const SWIPE_ANIMATION_MS = 160
-const SWIPE_TRANSLATE_PERCENT = 45
 const ADJACENT_ARTICLE_PREFETCH_CACHE_FOR = '10m'
 
 function prefetchAdjacentArticles() {
-    const queue = [props.nextArticleId, props.prevArticleId].filter(Boolean)
-    if (!queue.length) return
-
-    const prefetchNext = index => {
-        const articleId = queue[index]
-        if (!articleId) return
-
+    ;[props.nextArticleId, props.prevArticleId].filter(Boolean).forEach(articleId => {
         const url = articleUrl(articleId)
-        const options = { method: 'get' }
-
-        // Skip already-cached/in-flight requests so we can continue the queue.
-        if (router.getCached(url, options) || router.getPrefetching(url, options)) {
-            prefetchNext(index + 1)
-            return
-        }
-
-        router.prefetch(
-            url,
-            {
-                ...options,
-                onPrefetched: () => prefetchNext(index + 1),
-                onPrefetchError: () => prefetchNext(index + 1),
-                onCancel: () => prefetchNext(index + 1),
-            },
-            {
-                cacheFor: ADJACENT_ARTICLE_PREFETCH_CACHE_FOR,
-            }
-        )
-    }
-
-    prefetchNext(0)
+        router.prefetch(url, {}, { cacheFor: ADJACENT_ARTICLE_PREFETCH_CACHE_FOR })
+    })
 }
 
 // Prefetch adjacent articles and save reading state for PWA restore
@@ -233,15 +205,11 @@ onMounted(() => {
     if (direction && articleEl.value) {
         sessionStorage.removeItem('article-swipe-direction')
         const el = articleEl.value
-        // Start off-screen (opposite side from swipe direction)
+        const translateFrom = direction === 'next' ? '40%' : '-40%'
         el.style.transition = 'none'
-        el.style.transform =
-            direction === 'next'
-                ? `translateX(${SWIPE_TRANSLATE_PERCENT}%)`
-                : `translateX(-${SWIPE_TRANSLATE_PERCENT}%)`
+        el.style.transform = `translateX(${translateFrom})`
         el.style.opacity = '0'
         el.offsetHeight // force reflow
-        // Animate into place
         el.style.transition = `transform ${SWIPE_ANIMATION_MS}ms ease-out, opacity ${SWIPE_ANIMATION_MS}ms ease-out`
         el.style.transform = 'translateX(0)'
         el.style.opacity = '1'
@@ -272,31 +240,21 @@ function onSwipeEnd(e) {
     if (angle > SWIPE_ANGLE_LIMIT && angle < 180 - SWIPE_ANGLE_LIMIT) return
 
     if (deltaX < -SWIPE_THRESHOLD && props.nextArticleId) {
-        // Swipe left → next article (older): slide out to left
+        // Swipe left → next article (older)
         navigating.value = true
         sessionStorage.setItem('article-swipe-direction', 'next')
-        if (articleEl.value) {
-            articleEl.value.style.transition = `transform ${SWIPE_ANIMATION_MS}ms ease-out, opacity ${SWIPE_ANIMATION_MS}ms ease-out`
-            articleEl.value.style.transform = `translateX(-${SWIPE_TRANSLATE_PERCENT}%)`
-            articleEl.value.style.opacity = '0'
-        }
-        setTimeout(
-            () => router.visit(articleUrl(props.nextArticleId), { replace: true }),
-            SWIPE_ANIMATION_MS
-        )
+        router.visit(articleUrl(props.nextArticleId), {
+            replace: true,
+            showProgress: false,
+        })
     } else if (deltaX > SWIPE_THRESHOLD && props.prevArticleId) {
-        // Swipe right → previous article (newer): slide out to right
+        // Swipe right → previous article (newer)
         navigating.value = true
         sessionStorage.setItem('article-swipe-direction', 'prev')
-        if (articleEl.value) {
-            articleEl.value.style.transition = `transform ${SWIPE_ANIMATION_MS}ms ease-out, opacity ${SWIPE_ANIMATION_MS}ms ease-out`
-            articleEl.value.style.transform = `translateX(${SWIPE_TRANSLATE_PERCENT}%)`
-            articleEl.value.style.opacity = '0'
-        }
-        setTimeout(
-            () => router.visit(articleUrl(props.prevArticleId), { replace: true }),
-            SWIPE_ANIMATION_MS
-        )
+        router.visit(articleUrl(props.prevArticleId), {
+            replace: true,
+            showProgress: false,
+        })
     }
 }
 </script>
