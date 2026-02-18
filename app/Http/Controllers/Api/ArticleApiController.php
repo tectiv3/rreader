@@ -126,12 +126,24 @@ class ArticleApiController extends Controller
             abort(404);
         }
 
+        $feed = $article->feed;
+
+        // Check user read state
+        $userArticle = $user->articles()->where('article_id', $article->id)->first();
+
         return response()->json([
             'id' => $article->id,
+            'title' => $article->title,
             'content' => $article->content,
             'summary' => $article->summary,
             'author' => $article->author,
             'url' => $article->url,
+            'image_url' => $article->image_url,
+            'published_at' => $article->published_at,
+            'feed_id' => $article->feed_id,
+            'feed_title' => $feed?->title,
+            'feed_favicon_url' => $feed?->favicon_url,
+            'is_read_later' => (bool) $userArticle?->pivot?->is_read_later,
         ]);
     }
 
