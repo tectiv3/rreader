@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
+import { useSidebarStore } from '@/Stores/useSidebarStore.js'
 
 export const useArticleStore = defineStore('articles', () => {
     // --- State ---
@@ -11,6 +12,9 @@ export const useArticleStore = defineStore('articles', () => {
     const loading = ref(false)
     const loaded = ref(false)
     const filterTitle = ref('All Feeds')
+    const hasMore = ref(false)
+    const nextCursor = ref(null)
+    const loadingMore = ref(false)
 
     const CONTENT_CACHE_MAX = 20
 
@@ -60,6 +64,8 @@ export const useArticleStore = defineStore('articles', () => {
 
         loading.value = true
         activeView.value = view
+        nextCursor.value = null
+        hasMore.value = false
 
         const params = new URLSearchParams()
         if (view.feedId) params.set('feed_id', view.feedId)
@@ -72,9 +78,32 @@ export const useArticleStore = defineStore('articles', () => {
             const response = await axios.get('/api/articles?' + params.toString())
             articles.value = response.data.articles
             filterTitle.value = response.data.filter_title
+            hasMore.value = response.data.has_more
+            nextCursor.value = response.data.next_cursor
             loaded.value = true
         } finally {
             loading.value = false
+        }
+    }
+
+    async function loadMore() {
+        if (!hasMore.value || loadingMore.value || !nextCursor.value) return
+        loadingMore.value = true
+        try {
+            const params = new URLSearchParams()
+            if (activeView.value.feedId) params.set('feed_id', activeView.value.feedId)
+            if (activeView.value.categoryId) params.set('category_id', activeView.value.categoryId)
+            if (activeView.value.type === 'today') params.set('filter', 'today')
+            if (activeView.value.type === 'read_later') params.set('filter', 'read_later')
+            if (activeView.value.type === 'recently_read') params.set('filter', 'recently_read')
+            params.set('cursor', nextCursor.value)
+
+            const response = await axios.get('/api/articles?' + params.toString())
+            articles.value = [...articles.value, ...response.data.articles]
+            hasMore.value = response.data.has_more
+            nextCursor.value = response.data.next_cursor
+        } finally {
+            loadingMore.value = false
         }
     }
 
@@ -124,14 +153,27 @@ export const useArticleStore = defineStore('articles', () => {
         if (prev) fetchContent(prev).catch(() => {})
     }
 
+    function _isToday(dateString) {
+        const d = new Date(dateString)
+        const now = new Date()
+        return d.getFullYear() === now.getFullYear()
+            && d.getMonth() === now.getMonth()
+            && d.getDate() === now.getDate()
+    }
+
     function markRead(id) {
         const article = articles.value.find(a => a.id === id)
         if (!article || article.is_read) return
         article.is_read = true
         article.read_at = new Date().toISOString()
+        const sidebar = useSidebarStore()
+        sidebar.decrementFeedUnread(article.feed_id)
+        if (_isToday(article.published_at)) sidebar.adjustTodayCount(-1)
         axios.patch(`/api/articles/${id}`, { is_read: true }).catch(() => {
             article.is_read = false
             article.read_at = null
+            sidebar.incrementFeedUnread(article.feed_id)
+            if (_isToday(article.published_at)) sidebar.adjustTodayCount(1)
         })
     }
 
@@ -140,8 +182,13 @@ export const useArticleStore = defineStore('articles', () => {
         if (!article || !article.is_read) return
         article.is_read = false
         article.read_at = null
+        const sidebar = useSidebarStore()
+        sidebar.incrementFeedUnread(article.feed_id)
+        if (_isToday(article.published_at)) sidebar.adjustTodayCount(1)
         axios.patch(`/api/articles/${id}`, { is_read: false }).catch(() => {
             article.is_read = true
+            sidebar.decrementFeedUnread(article.feed_id)
+            if (_isToday(article.published_at)) sidebar.adjustTodayCount(-1)
         })
     }
 
@@ -150,8 +197,11 @@ export const useArticleStore = defineStore('articles', () => {
         if (!article) return
         const was = article.is_read_later
         article.is_read_later = !was
+        const sidebar = useSidebarStore()
+        sidebar.adjustReadLaterCount(was ? -1 : 1)
         axios.patch(`/api/articles/${id}`, { is_read_later: !was }).catch(() => {
             article.is_read_later = was
+            sidebar.adjustReadLaterCount(was ? 1 : -1)
         })
     }
 
@@ -160,10 +210,23 @@ export const useArticleStore = defineStore('articles', () => {
             ? articles.value.filter(a => a.feed_id === feedId && !a.is_read)
             : articles.value.filter(a => !a.is_read)
 
+        const feedCounts = {}
+        let todayDelta = 0
+        targets.forEach(a => {
+            feedCounts[a.feed_id] = (feedCounts[a.feed_id] || 0) + 1
+            if (_isToday(a.published_at)) todayDelta++
+        })
+
         targets.forEach(a => {
             a.is_read = true
             a.read_at = new Date().toISOString()
         })
+
+        const sidebar = useSidebarStore()
+        for (const [fid, count] of Object.entries(feedCounts)) {
+            sidebar.decrementFeedUnread(Number(fid), count)
+        }
+        if (todayDelta) sidebar.adjustTodayCount(-todayDelta)
 
         axios
             .post('/api/articles/mark-all-read', {
@@ -174,16 +237,39 @@ export const useArticleStore = defineStore('articles', () => {
                     : null,
             })
             .catch(() => {
-                // Revert on failure
                 targets.forEach(a => {
                     a.is_read = false
                     a.read_at = null
                 })
+                for (const [fid, count] of Object.entries(feedCounts)) {
+                    sidebar.incrementFeedUnread(Number(fid), count)
+                }
+                if (todayDelta) sidebar.adjustTodayCount(todayDelta)
             })
+    }
+
+    function dismissArticle(id) {
+        const idx = articles.value.findIndex(a => a.id === id)
+        if (idx === -1) return
+        const article = articles.value[idx]
+        const wasUnread = !article.is_read
+        const feedId = article.feed_id
+        const pubToday = _isToday(article.published_at)
+
+        articles.value.splice(idx, 1)
+
+        if (wasUnread) {
+            const sidebar = useSidebarStore()
+            sidebar.decrementFeedUnread(feedId)
+            if (pubToday) sidebar.adjustTodayCount(-1)
+            axios.patch(`/api/articles/${id}`, { is_read: true }).catch(() => {})
+        }
     }
 
     function forceRefresh() {
         loaded.value = false
+        nextCursor.value = null
+        hasMore.value = false
         return fetchArticles(activeView.value)
     }
 
@@ -195,6 +281,9 @@ export const useArticleStore = defineStore('articles', () => {
         loading,
         loaded,
         filterTitle,
+        hasMore,
+        loadingMore,
+        nextCursor,
         // getters
         unreadCount,
         readLaterCount,
@@ -203,12 +292,14 @@ export const useArticleStore = defineStore('articles', () => {
         adjacentIds,
         // actions
         fetchArticles,
+        loadMore,
         fetchContent,
         prefetchAdjacent,
         markRead,
         markUnread,
         toggleReadLater,
         markAllRead,
+        dismissArticle,
         forceRefresh,
     }
 })

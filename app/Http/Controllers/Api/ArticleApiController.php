@@ -16,6 +16,8 @@ class ArticleApiController extends Controller
         $feedId = $request->query('feed_id');
         $categoryId = $request->query('category_id');
         $filter = $request->query('filter');
+        $cursor = $request->query('cursor');
+        $perPage = 30;
 
         $feedIds = $allFeedIds;
         $filterTitle = 'All Feeds';
@@ -55,6 +57,17 @@ class ArticleApiController extends Controller
                     'user_articles.is_read', 'user_articles.is_read_later',
                     'user_articles.read_at',
                 ]);
+
+            if ($cursor) {
+                [$cursorDate, $cursorId] = explode(',', $cursor, 2);
+                $query->where(function ($q) use ($cursorDate, $cursorId) {
+                    $q->where('articles.published_at', '<', $cursorDate)
+                      ->orWhere(function ($q2) use ($cursorDate, $cursorId) {
+                          $q2->where('articles.published_at', '=', $cursorDate)
+                              ->where('articles.id', '<', $cursorId);
+                      });
+                });
+            }
         } elseif ($filter === 'recently_read') {
             $query = Article::whereIn('feed_id', $allFeedIds)
                 ->join('user_articles', function ($join) use ($user) {
@@ -70,6 +83,17 @@ class ArticleApiController extends Controller
                     'user_articles.read_at',
                 ])
                 ->orderByDesc('user_articles.read_at');
+
+            if ($cursor) {
+                [$cursorReadAt, $cursorId] = explode(',', $cursor, 2);
+                $query->where(function ($q) use ($cursorReadAt, $cursorId) {
+                    $q->where('user_articles.read_at', '<', $cursorReadAt)
+                      ->orWhere(function ($q2) use ($cursorReadAt, $cursorId) {
+                          $q2->where('user_articles.read_at', '=', $cursorReadAt)
+                              ->where('articles.id', '<', $cursorId);
+                      });
+                });
+            }
         } else {
             $query = Article::whereIn('feed_id', $feedIds)
                 ->leftJoin('user_articles', function ($join) use ($user) {
@@ -89,23 +113,45 @@ class ArticleApiController extends Controller
                 $query->whereDate('articles.published_at', today());
             }
 
-            // Respect user's hide_read_articles setting
             $hideRead = $user->settings['hide_read_articles'] ?? false;
             if ($hideRead) {
                 $query->where(fn ($q) => $q->whereNull('user_articles.is_read')
                                             ->orWhere('user_articles.is_read', false));
             }
+
+            if ($cursor) {
+                [$cursorDate, $cursorId] = explode(',', $cursor, 2);
+                $query->where(function ($q) use ($cursorDate, $cursorId) {
+                    $q->where('articles.published_at', '<', $cursorDate)
+                      ->orWhere(function ($q2) use ($cursorDate, $cursorId) {
+                          $q2->where('articles.published_at', '=', $cursorDate)
+                              ->where('articles.id', '<', $cursorId);
+                      });
+                });
+            }
         }
 
-        // For non-recently_read views, order by published_at desc
         if ($filter !== 'recently_read') {
             $query->orderByDesc('articles.published_at')
                   ->orderByDesc('articles.id');
         }
 
-        $articles = $query->limit(1000)->get();
+        $articles = $query->limit($perPage + 1)->get();
+        $hasMore = $articles->count() > $perPage;
+        if ($hasMore) {
+            $articles->pop();
+        }
 
-        // Attach feed metadata
+        $lastArticle = $articles->last();
+        $nextCursor = null;
+        if ($hasMore && $lastArticle) {
+            if ($filter === 'recently_read') {
+                $nextCursor = $lastArticle->read_at . ',' . $lastArticle->id;
+            } else {
+                $nextCursor = $lastArticle->published_at . ',' . $lastArticle->id;
+            }
+        }
+
         $feedMap = $user->feeds()
             ->select('feeds.id', 'feeds.title', 'feeds.favicon_url')
             ->get()
@@ -121,6 +167,8 @@ class ArticleApiController extends Controller
         return response()->json([
             'articles' => $articles,
             'filter_title' => $filterTitle,
+            'has_more' => $hasMore,
+            'next_cursor' => $nextCursor,
         ]);
     }
 
@@ -223,14 +271,20 @@ class ArticleApiController extends Controller
     {
         $user = $request->user();
         $q = $request->query('q', '');
+        $cursor = $request->query('cursor');
+        $perPage = 30;
 
         if (strlen($q) < 2) {
-            return response()->json(['articles' => []]);
+            return response()->json([
+                'articles' => [],
+                'has_more' => false,
+                'next_cursor' => null,
+            ]);
         }
 
         $feedIds = $user->feeds()->pluck('feeds.id');
 
-        $articles = Article::whereIn('feed_id', $feedIds)
+        $query = Article::whereIn('feed_id', $feedIds)
             ->where(function ($query) use ($q) {
                 $query->where('title', 'like', "%{$q}%")
                       ->orWhere('summary', 'like', "%{$q}%");
@@ -247,8 +301,30 @@ class ArticleApiController extends Controller
                 DB::raw('COALESCE(user_articles.is_read_later, 0) as is_read_later'),
             ])
             ->orderByDesc('articles.published_at')
-            ->limit(100)
-            ->get();
+            ->orderByDesc('articles.id');
+
+        if ($cursor) {
+            [$cursorDate, $cursorId] = explode(',', $cursor, 2);
+            $query->where(function ($q) use ($cursorDate, $cursorId) {
+                $q->where('articles.published_at', '<', $cursorDate)
+                  ->orWhere(function ($q2) use ($cursorDate, $cursorId) {
+                      $q2->where('articles.published_at', '=', $cursorDate)
+                          ->where('articles.id', '<', $cursorId);
+                  });
+            });
+        }
+
+        $articles = $query->limit($perPage + 1)->get();
+        $hasMore = $articles->count() > $perPage;
+        if ($hasMore) {
+            $articles->pop();
+        }
+
+        $lastArticle = $articles->last();
+        $nextCursor = null;
+        if ($hasMore && $lastArticle) {
+            $nextCursor = $lastArticle->published_at . ',' . $lastArticle->id;
+        }
 
         $feedMap = $user->feeds()
             ->select('feeds.id', 'feeds.title', 'feeds.favicon_url')
@@ -262,6 +338,10 @@ class ArticleApiController extends Controller
             return $article;
         });
 
-        return response()->json(['articles' => $articles]);
+        return response()->json([
+            'articles' => $articles,
+            'has_more' => $hasMore,
+            'next_cursor' => $nextCursor,
+        ]);
     }
 }

@@ -135,19 +135,40 @@ const selectedArticle = ref(null)
 const loadingArticle = ref(false)
 const selectedIsReadLater = ref(false)
 const articleListEl = ref(null)
+const loadMoreSentinel = ref(null)
 
 function checkDesktop() {
     isDesktop.value = window.innerWidth >= 1024
 }
 
+let loadMoreObserver = null
+
 onMounted(() => {
     window.addEventListener('resize', checkDesktop)
     window.addEventListener('keydown', onKeyDown)
+
+    loadMoreObserver = new IntersectionObserver(
+        entries => {
+            if (entries[0].isIntersecting && articleStore.hasMore && !articleStore.loadingMore) {
+                articleStore.loadMore()
+            }
+        },
+        { rootMargin: '200px' }
+    )
+    if (loadMoreSentinel.value) {
+        loadMoreObserver.observe(loadMoreSentinel.value)
+    }
 })
 
 onUnmounted(() => {
     window.removeEventListener('resize', checkDesktop)
     window.removeEventListener('keydown', onKeyDown)
+    loadMoreObserver?.disconnect()
+})
+
+watch(loadMoreSentinel, el => {
+    loadMoreObserver?.disconnect()
+    if (el) loadMoreObserver?.observe(el)
 })
 
 // --- Article open ---
@@ -532,7 +553,7 @@ function getSwipeDirection(articleId) {
         v-else-if="isDesktop"
         class="flex"
         style="height: calc(100vh - 2.75rem - env(safe-area-inset-top, 0px))">
-        <div ref="articleListEl" class="flex-1 flex flex-col overflow-y-auto">
+        <div ref="articleListEl" class="flex-1 flex flex-col overflow-y-auto pr-2">
             <template v-if="articleStore.articles.length > 0">
                 <template v-for="(articles, dateLabel) in groupedArticles" :key="dateLabel">
                     <div
@@ -548,7 +569,7 @@ function getSwipeDirection(articleId) {
                             <button
                                 :id="`article-row-${article.id}`"
                                 @click="openArticle(article)"
-                                class="flex w-full items-center gap-3 border-b border-neutral-200/50 dark:border-neutral-800/50 px-4 py-2.5 text-left transition-colors cursor-pointer"
+                                class="group/row flex w-full items-center gap-3 border-b border-neutral-200/50 dark:border-neutral-800/50 px-4 py-2.5 text-left transition-colors cursor-pointer"
                                 :class="[
                                     selectedArticleId === article.id
                                         ? 'bg-blue-50 dark:bg-neutral-900 border-l-2 border-l-blue-500'
@@ -581,6 +602,22 @@ function getSwipeDirection(articleId) {
                                 <span
                                     class="w-12 shrink-0 text-right text-xs text-neutral-500 dark:text-neutral-600">
                                     {{ timeAgo(article.published_at) }}
+                                </span>
+                                <span
+                                    @click.stop="articleStore.dismissArticle(article.id)"
+                                    class="w-6 shrink-0 flex items-center justify-center opacity-0 group-hover/row:opacity-100 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-opacity cursor-pointer"
+                                    title="Dismiss — mark read & hide">
+                                    <svg
+                                        class="h-3.5 w-3.5"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke-width="2"
+                                        stroke="currentColor">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
                                 </span>
                             </button>
 
@@ -820,9 +857,39 @@ function getSwipeDirection(articleId) {
                     </div>
                 </template>
 
-                <!-- End of list -->
-                <div class="py-8 text-center text-sm text-neutral-500 dark:text-neutral-600">
-                    You're all caught up
+                <!-- Load more sentinel -->
+                <div ref="loadMoreSentinel" class="h-px" />
+
+                <!-- Loading indicator -->
+                <div v-if="articleStore.loadingMore" class="flex justify-center py-6">
+                    <svg
+                        class="h-6 w-6 animate-spin text-neutral-400"
+                        viewBox="0 0 24 24"
+                        fill="none">
+                        <circle
+                            class="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            stroke-width="4" />
+                        <path
+                            class="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                </div>
+
+                <!-- No more articles -->
+                <div
+                    v-if="
+                        !articleStore.hasMore &&
+                        articleStore.loaded &&
+                        groupedArticles &&
+                        Object.keys(groupedArticles).length > 0
+                    "
+                    class="py-6 text-center text-sm text-neutral-500 dark:text-neutral-600">
+                    No more articles
                 </div>
             </template>
 
@@ -1135,9 +1202,39 @@ function getSwipeDirection(articleId) {
                     </div>
                 </template>
 
-                <!-- End of list -->
-                <div class="py-8 text-center text-sm text-neutral-500 dark:text-neutral-600">
-                    You're all caught up
+                <!-- Load more sentinel -->
+                <div ref="loadMoreSentinel" class="h-px" />
+
+                <!-- Loading indicator -->
+                <div v-if="articleStore.loadingMore" class="flex justify-center py-6">
+                    <svg
+                        class="h-6 w-6 animate-spin text-neutral-400"
+                        viewBox="0 0 24 24"
+                        fill="none">
+                        <circle
+                            class="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            stroke-width="4" />
+                        <path
+                            class="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                </div>
+
+                <!-- No more articles -->
+                <div
+                    v-if="
+                        !articleStore.hasMore &&
+                        articleStore.loaded &&
+                        groupedArticles &&
+                        Object.keys(groupedArticles).length > 0
+                    "
+                    class="py-6 text-center text-sm text-neutral-500 dark:text-neutral-600">
+                    No more articles
                 </div>
             </div>
         </div>
