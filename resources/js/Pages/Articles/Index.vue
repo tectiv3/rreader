@@ -1,6 +1,7 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SidebarDrawer from '@/Components/SidebarDrawer.vue';
+import AddFeedModal from '@/Components/AddFeedModal.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, computed, onMounted, onUnmounted, watch, provide, nextTick } from 'vue';
 import { useOnlineStatus } from '@/Composables/useOnlineStatus.js';
@@ -39,6 +40,10 @@ watch(() => props.articles, () => {
 // Provide sidebar toggle for bottom nav in AppLayout
 provide('toggleSidebar', () => { sidebarOpen.value = true; });
 
+// Add Feed modal state
+const addFeedModalOpen = ref(false);
+provide('openAddFeedModal', () => { addFeedModalOpen.value = true; });
+
 const loading = ref(false);
 const loadingMore = ref(false);
 const markingAllRead = ref(false);
@@ -57,6 +62,8 @@ const CACHE_MAX = 50;
 const selectedIsReadLater = ref(false);
 const togglingReadLater = ref(false);
 const markingUnread = ref(false);
+const unsubscribing = ref(false);
+const showUnsubscribeConfirm = ref(false);
 const articleListEl = ref(null);
 
 // Initialize sidebar collapsed state from localStorage
@@ -243,6 +250,7 @@ function openArticle(article) {
         if (idx !== -1) {
             allArticles.value[idx] = { ...allArticles.value[idx], is_read: true };
         }
+        adjustUnreadCount(article.feed?.id, -1);
     }
 
     if (isDesktop.value) {
@@ -388,6 +396,7 @@ function markAsUnreadInline() {
     if (idx !== -1) {
         allArticles.value[idx] = { ...allArticles.value[idx], is_read: false };
     }
+    adjustUnreadCount(selectedArticle.value.feed?.id, +1);
 
     if (!isOnline.value) {
         enqueue('post', route('articles.markAsUnread', selectedArticle.value.id), {});
@@ -401,6 +410,13 @@ function markAsUnreadInline() {
         success('Marked as unread');
     });
 }
+
+// Whether to show a hero image at the top of the article content
+const showHeroImage = computed(() => {
+    if (!selectedArticle.value?.image_url) return false;
+    const content = selectedArticle.value.content || selectedArticle.value.summary || '';
+    return !content.includes(selectedArticle.value.image_url);
+});
 
 const selectedFormattedDate = computed(() => {
     if (!selectedArticle.value) return '';
@@ -436,7 +452,6 @@ function onKeyDown(e) {
             const nextIdx = selectedIndex.value + 1;
             if (nextIdx < flatArticles.value.length) {
                 openArticle(flatArticles.value[nextIdx]);
-                scrollArticleIntoView(flatArticles.value[nextIdx].id);
             }
             break;
         }
@@ -447,7 +462,6 @@ function onKeyDown(e) {
             const prevIdx = selectedIndex.value - 1;
             if (prevIdx >= 0) {
                 openArticle(flatArticles.value[prevIdx]);
-                scrollArticleIntoView(flatArticles.value[prevIdx].id);
             }
             break;
         }
@@ -507,6 +521,17 @@ function markAllAsRead() {
     if (props.activeCategoryId) data.category_id = props.activeCategoryId;
     if (props.activeFilter) data.filter = props.activeFilter;
 
+    // Adjust sidebar counts for all currently unread articles
+    const unreadByFeed = {};
+    for (const article of allArticles.value) {
+        if (!article.is_read && article.feed?.id) {
+            unreadByFeed[article.feed.id] = (unreadByFeed[article.feed.id] || 0) + 1;
+        }
+    }
+    for (const [feedId, count] of Object.entries(unreadByFeed)) {
+        adjustUnreadCount(Number(feedId), -count);
+    }
+
     if (!isOnline.value) {
         allArticles.value = allArticles.value.map(a => ({ ...a, is_read: true }));
         enqueue('post', route('articles.markAllAsRead'), data);
@@ -545,16 +570,13 @@ function loadMore() {
 
 function refreshFeeds() {
     loading.value = true;
-    const data = {};
-    if (props.activeFeedId) data.feed_ids = [props.activeFeedId];
 
-    router.post(route('feeds.refresh'), data, {
+    router.reload({
         preserveScroll: true,
         onFinish: () => {
             loading.value = false;
             isRefreshing.value = false;
             pullDistance.value = 0;
-            success('Feeds refreshed');
         },
     });
 }
@@ -577,6 +599,54 @@ async function toggleHideRead() {
         success(newValue ? 'Hiding read articles on next refresh' : 'Showing all articles on next refresh');
     } finally {
         togglingHideRead.value = false;
+    }
+}
+
+// Unsubscribe from feed
+function confirmUnsubscribe() {
+    showUnsubscribeConfirm.value = true;
+}
+
+function cancelUnsubscribe() {
+    showUnsubscribeConfirm.value = false;
+}
+
+function executeUnsubscribe() {
+    if (!props.activeFeedId || unsubscribing.value) return;
+    unsubscribing.value = true;
+    showUnsubscribeConfirm.value = false;
+
+    router.delete(route('feeds.destroy', props.activeFeedId), {
+        onFinish: () => {
+            unsubscribing.value = false;
+        },
+    });
+}
+
+// Adjust sidebar unread counts when read state changes
+function adjustUnreadCount(feedId, delta) {
+    if (!feedId || !props.sidebar || delta === 0) return;
+
+    // Adjust total unread
+    props.sidebar.totalUnread = Math.max(0, (props.sidebar.totalUnread || 0) + delta);
+
+    // Adjust per-feed and per-category counts
+    for (const category of (props.sidebar.categories || [])) {
+        for (const feed of (category.feeds || [])) {
+            if (feed.id === feedId) {
+                feed.unread_count = Math.max(0, (feed.unread_count || 0) + delta);
+                category.unread_count = Math.max(0, (category.unread_count || 0) + delta);
+                return;
+            }
+        }
+    }
+
+    // Check uncategorized feeds
+    for (const feed of (props.sidebar.uncategorizedFeeds || [])) {
+        if (feed.id === feedId) {
+            feed.unread_count = Math.max(0, (feed.unread_count || 0) + delta);
+            return;
+        }
     }
 }
 
@@ -646,6 +716,7 @@ function swipeToggleRead(article) {
 
     if (article.is_read) {
         allArticles.value[idx] = { ...allArticles.value[idx], is_read: false };
+        adjustUnreadCount(article.feed?.id, +1);
         if (!isOnline.value) {
             enqueue('post', route('articles.markAsUnread', article.id), {});
             return;
@@ -653,6 +724,7 @@ function swipeToggleRead(article) {
         axios.post(route('articles.markAsUnread', article.id));
     } else {
         allArticles.value[idx] = { ...allArticles.value[idx], is_read: true };
+        adjustUnreadCount(article.feed?.id, -1);
         if (!isOnline.value) {
             enqueue('post', route('articles.markAsRead'), { article_ids: [article.id] });
             return;
@@ -792,7 +864,52 @@ function formatLastUpdated(date) {
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </button>
+            <button
+                v-if="activeFeedId"
+                @click="confirmUnsubscribe"
+                :disabled="unsubscribing"
+                class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer"
+                title="Unsubscribe from feed"
+                aria-label="Unsubscribe from feed"
+            >
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                </svg>
+            </button>
         </template>
+
+        <!-- Unsubscribe confirmation dialog -->
+        <Teleport to="body">
+            <Transition name="overlay">
+                <div
+                    v-if="showUnsubscribeConfirm"
+                    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4"
+                    @click.self="cancelUnsubscribe"
+                >
+                    <div class="w-full max-w-sm rounded-xl bg-white dark:bg-neutral-900 p-6 shadow-xl">
+                        <h3 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Unsubscribe from feed?</h3>
+                        <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+                            This will remove <strong class="text-neutral-800 dark:text-neutral-200">{{ filterTitle }}</strong> and all its articles. This cannot be undone.
+                        </p>
+                        <div class="mt-6 flex justify-end gap-3">
+                            <button
+                                @click="cancelUnsubscribe"
+                                class="rounded-lg px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                @click="executeUnsubscribe"
+                                :disabled="unsubscribing"
+                                class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer"
+                            >
+                                {{ unsubscribing ? 'Removing...' : 'Unsubscribe' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+        </Teleport>
 
         <!-- Mobile: Sidebar drawer (overlay) -->
         <SidebarDrawer
@@ -807,7 +924,7 @@ function formatLastUpdated(date) {
         />
 
         <!-- Desktop: 2-column layout (sidebar + full-width article list with inline expansion) -->
-        <div v-if="isDesktop" class="flex" style="height: calc(100vh - 3.5rem);">
+        <div v-if="isDesktop" class="flex" style="height: calc(100vh - 2.75rem);">
             <!-- Left: Persistent sidebar -->
             <SidebarDrawer
                 :open="true"
@@ -878,72 +995,85 @@ function formatLastUpdated(date) {
 
                                 <!-- Article content -->
                                 <template v-if="selectedArticle">
-                                    <article class="mx-auto max-w-3xl px-6 pt-10 pb-6">
-                                        <header class="mb-6">
-                                            <div class="flex items-start justify-between gap-4">
-                                                <h1 class="text-2xl font-bold leading-tight text-neutral-900 dark:text-neutral-100">
-                                                    <a
-                                                        v-if="selectedArticle.url"
-                                                        :href="selectedArticle.url"
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        class="hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
-                                                    >
-                                                        {{ selectedArticle.title }}
-                                                    </a>
-                                                    <template v-else>{{ selectedArticle.title }}</template>
-                                                </h1>
-                                                <!-- Toolbar: bookmark, unread, close -->
-                                                <div class="flex shrink-0 items-center gap-1">
-                                                    <button
-                                                        @click.stop="toggleReadLaterInline"
-                                                        :disabled="togglingReadLater"
-                                                        class="rounded-lg p-1.5 transition-colors cursor-pointer"
-                                                        :class="selectedIsReadLater ? 'text-blue-500 hover:bg-neutral-200 dark:hover:bg-neutral-800' : 'text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300'"
-                                                        :title="selectedIsReadLater ? 'Remove from Read Later' : 'Save to Read Later'"
-                                                        :aria-label="selectedIsReadLater ? 'Remove from Read Later' : 'Save to Read Later'"
-                                                    >
-                                                        <svg class="h-5 w-5" :fill="selectedIsReadLater ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
-                                                        </svg>
-                                                    </button>
-                                                    <button
-                                                        @click.stop="markAsUnreadInline"
-                                                        :disabled="markingUnread"
-                                                        class="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors cursor-pointer"
-                                                        title="Mark as unread"
-                                                        aria-label="Mark as unread"
-                                                    >
-                                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V18" />
-                                                        </svg>
-                                                    </button>
-                                                    <button
-                                                        @click.stop="closeArticlePanel"
-                                                        class="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors cursor-pointer"
-                                                        title="Close article"
-                                                        aria-label="Close article"
-                                                    >
-                                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                                        </svg>
-                                                    </button>
-                                                </div>
+                                    <!-- Compact sticky header bar: title + action buttons inline, metadata below -->
+                                    <div class="sticky top-0 z-10 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/95 dark:bg-neutral-900/80 backdrop-blur px-4 py-2">
+                                        <div class="flex items-center justify-between gap-3">
+                                            <h2 class="min-w-0 flex-1 truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                                                <a
+                                                    v-if="selectedArticle.url"
+                                                    :href="selectedArticle.url"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    class="hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                                                >
+                                                    {{ selectedArticle.title }}
+                                                </a>
+                                                <template v-else>{{ selectedArticle.title }}</template>
+                                            </h2>
+                                            <div class="flex shrink-0 items-center gap-0.5">
+                                                <button
+                                                    @click.stop="toggleReadLaterInline"
+                                                    :disabled="togglingReadLater"
+                                                    class="rounded-lg p-1.5 transition-colors cursor-pointer"
+                                                    :class="selectedIsReadLater ? 'text-blue-500 hover:bg-neutral-200 dark:hover:bg-neutral-800' : 'text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300'"
+                                                    :title="selectedIsReadLater ? 'Remove from Read Later' : 'Save to Read Later'"
+                                                    :aria-label="selectedIsReadLater ? 'Remove from Read Later' : 'Save to Read Later'"
+                                                >
+                                                    <svg class="h-4 w-4" :fill="selectedIsReadLater ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                                                    </svg>
+                                                </button>
+                                                <button
+                                                    @click.stop="markAsUnreadInline"
+                                                    :disabled="markingUnread"
+                                                    class="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors cursor-pointer"
+                                                    title="Mark as unread"
+                                                    aria-label="Mark as unread"
+                                                >
+                                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V18" />
+                                                    </svg>
+                                                </button>
+                                                <button
+                                                    @click.stop="closeArticlePanel"
+                                                    class="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors cursor-pointer"
+                                                    title="Close article"
+                                                    aria-label="Close article"
+                                                >
+                                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
                                             </div>
-                                            <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-neutral-500 dark:text-neutral-400">
-                                                <div class="flex items-center gap-2">
-                                                    <img
-                                                        v-if="selectedArticle.feed?.favicon_url"
-                                                        :src="selectedArticle.feed.favicon_url"
-                                                        class="h-4 w-4 rounded-sm"
-                                                        alt=""
-                                                    />
-                                                    <span>{{ selectedArticle.feed?.title }}</span>
-                                                </div>
-                                                <span v-if="selectedArticle.author">&middot; {{ selectedArticle.author }}</span>
-                                                <span>&middot; {{ selectedFormattedDate }} at {{ selectedFormattedTime }}</span>
-                                            </div>
-                                        </header>
+                                        </div>
+                                        <div class="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-neutral-500 dark:text-neutral-500">
+                                            <a
+                                                v-if="selectedArticle.feed?.id"
+                                                :href="route('articles.index', { feed_id: selectedArticle.feed.id })"
+                                                class="flex items-center gap-1.5 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                                                @click.prevent="router.get(route('articles.index', { feed_id: selectedArticle.feed.id }))"
+                                            >
+                                                <img
+                                                    v-if="selectedArticle.feed?.favicon_url"
+                                                    :src="selectedArticle.feed.favicon_url"
+                                                    class="h-3.5 w-3.5 rounded-sm"
+                                                    alt=""
+                                                />
+                                                <span>{{ selectedArticle.feed?.title }}</span>
+                                            </a>
+                                            <span v-if="selectedArticle.author">&middot; {{ selectedArticle.author }}</span>
+                                            <span>&middot; {{ selectedFormattedDate }} at {{ selectedFormattedTime }}</span>
+                                        </div>
+                                    </div>
+
+                                    <article class="mx-auto max-w-3xl px-6 pt-6 pb-6">
+                                        <img
+                                            v-if="showHeroImage"
+                                            :src="selectedArticle.image_url"
+                                            :alt="selectedArticle.title"
+                                            class="mb-6 w-full max-h-80 object-cover rounded-lg"
+                                            loading="lazy"
+                                        />
 
                                         <div
                                             class="article-content prose max-w-none dark:prose-invert prose-headings:text-neutral-800 dark:prose-headings:text-neutral-200 prose-p:text-neutral-700 dark:prose-p:text-neutral-300 prose-a:text-blue-500 prose-a:no-underline hover:prose-a:underline prose-strong:text-neutral-800 dark:prose-strong:text-neutral-200 prose-code:text-blue-600 dark:prose-code:text-blue-300 prose-pre:bg-white dark:prose-pre:bg-neutral-900 prose-pre:border prose-pre:border-neutral-200 dark:prose-pre:border-neutral-800 prose-img:rounded-lg prose-blockquote:border-neutral-300 dark:prose-blockquote:border-neutral-700 prose-blockquote:text-neutral-500 dark:prose-blockquote:text-neutral-400"
@@ -1276,6 +1406,10 @@ function formatLastUpdated(date) {
             </div>
             </div><!-- end pull-to-refresh touch area -->
         </template>
+        <AddFeedModal
+            :show="addFeedModalOpen"
+            @close="addFeedModalOpen = false"
+        />
     </AppLayout>
 </template>
 
@@ -1297,5 +1431,14 @@ function formatLastUpdated(date) {
 
 .article-content a {
     word-break: break-word;
+}
+
+.overlay-enter-active,
+.overlay-leave-active {
+    transition: opacity 0.2s ease;
+}
+.overlay-enter-from,
+.overlay-leave-to {
+    opacity: 0;
 }
 </style>

@@ -1,6 +1,8 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, inject } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
+
+const openAddFeedModal = inject('openAddFeedModal', null);
 
 const props = defineProps({
     open: Boolean,
@@ -223,15 +225,15 @@ function isActiveAll() {
 
                 <!-- Drawer footer -->
                 <div class="border-t border-neutral-200 dark:border-neutral-800 p-3 space-y-2">
-                    <Link
-                        :href="route('feeds.create')"
-                        class="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                    <button
+                        @click="openAddFeedModal ? (emit('close'), openAddFeedModal()) : router.visit(route('feeds.create'))"
+                        class="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer"
                     >
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
                         Add Feed
-                    </Link>
+                    </button>
                     <Link
                         :href="route('settings.index')"
                         class="flex w-full items-center justify-center gap-2 rounded-lg bg-neutral-200 dark:bg-neutral-800 px-4 py-2.5 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors"
@@ -434,9 +436,9 @@ function isActiveAll() {
 
             <!-- Sidebar footer -->
             <div class="border-t border-neutral-200 dark:border-neutral-800 p-3 space-y-2">
-                <Link
-                    :href="route('feeds.create')"
-                    class="flex w-full items-center rounded-lg bg-blue-600 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                <button
+                    @click="openAddFeedModal ? openAddFeedModal() : router.visit(route('feeds.create'))"
+                    class="flex w-full items-center rounded-lg bg-blue-600 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer"
                     :class="collapsed ? 'justify-center p-2.5' : 'justify-center gap-2 px-4 py-2.5'"
                     :title="collapsed ? 'Add Feed' : undefined"
                 >
@@ -444,7 +446,7 @@ function isActiveAll() {
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                     </svg>
                     <span v-if="!collapsed">Add Feed</span>
-                </Link>
+                </button>
                 <Link
                     :href="route('settings.index')"
                     class="flex w-full items-center rounded-lg bg-neutral-200 dark:bg-neutral-800 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors"

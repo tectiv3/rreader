@@ -6,15 +6,9 @@ use App\Models\Feed;
 use App\Services\FeedParserService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\Log;
-
 class FetchFeed implements ShouldQueue
 {
     use Queueable;
-
-    public int $tries = 3;
-
-    public array $backoff = [60, 300, 900];
 
     public function __construct(
         public Feed $feed
@@ -29,9 +23,9 @@ class FetchFeed implements ShouldQueue
         try {
             $data = $parser->discoverAndParse($this->feed->feed_url);
         } catch (\RuntimeException $e) {
-            Log::warning("FetchFeed failed for feed {$this->feed->id}: {$e->getMessage()}");
             $this->feed->recordFailure($e->getMessage());
-            throw $e;
+
+            return;
         }
 
         // Update feed metadata if changed

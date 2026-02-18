@@ -10,6 +10,7 @@ useOfflineQueue(); // Initialize queue — auto-flushes when back online
 
 const page = usePage();
 const toggleSidebar = inject('toggleSidebar', null);
+const openAddFeedModal = inject('openAddFeedModal', null);
 
 // Navigation loading state for skeleton screens
 const isNavigating = ref(false);
@@ -67,12 +68,19 @@ onUnmounted(() => {
         <!-- Header -->
         <header class="sticky top-0 z-40 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 pt-safe">
             <div class="flex h-11 items-center justify-between px-4">
-                <slot name="header-left" />
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                    <slot name="header-left" />
+                    <!-- Desktop: title inline in the header row -->
+                    <h1 v-if="$slots.title" class="hidden lg:block text-lg font-semibold text-neutral-900 dark:text-neutral-100 truncate">
+                        <slot name="title" />
+                    </h1>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
                     <slot name="header-right" />
                 </div>
             </div>
-            <div v-if="$slots.title" class="px-4 pb-2">
+            <!-- Mobile: title on its own row below the toolbar -->
+            <div v-if="$slots.title" class="px-4 pb-2 lg:hidden">
                 <h1 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
                     <slot name="title" />
                 </h1>
@@ -150,9 +158,8 @@ onUnmounted(() => {
 
                 <!-- Add Feed (RSS+ icon) -->
                 <button
-                    @click="router.visit(route('feeds.create'))"
-                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors"
-                    :class="page.url.startsWith('/feeds/create') ? 'text-blue-500' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'"
+                    @click="openAddFeedModal ? openAddFeedModal() : router.visit(route('feeds.create'))"
+                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200"
                     title="Add feed"
                     aria-label="Add feed"
                 >

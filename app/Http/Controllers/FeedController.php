@@ -82,6 +82,10 @@ class FeedController extends Controller
         try {
             $data = $parser->discoverAndParse($request->input('url'));
         } catch (\RuntimeException $e) {
+            if ($request->wantsJson()) {
+                return response()->json(['errors' => ['url' => [$e->getMessage()]]], 422);
+            }
+
             return back()->withErrors(['url' => $e->getMessage()]);
         }
 
@@ -91,23 +95,37 @@ class FeedController extends Controller
             ->first();
 
         if ($existingFeed) {
-            return back()->withErrors(['url' => 'You are already subscribed to this feed.']);
+            $error = 'You are already subscribed to this feed.';
+            if ($request->wantsJson()) {
+                return response()->json(['errors' => ['url' => [$error]]], 422);
+            }
+
+            return back()->withErrors(['url' => $error]);
         }
 
         $request->session()->put('feed_preview', $data);
 
         $categories = $request->user()->categories()->orderBy('sort_order')->get(['id', 'name']);
 
+        $preview = [
+            'feed_url' => $data['feed_url'],
+            'site_url' => $data['site_url'],
+            'title' => $data['title'],
+            'description' => $data['description'],
+            'favicon_url' => $data['favicon_url'],
+            'article_count' => count($data['articles']),
+        ];
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'categories' => $categories,
+                'preview' => $preview,
+            ]);
+        }
+
         return Inertia::render('Feeds/Create', [
             'categories' => $categories,
-            'preview' => [
-                'feed_url' => $data['feed_url'],
-                'site_url' => $data['site_url'],
-                'title' => $data['title'],
-                'description' => $data['description'],
-                'favicon_url' => $data['favicon_url'],
-                'article_count' => count($data['articles']),
-            ],
+            'preview' => $preview,
         ]);
     }
 
@@ -128,19 +146,19 @@ class FeedController extends Controller
             }
         }
 
-        // Check for duplicate
-        $existingFeed = $request->user()->feeds()
-            ->where('feed_url', $validated['feed_url'])
-            ->first();
-
-        if ($existingFeed) {
-            return back()->withErrors(['feed_url' => 'You are already subscribed to this feed.']);
-        }
-
         $data = $request->session()->get('feed_preview');
 
         if (! $data || $data['feed_url'] !== $validated['feed_url']) {
             return back()->withErrors(['feed_url' => 'Feed preview expired. Please search for the feed again.']);
+        }
+
+        // Check for duplicate using the discovered feed URL
+        $existingFeed = $request->user()->feeds()
+            ->where('feed_url', $data['feed_url'])
+            ->first();
+
+        if ($existingFeed) {
+            return back()->withErrors(['feed_url' => 'You are already subscribed to this feed.']);
         }
 
         $feed = DB::transaction(function () use ($request, $validated, $data) {

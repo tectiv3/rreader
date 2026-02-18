@@ -56,6 +56,13 @@ onUnmounted(() => {
     clearReadingState();
 });
 
+// Whether to show a hero image at the top of the article content
+const showHeroImage = computed(() => {
+    if (!props.article.image_url) return false;
+    const content = props.article.content || props.article.summary || '';
+    return !content.includes(props.article.image_url);
+});
+
 const formattedDate = computed(() => {
     const date = new Date(props.article.published_at);
     return date.toLocaleDateString('en-US', {
@@ -75,13 +82,21 @@ const formattedTime = computed(() => {
 });
 
 function goBack() {
-    // Always use Inertia navigation so onUnmounted fires and clears reading state.
-    // window.history.back() can cause a hard reload that skips cleanup.
+    // Use browser history when possible for instant back navigation.
+    // Inertia v2 handles popstate by restoring the page from history state
+    // without a network request, and Vue lifecycle hooks (onUnmounted) still
+    // fire normally because Inertia swaps the component.
+    if (window.history.length > 1) {
+        window.history.back();
+        return;
+    }
+
+    // Fallback for direct URL access (no history entry to go back to)
     const params = {};
     if (props.context.feed_id) params.feed_id = props.context.feed_id;
     if (props.context.category_id) params.category_id = props.context.category_id;
     if (props.context.filter) params.filter = props.context.filter;
-    router.get(route('articles.index', params), {}, { cacheFor: 300000 });
+    router.get(route('articles.index', params));
 }
 
 function toggleReadLater() {
@@ -336,7 +351,12 @@ function onSwipeEnd(e) {
                     <template v-else>{{ article.title }}</template>
                 </h1>
                 <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-neutral-500 dark:text-neutral-400">
-                    <div class="flex items-center gap-2">
+                    <a
+                        v-if="article.feed?.id"
+                        :href="route('articles.index', { feed_id: article.feed.id })"
+                        class="flex items-center gap-2 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                        @click.prevent="router.get(route('articles.index', { feed_id: article.feed.id }))"
+                    >
                         <img
                             v-if="article.feed?.favicon_url"
                             :src="article.feed.favicon_url"
@@ -344,11 +364,20 @@ function onSwipeEnd(e) {
                             alt=""
                         />
                         <span>{{ article.feed?.title }}</span>
-                    </div>
+                    </a>
                     <span v-if="article.author">&middot; {{ article.author }}</span>
                     <span>&middot; {{ formattedDate }} at {{ formattedTime }}</span>
                 </div>
             </header>
+
+            <!-- Hero image -->
+            <img
+                v-if="showHeroImage"
+                :src="article.image_url"
+                :alt="article.title"
+                class="mb-6 w-full max-h-80 object-cover rounded-lg"
+                loading="lazy"
+            />
 
             <!-- Article body -->
             <div
