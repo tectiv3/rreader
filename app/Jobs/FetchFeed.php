@@ -40,7 +40,14 @@ class FetchFeed implements ShouldQueue
         // Insert new articles, skip existing by guid
         $existingGuids = $this->feed->articles()->pluck('guid')->toArray();
 
-        foreach ($data['articles'] as $articleData) {
+        $articles = $data['articles'];
+
+        // On first fetch (new subscription), limit to 10 most recent articles
+        if ($this->feed->last_fetched_at === null) {
+            $articles = array_slice($articles, 0, 10);
+        }
+
+        foreach ($articles as $articleData) {
             if (in_array($articleData['guid'], $existingGuids)) {
                 continue;
             }

@@ -23,7 +23,7 @@ const form = useForm({
 })
 
 const submit = () => {
-    form.post(route('login'), {
+    form.post('/login', {
         onFinish: () => form.reset('password'),
     })
 }
@@ -86,13 +86,13 @@ const submit = () => {
             <div class="mt-4 flex items-center justify-between">
                 <Link
                     v-if="canResetPassword"
-                    :href="route('password.request')"
+                    :href="'/forgot-password'"
                     class="text-sm text-neutral-400 underline hover:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-neutral-900 rounded-md">
                     Forgot your password?
                 </Link>
 
                 <Link
-                    :href="route('register')"
+                    :href="'/register'"
                     class="text-sm text-blue-400 underline hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-neutral-900 rounded-md">
                     Create an account
                 </Link>

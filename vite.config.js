@@ -71,16 +71,31 @@ export default defineConfig({
                         },
                     },
                     {
-                        // Cache Inertia page responses for offline viewing
+                        // Cache API responses for offline viewing
+                        urlPattern: /^https?:\/\/.*\/api\/.*/i,
+                        handler: 'NetworkFirst',
+                        options: {
+                            cacheName: 'api-cache',
+                            expiration: {
+                                maxEntries: 50,
+                                maxAgeSeconds: 60 * 60 * 24, // 1 day
+                            },
+                            cacheableResponse: {
+                                statuses: [0, 200],
+                            },
+                            networkTimeoutSeconds: 5,
+                        },
+                    },
+                    {
+                        // Cache navigation requests (SPA HTML shell)
                         urlPattern: ({ request, url }) => {
-                            return (request.mode === 'navigate' && url.origin === self.location.origin) ||
-                                request.headers.get('X-Inertia') === 'true';
+                            return request.mode === 'navigate' && url.origin === self.location.origin;
                         },
                         handler: 'NetworkFirst',
                         options: {
-                            cacheName: 'inertia-pages-cache',
+                            cacheName: 'navigation-cache',
                             expiration: {
-                                maxEntries: 100,
+                                maxEntries: 10,
                                 maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
                             },
                             cacheableResponse: {
