@@ -1,6 +1,7 @@
 import '../css/app.css'
 import './bootstrap'
 
+import { createPinia } from 'pinia'
 import { createInertiaApp } from '@inertiajs/vue3'
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers'
 import { createApp, h } from 'vue'
@@ -61,6 +62,7 @@ async function boot() {
             return createApp({ render: () => h(App, props) })
                 .use(plugin)
                 .use(ZiggyVue)
+                .use(createPinia())
                 .mount(el)
         },
         progress: {
