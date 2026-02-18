@@ -44,6 +44,7 @@ watch(
     () => {
         if (route.name === 'articles.index') {
             closeArticlePanel()
+            showFeedInfo.value = false
             articleStore.fetchArticles(deriveView())
         }
     },
@@ -77,6 +78,19 @@ const headerUnreadCount = computed(() => {
     }
     return sidebarStore.totalUnread
 })
+
+const isSingleFeedView = computed(() => !!activeFeedId.value)
+
+const activeFeedInfo = computed(() => {
+    if (!activeFeedId.value) return null
+    for (const cat of sidebarStore.categories) {
+        const feed = cat.feeds.find(f => f.id === activeFeedId.value)
+        if (feed) return feed
+    }
+    return sidebarStore.uncategorizedFeeds.find(f => f.id === activeFeedId.value) || null
+})
+
+const showFeedInfo = ref(false)
 
 const feedCount = computed(() => {
     let count = sidebarStore.uncategorizedFeeds.length
@@ -488,6 +502,29 @@ function getSwipeDirection(articleId) {
             </div>
             <div class="flex items-center gap-1 shrink-0">
                 <button
+                    v-if="isSingleFeedView"
+                    @click="showFeedInfo = !showFeedInfo"
+                    class="rounded-lg p-2 transition-colors cursor-pointer"
+                    :class="
+                        showFeedInfo
+                            ? 'text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30'
+                            : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200'
+                    "
+                    title="Feed info"
+                    aria-label="Feed info">
+                    <svg
+                        class="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                    </svg>
+                </button>
+                <button
                     @click="refreshFeeds"
                     :disabled="articleStore.loading"
                     class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer"
@@ -528,6 +565,48 @@ function getSwipeDirection(articleId) {
             </div>
         </div>
     </header>
+
+    <!-- Feed info panel (single feed view) -->
+    <div
+        v-if="showFeedInfo && activeFeedInfo"
+        class="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 px-4 py-3">
+        <div class="flex items-start gap-3">
+            <img
+                v-if="activeFeedInfo.favicon_url"
+                :src="activeFeedInfo.favicon_url"
+                class="h-8 w-8 shrink-0 rounded-md mt-0.5"
+                alt="" />
+            <div class="min-w-0 flex-1">
+                <h2 class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                    {{ activeFeedInfo.title }}
+                </h2>
+                <p
+                    v-if="activeFeedInfo.description"
+                    class="mt-1 text-xs text-neutral-600 dark:text-neutral-400 line-clamp-3">
+                    {{ activeFeedInfo.description }}
+                </p>
+                <a
+                    v-if="activeFeedInfo.site_url"
+                    :href="activeFeedInfo.site_url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="mt-1.5 inline-flex items-center gap-1 text-xs text-blue-500 dark:text-blue-400 hover:underline">
+                    <svg
+                        class="h-3 w-3"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                    </svg>
+                    {{ activeFeedInfo.site_url.replace(/^https?:\/\//, '').replace(/\/$/, '') }}
+                </a>
+            </div>
+        </div>
+    </div>
 
     <!-- Loading state -->
     <div
@@ -575,16 +654,18 @@ function getSwipeDirection(articleId) {
                                         ? 'bg-blue-50 dark:bg-neutral-900 border-l-2 border-l-blue-500'
                                         : 'hover:bg-neutral-50 dark:hover:bg-neutral-900/50',
                                 ]">
-                                <img
-                                    v-if="article.feed_favicon_url"
-                                    :src="article.feed_favicon_url"
-                                    class="h-4 w-4 shrink-0 rounded-sm"
-                                    alt="" />
-                                <span
-                                    class="w-32 shrink-0 truncate text-xs text-neutral-600 dark:text-neutral-500 hover:underline cursor-pointer"
-                                    @click.stop="navigateToFeed(article.feed_id)">
-                                    {{ article.feed_title }}
-                                </span>
+                                <template v-if="!isSingleFeedView">
+                                    <img
+                                        v-if="article.feed_favicon_url"
+                                        :src="article.feed_favicon_url"
+                                        class="h-4 w-4 shrink-0 rounded-sm"
+                                        alt="" />
+                                    <span
+                                        class="w-32 shrink-0 truncate text-xs text-neutral-600 dark:text-neutral-500 hover:underline cursor-pointer"
+                                        @click.stop="navigateToFeed(article.feed_id)">
+                                        {{ article.feed_title }}
+                                    </span>
+                                </template>
                                 <h3
                                     class="min-w-0 flex-1 truncate text-sm"
                                     :class="
@@ -1161,17 +1242,19 @@ function getSwipeDirection(articleId) {
                                 <div class="min-w-0 flex-1">
                                     <div
                                         class="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-500">
-                                        <img
-                                            v-if="article.feed_favicon_url"
-                                            :src="article.feed_favicon_url"
-                                            class="h-3.5 w-3.5 rounded-sm"
-                                            alt="" />
-                                        <span
-                                            class="truncate hover:underline"
-                                            @click.stop="navigateToFeed(article.feed_id)">
-                                            {{ article.feed_title }}
-                                        </span>
-                                        <span>&middot;</span>
+                                        <template v-if="!isSingleFeedView">
+                                            <img
+                                                v-if="article.feed_favicon_url"
+                                                :src="article.feed_favicon_url"
+                                                class="h-3.5 w-3.5 rounded-sm"
+                                                alt="" />
+                                            <span
+                                                class="truncate hover:underline"
+                                                @click.stop="navigateToFeed(article.feed_id)">
+                                                {{ article.feed_title }}
+                                            </span>
+                                            <span>&middot;</span>
+                                        </template>
                                         <span class="shrink-0">{{
                                             timeAgo(article.published_at)
                                         }}</span>

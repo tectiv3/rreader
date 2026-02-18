@@ -59,6 +59,8 @@ class SidebarApiController extends Controller
                     'id' => $feed->id,
                     'title' => $feed->title,
                     'favicon_url' => $feed->favicon_url,
+                    'description' => $feed->description,
+                    'site_url' => $feed->site_url,
                     'unread_count' => $feedUnreadCounts[$feed->id] ?? 0,
                     'disabled_at' => $feed->disabled_at,
                 ]);
@@ -79,6 +81,8 @@ class SidebarApiController extends Controller
                 'id' => $feed->id,
                 'title' => $feed->title,
                 'favicon_url' => $feed->favicon_url,
+                'description' => $feed->description,
+                'site_url' => $feed->site_url,
                 'unread_count' => $feedUnreadCounts[$feed->id] ?? 0,
                 'disabled_at' => $feed->disabled_at,
             ])
