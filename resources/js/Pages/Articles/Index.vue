@@ -70,15 +70,39 @@ onMounted(async () => {
     const currentUrl = window.location.pathname + window.location.search;
     if (readingState && readingState.selectedArticleId && !selectedArticleId.value
         && readingState.url === currentUrl) {
-        const exists = allArticles.value.some(a => a.id === readingState.selectedArticleId);
-        if (exists) {
+        try {
+            // Fetch article data first to ensure we can display it
+            const response = await fetch(route('articles.show', readingState.selectedArticleId), {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            if (!response.ok) throw new Error('Article not found');
+            const data = await response.json();
+
+            // Inject into list if not present (may be paginated or filtered out)
+            if (!allArticles.value.some(a => a.id === readingState.selectedArticleId)) {
+                allArticles.value.unshift({
+                    id: data.article.id,
+                    title: data.article.title,
+                    summary: data.article.summary,
+                    url: data.article.url,
+                    author: data.article.author,
+                    published_at: data.article.published_at,
+                    is_read: true,
+                    is_read_later: data.article.is_read_later ?? false,
+                    feed: data.article.feed,
+                });
+            }
+
             selectedArticleId.value = readingState.selectedArticleId;
-            await loadArticleInline(readingState.selectedArticleId, { restoring: true });
+            selectedArticle.value = data.article;
+            selectedIsReadLater.value = data.article.is_read_later ?? false;
+            loadingArticle.value = false;
+
             await nextTick();
             if (articleListEl.value && readingState.listScrollTop) {
                 articleListEl.value.scrollTop = readingState.listScrollTop;
             }
-        } else {
+        } catch {
             clearReadingState();
         }
     }

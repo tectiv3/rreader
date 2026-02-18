@@ -20,7 +20,7 @@ export default defineConfig({
         }),
         tailwindcss(),
         VitePWA({
-            registerType: 'autoUpdate',
+            registerType: false,
             includeAssets: ['favicon.ico', 'robots.txt'],
             manifest: {
                 name: 'RReader',
