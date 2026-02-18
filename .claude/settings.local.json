@@ -18,7 +18,8 @@
       "Bash(npx vite:*)",
       "Bash(git diff:*)",
       "Bash(GIT_PAGER=cat git diff:*)",
-      "Bash(GIT_PAGER=cat git status:*)"
+      "Bash(GIT_PAGER=cat git status:*)",
+      "Bash(GIT_PAGER=cat git log:*)"
     ],
     "defaultMode": "acceptEdits"
   }

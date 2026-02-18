@@ -186,6 +186,43 @@ let touchStartX = 0
 let touchStartY = 0
 const SWIPE_THRESHOLD = 80
 const SWIPE_ANGLE_LIMIT = 30 // degrees — must be mostly horizontal
+const SWIPE_ANIMATION_MS = 160
+const SWIPE_TRANSLATE_PERCENT = 45
+const ADJACENT_ARTICLE_PREFETCH_CACHE_FOR = '10m'
+
+function prefetchAdjacentArticles() {
+    const queue = [props.nextArticleId, props.prevArticleId].filter(Boolean)
+    if (!queue.length) return
+
+    const prefetchNext = index => {
+        const articleId = queue[index]
+        if (!articleId) return
+
+        const url = articleUrl(articleId)
+        const options = { method: 'get' }
+
+        // Skip already-cached/in-flight requests so we can continue the queue.
+        if (router.getCached(url, options) || router.getPrefetching(url, options)) {
+            prefetchNext(index + 1)
+            return
+        }
+
+        router.prefetch(
+            url,
+            {
+                ...options,
+                onPrefetched: () => prefetchNext(index + 1),
+                onPrefetchError: () => prefetchNext(index + 1),
+                onCancel: () => prefetchNext(index + 1),
+            },
+            {
+                cacheFor: ADJACENT_ARTICLE_PREFETCH_CACHE_FOR,
+            }
+        )
+    }
+
+    prefetchNext(0)
+}
 
 // Prefetch adjacent articles and save reading state for PWA restore
 onMounted(() => {
@@ -198,12 +235,7 @@ onMounted(() => {
         selectedArticleId: props.article.id,
     })
 
-    if (props.nextArticleId) {
-        router.prefetch(articleUrl(props.nextArticleId), { method: 'get' })
-    }
-    if (props.prevArticleId) {
-        router.prefetch(articleUrl(props.prevArticleId), { method: 'get' })
-    }
+    prefetchAdjacentArticles()
 
     // Slide-in animation when arriving from a swipe
     const direction = sessionStorage.getItem('article-swipe-direction')
@@ -212,11 +244,14 @@ onMounted(() => {
         const el = articleEl.value
         // Start off-screen (opposite side from swipe direction)
         el.style.transition = 'none'
-        el.style.transform = direction === 'next' ? 'translateX(60%)' : 'translateX(-60%)'
+        el.style.transform =
+            direction === 'next'
+                ? `translateX(${SWIPE_TRANSLATE_PERCENT}%)`
+                : `translateX(-${SWIPE_TRANSLATE_PERCENT}%)`
         el.style.opacity = '0'
         el.offsetHeight // force reflow
         // Animate into place
-        el.style.transition = 'transform 250ms ease-out, opacity 250ms ease-out'
+        el.style.transition = `transform ${SWIPE_ANIMATION_MS}ms ease-out, opacity ${SWIPE_ANIMATION_MS}ms ease-out`
         el.style.transform = 'translateX(0)'
         el.style.opacity = '1'
         el.addEventListener(
@@ -250,21 +285,21 @@ function onSwipeEnd(e) {
         navigating.value = true
         sessionStorage.setItem('article-swipe-direction', 'next')
         if (articleEl.value) {
-            articleEl.value.style.transition = 'transform 250ms ease-out, opacity 250ms ease-out'
-            articleEl.value.style.transform = 'translateX(-60%)'
+            articleEl.value.style.transition = `transform ${SWIPE_ANIMATION_MS}ms ease-out, opacity ${SWIPE_ANIMATION_MS}ms ease-out`
+            articleEl.value.style.transform = `translateX(-${SWIPE_TRANSLATE_PERCENT}%)`
             articleEl.value.style.opacity = '0'
         }
-        setTimeout(() => router.visit(articleUrl(props.nextArticleId)), 250)
+        setTimeout(() => router.visit(articleUrl(props.nextArticleId)), SWIPE_ANIMATION_MS)
     } else if (deltaX > SWIPE_THRESHOLD && props.prevArticleId) {
         // Swipe right → previous article (newer): slide out to right
         navigating.value = true
         sessionStorage.setItem('article-swipe-direction', 'prev')
         if (articleEl.value) {
-            articleEl.value.style.transition = 'transform 250ms ease-out, opacity 250ms ease-out'
-            articleEl.value.style.transform = 'translateX(60%)'
+            articleEl.value.style.transition = `transform ${SWIPE_ANIMATION_MS}ms ease-out, opacity ${SWIPE_ANIMATION_MS}ms ease-out`
+            articleEl.value.style.transform = `translateX(${SWIPE_TRANSLATE_PERCENT}%)`
             articleEl.value.style.opacity = '0'
         }
-        setTimeout(() => router.visit(articleUrl(props.prevArticleId)), 250)
+        setTimeout(() => router.visit(articleUrl(props.prevArticleId)), SWIPE_ANIMATION_MS)
     }
 }
 </script>
