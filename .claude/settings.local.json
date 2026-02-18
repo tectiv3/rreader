@@ -12,7 +12,10 @@
       "Bash(ls:*)",
       "Bash(composer update:*)",
       "Bash(find:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npx --yes sharp-cli:*)",
+      "Bash(npx --yes png-to-ico:*)",
+      "Bash(npx vite:*)"
     ],
     "defaultMode": "acceptEdits"
   }

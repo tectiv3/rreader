@@ -50,6 +50,8 @@ const sidebarCollapsed = ref(false);
 const selectedArticle = ref(null);
 const selectedArticleId = ref(null);
 const loadingArticle = ref(false);
+const articleCache = new Map(); // articleId → { article data }
+const CACHE_MAX = 50;
 const selectedIsReadLater = ref(false);
 const togglingReadLater = ref(false);
 const markingUnread = ref(false);
@@ -72,30 +74,26 @@ onMounted(async () => {
         && readingState.url === currentUrl) {
         try {
             // Fetch article data first to ensure we can display it
-            const response = await fetch(route('articles.show', readingState.selectedArticleId), {
-                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-            });
-            if (!response.ok) throw new Error('Article not found');
-            const data = await response.json();
+            const article = await fetchArticleData(readingState.selectedArticleId);
 
             // Inject into list if not present (may be paginated or filtered out)
             if (!allArticles.value.some(a => a.id === readingState.selectedArticleId)) {
                 allArticles.value.unshift({
-                    id: data.article.id,
-                    title: data.article.title,
-                    summary: data.article.summary,
-                    url: data.article.url,
-                    author: data.article.author,
-                    published_at: data.article.published_at,
+                    id: article.id,
+                    title: article.title,
+                    summary: article.summary,
+                    url: article.url,
+                    author: article.author,
+                    published_at: article.published_at,
                     is_read: true,
-                    is_read_later: data.article.is_read_later ?? false,
-                    feed: data.article.feed,
+                    is_read_later: article.is_read_later ?? false,
+                    feed: article.feed,
                 });
             }
 
             selectedArticleId.value = readingState.selectedArticleId;
-            selectedArticle.value = data.article;
-            selectedIsReadLater.value = data.article.is_read_later ?? false;
+            selectedArticle.value = article;
+            selectedIsReadLater.value = article.is_read_later ?? false;
             loadingArticle.value = false;
 
             await nextTick();
@@ -168,9 +166,10 @@ const nextPageUrl = ref(props.articles.next_page_url);
 watch(() => props.articles, (newArticles) => {
     allArticles.value = [...newArticles.data];
     nextPageUrl.value = newArticles.next_page_url;
-    // Clear selected article on full navigation (filter change, etc.)
+    // Clear selected article and cache on full navigation (filter change, etc.)
     selectedArticle.value = null;
     selectedArticleId.value = null;
+    articleCache.clear();
 });
 
 watch(() => props.hideReadArticles, (val) => {
@@ -258,29 +257,66 @@ function openArticle(article) {
     }
 }
 
+async function fetchArticleData(articleId) {
+    const response = await fetch(route('articles.show', articleId), {
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+    });
+    if (!response.ok) throw new Error('Failed to load article');
+    const data = await response.json();
+    // Evict oldest entries if cache is full
+    if (articleCache.size >= CACHE_MAX) {
+        const oldest = articleCache.keys().next().value;
+        articleCache.delete(oldest);
+    }
+    articleCache.set(articleId, data.article);
+    return data.article;
+}
+
+function prefetchAdjacentArticles(articleId) {
+    const idx = flatArticles.value.findIndex(a => a.id === articleId);
+    if (idx === -1) return;
+    for (let i = 1; i <= 2; i++) {
+        const next = flatArticles.value[idx + i];
+        if (next && !articleCache.has(next.id)) {
+            fetchArticleData(next.id).catch(() => {});
+        }
+    }
+}
+
 async function loadArticleInline(articleId, { restoring = false } = {}) {
-    loadingArticle.value = true;
-    try {
-        const response = await fetch(route('articles.show', articleId), {
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-        });
-        if (!response.ok) throw new Error('Failed to load article');
-        const data = await response.json();
-        selectedArticle.value = data.article;
-        selectedIsReadLater.value = data.article.is_read_later ?? false;
+    // Serve from cache if available
+    const cached = articleCache.get(articleId);
+    if (cached) {
+        selectedArticle.value = cached;
+        selectedIsReadLater.value = cached.is_read_later ?? false;
+        loadingArticle.value = false;
         await nextTick();
         if (!restoring) {
-            // Scroll the expanded article into view (skip when restoring — scroll position set separately)
             const expandedEl = document.getElementById(`article-expanded-${articleId}`);
             if (expandedEl) expandedEl.scrollIntoView({ block: 'start', behavior: 'smooth' });
         }
         saveReadingState(buildReadingStateSnapshot());
+        prefetchAdjacentArticles(articleId);
+        return;
+    }
+
+    loadingArticle.value = true;
+    try {
+        const article = await fetchArticleData(articleId);
+        selectedArticle.value = article;
+        selectedIsReadLater.value = article.is_read_later ?? false;
+        await nextTick();
+        if (!restoring) {
+            const expandedEl = document.getElementById(`article-expanded-${articleId}`);
+            if (expandedEl) expandedEl.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }
+        saveReadingState(buildReadingStateSnapshot());
+        prefetchAdjacentArticles(articleId);
     } catch (err) {
         console.error('Failed to load article:', err);
-        // Fallback: navigate to show page
         router.visit(route('articles.show', articleId));
     } finally {
         loadingArticle.value = false;

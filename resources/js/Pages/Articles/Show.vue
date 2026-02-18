@@ -1,7 +1,7 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useOnlineStatus } from '@/Composables/useOnlineStatus.js';
 import { useOfflineQueue } from '@/Composables/useOfflineQueue.js';
 import { useToast } from '@/Composables/useToast.js';
@@ -19,6 +19,8 @@ const { success } = useToast();
 const isReadLater = ref(props.article.is_read_later ?? false);
 const togglingReadLater = ref(false);
 const markingUnread = ref(false);
+const articleEl = ref(null);
+const navigating = ref(false);
 
 const formattedDate = computed(() => {
     const date = new Date(props.article.published_at);
@@ -125,12 +127,44 @@ let touchStartY = 0;
 const SWIPE_THRESHOLD = 80;
 const SWIPE_ANGLE_LIMIT = 30; // degrees — must be mostly horizontal
 
+// Prefetch adjacent articles for instant swipe navigation
+onMounted(() => {
+    if (props.nextArticleId) {
+        router.prefetch(route('articles.show', props.nextArticleId), { method: 'get' });
+    }
+    if (props.prevArticleId) {
+        router.prefetch(route('articles.show', props.prevArticleId), { method: 'get' });
+    }
+
+    // Slide-in animation when arriving from a swipe
+    const direction = sessionStorage.getItem('article-swipe-direction');
+    if (direction && articleEl.value) {
+        sessionStorage.removeItem('article-swipe-direction');
+        const el = articleEl.value;
+        // Start off-screen (opposite side from swipe direction)
+        el.style.transition = 'none';
+        el.style.transform = direction === 'next' ? 'translateX(60%)' : 'translateX(-60%)';
+        el.style.opacity = '0';
+        el.offsetHeight; // force reflow
+        // Animate into place
+        el.style.transition = 'transform 250ms ease-out, opacity 250ms ease-out';
+        el.style.transform = 'translateX(0)';
+        el.style.opacity = '1';
+        el.addEventListener('transitionend', () => {
+            el.style.transition = '';
+            el.style.transform = '';
+            el.style.opacity = '';
+        }, { once: true });
+    }
+});
+
 function onSwipeStart(e) {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
 }
 
 function onSwipeEnd(e) {
+    if (navigating.value) return;
     const deltaX = e.changedTouches[0].clientX - touchStartX;
     const deltaY = e.changedTouches[0].clientY - touchStartY;
     const angle = Math.abs(Math.atan2(deltaY, deltaX) * 180 / Math.PI);
@@ -139,11 +173,25 @@ function onSwipeEnd(e) {
     if (angle > SWIPE_ANGLE_LIMIT && angle < (180 - SWIPE_ANGLE_LIMIT)) return;
 
     if (deltaX < -SWIPE_THRESHOLD && props.nextArticleId) {
-        // Swipe left → next article (older)
-        router.visit(route('articles.show', props.nextArticleId));
+        // Swipe left → next article (older): slide out to left
+        navigating.value = true;
+        sessionStorage.setItem('article-swipe-direction', 'next');
+        if (articleEl.value) {
+            articleEl.value.style.transition = 'transform 250ms ease-out, opacity 250ms ease-out';
+            articleEl.value.style.transform = 'translateX(-60%)';
+            articleEl.value.style.opacity = '0';
+        }
+        setTimeout(() => router.visit(route('articles.show', props.nextArticleId)), 250);
     } else if (deltaX > SWIPE_THRESHOLD && props.prevArticleId) {
-        // Swipe right → previous article (newer)
-        router.visit(route('articles.show', props.prevArticleId));
+        // Swipe right → previous article (newer): slide out to right
+        navigating.value = true;
+        sessionStorage.setItem('article-swipe-direction', 'prev');
+        if (articleEl.value) {
+            articleEl.value.style.transition = 'transform 250ms ease-out, opacity 250ms ease-out';
+            articleEl.value.style.transform = 'translateX(60%)';
+            articleEl.value.style.opacity = '0';
+        }
+        setTimeout(() => router.visit(route('articles.show', props.prevArticleId)), 250);
     }
 }
 </script>
@@ -219,7 +267,8 @@ function onSwipeEnd(e) {
         </template>
 
         <!-- Article content -->
-        <article class="mx-auto max-w-3xl px-4 py-6" @touchstart.passive="onSwipeStart" @touchend="onSwipeEnd">
+        <div class="overflow-x-hidden">
+        <article ref="articleEl" class="mx-auto max-w-3xl px-4 py-6" @touchstart.passive="onSwipeStart" @touchend="onSwipeEnd">
             <!-- Article header -->
             <header class="mb-6">
                 <h1 class="text-2xl font-bold leading-tight text-neutral-900 dark:text-neutral-100">
@@ -303,6 +352,7 @@ function onSwipeEnd(e) {
                 </div>
             </footer>
         </article>
+        </div>
     </AppLayout>
 </template>
 
