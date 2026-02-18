@@ -5,6 +5,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useOnlineStatus } from '@/Composables/useOnlineStatus.js';
 import { useOfflineQueue } from '@/Composables/useOfflineQueue.js';
 import { useToast } from '@/Composables/useToast.js';
+import { useReadingState } from '@/Composables/useReadingState.js';
 
 const props = defineProps({
     article: Object,
@@ -15,6 +16,7 @@ const props = defineProps({
 const { isOnline } = useOnlineStatus();
 const { enqueue } = useOfflineQueue();
 const { success } = useToast();
+const { saveReadingState, clearReadingState } = useReadingState();
 
 const isReadLater = ref(props.article.is_read_later ?? false);
 const togglingReadLater = ref(false);
@@ -40,6 +42,7 @@ onMounted(() => {
 
 onUnmounted(() => {
     document.removeEventListener('click', closeMenu);
+    clearReadingState();
 });
 
 const formattedDate = computed(() => {
@@ -79,16 +82,14 @@ function toggleReadLater() {
         return;
     }
 
-    router.post(route('articles.toggleReadLater', props.article.id), {}, {
-        preserveScroll: true,
-        onSuccess: () => {
+    axios.post(route('articles.toggleReadLater', props.article.id))
+        .then(() => {
             isReadLater.value = !isReadLater.value;
             success(isReadLater.value ? 'Article saved' : 'Removed from Read Later');
-        },
-        onFinish: () => {
+        })
+        .finally(() => {
             togglingReadLater.value = false;
-        },
-    });
+        });
 }
 
 function markAsUnread() {
@@ -101,13 +102,13 @@ function markAsUnread() {
         return;
     }
 
-    router.post(route('articles.markAsUnread', props.article.id), {}, {
-        preserveScroll: true,
-        onFinish: () => {
-            markingUnread.value = false;
+    axios.post(route('articles.markAsUnread', props.article.id))
+        .then(() => {
             success('Marked as unread');
-        },
-    });
+        })
+        .finally(() => {
+            markingUnread.value = false;
+        });
 }
 
 function openInBrowser() {
@@ -147,8 +148,14 @@ let touchStartY = 0;
 const SWIPE_THRESHOLD = 80;
 const SWIPE_ANGLE_LIMIT = 30; // degrees — must be mostly horizontal
 
-// Prefetch adjacent articles for instant swipe navigation
+// Prefetch adjacent articles and save reading state for PWA restore
 onMounted(() => {
+    // Save reading state so app.js can redirect here after iOS kills the PWA
+    saveReadingState({
+        url: window.location.pathname + window.location.search,
+        selectedArticleId: props.article.id,
+    });
+
     if (props.nextArticleId) {
         router.prefetch(route('articles.show', props.nextArticleId), { method: 'get' });
     }

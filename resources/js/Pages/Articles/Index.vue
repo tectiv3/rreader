@@ -1,7 +1,7 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SidebarDrawer from '@/Components/SidebarDrawer.vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, computed, onMounted, onUnmounted, watch, provide, nextTick } from 'vue';
 import { useOnlineStatus } from '@/Composables/useOnlineStatus.js';
 import { useOfflineQueue } from '@/Composables/useOfflineQueue.js';
@@ -979,12 +979,12 @@ function formatLastUpdated(date) {
                         </svg>
                         <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">No articles yet</h3>
                         <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">Subscribe to feeds to start seeing articles here.</p>
-                        <a
+                        <Link
                             :href="route('feeds.create')"
                             class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
                         >
                             Add a Feed
-                        </a>
+                        </Link>
                     </template>
                     <!-- Feeds exist but still being fetched -->
                     <template v-else-if="hasPendingFeeds">
@@ -1010,12 +1010,12 @@ function formatLastUpdated(date) {
                         </svg>
                         <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">No articles yet</h3>
                         <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">Subscribe to feeds to start seeing articles here.</p>
-                        <a
+                        <Link
                             :href="route('feeds.create')"
                             class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
                         >
                             Add a Feed
-                        </a>
+                        </Link>
                     </template>
                 </div>
 
@@ -1088,12 +1088,12 @@ function formatLastUpdated(date) {
                     </svg>
                     <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">No articles yet</h3>
                     <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">Subscribe to feeds to start seeing articles here.</p>
-                    <a
+                    <Link
                         :href="route('feeds.create')"
                         class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
                     >
                         Add a Feed
-                    </a>
+                    </Link>
                 </template>
                 <!-- Feeds exist but still being fetched -->
                 <template v-else-if="hasPendingFeeds">
@@ -1119,12 +1119,12 @@ function formatLastUpdated(date) {
                     </svg>
                     <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">No articles yet</h3>
                     <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">Subscribe to feeds to start seeing articles here.</p>
-                    <a
+                    <Link
                         :href="route('feeds.create')"
                         class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
                     >
                         Add a Feed
-                    </a>
+                    </Link>
                 </template>
             </div>
 
