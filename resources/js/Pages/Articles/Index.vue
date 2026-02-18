@@ -30,7 +30,7 @@ const { isOnline } = useOnlineStatus()
 const { enqueue } = useOfflineQueue()
 const { success } = useToast()
 const { saveReadingState, clearReadingState, loadReadingState } = useReadingState()
-const { markRead, applyReadStates } = useArticleReadState()
+const { markRead, markUnread, applyReadStates } = useArticleReadState()
 const { openAddFeedModal } = useAddFeedModal()
 
 // Track when data was last fetched
@@ -176,15 +176,21 @@ function onPullEnd() {
     }
 }
 
-// Local copy of articles to avoid mutating props
+// Local copies to avoid mutating props
 const allArticles = ref([...props.articles.data])
 const nextPageUrl = ref(props.articles.next_page_url)
+const localUnreadCount = ref(props.unreadCount)
 
 // Reconcile with in-memory read states (covers Inertia history restore)
 function reconcileReadStates() {
     const deltas = applyReadStates(allArticles.value)
+    let totalDelta = 0
     for (const [feedId, delta] of Object.entries(deltas)) {
         adjustUnreadCount(Number(feedId), delta)
+        totalDelta += delta
+    }
+    if (totalDelta !== 0) {
+        localUnreadCount.value = Math.max(0, localUnreadCount.value + totalDelta)
     }
 }
 reconcileReadStates()
@@ -194,6 +200,7 @@ watch(
     newArticles => {
         allArticles.value = [...newArticles.data]
         nextPageUrl.value = newArticles.next_page_url
+        localUnreadCount.value = props.unreadCount
         reconcileReadStates()
         // Clear selected article and cache on full navigation (filter change, etc.)
         selectedArticle.value = null
@@ -275,6 +282,7 @@ function openArticle(article) {
         if (idx !== -1) {
             allArticles.value[idx] = { ...allArticles.value[idx], is_read: true }
         }
+        localUnreadCount.value = Math.max(0, localUnreadCount.value - 1)
         // Desktop adjusts sidebar immediately (stays on page).
         // Mobile skips — reconcileReadStates handles it on return
         // to avoid double-counting with Inertia's history-saved state.
@@ -429,12 +437,14 @@ function toggleReadLaterInline() {
 function markAsUnreadInline() {
     if (!selectedArticle.value || markingUnread.value) return
     markingUnread.value = true
+    markUnread(selectedArticle.value.id)
 
     // Update local list
     const idx = allArticles.value.findIndex(a => a.id === selectedArticle.value.id)
     if (idx !== -1) {
         allArticles.value[idx] = { ...allArticles.value[idx], is_read: false }
     }
+    localUnreadCount.value += 1
     adjustUnreadCount(selectedArticle.value.feed?.id, +1)
 
     if (!isOnline.value) {
@@ -567,14 +577,17 @@ function markAllAsRead() {
 
     // Adjust sidebar counts for all currently unread articles
     const unreadByFeed = {}
+    let totalUnreadInView = 0
     for (const article of allArticles.value) {
         if (!article.is_read && article.feed?.id) {
             unreadByFeed[article.feed.id] = (unreadByFeed[article.feed.id] || 0) + 1
+            totalUnreadInView++
         }
     }
     for (const [feedId, count] of Object.entries(unreadByFeed)) {
         adjustUnreadCount(Number(feedId), -count)
     }
+    localUnreadCount.value = Math.max(0, localUnreadCount.value - totalUnreadInView)
 
     if (!isOnline.value) {
         allArticles.value = allArticles.value.map(a => ({ ...a, is_read: true }))
@@ -772,7 +785,9 @@ function swipeToggleRead(article) {
     if (idx === -1) return
 
     if (article.is_read) {
+        markUnread(article.id)
         allArticles.value[idx] = { ...allArticles.value[idx], is_read: false }
+        localUnreadCount.value += 1
         adjustUnreadCount(article.feed?.id, +1)
         if (!isOnline.value) {
             enqueue('post', route('articles.markAsUnread', article.id), {})
@@ -780,7 +795,9 @@ function swipeToggleRead(article) {
         }
         axios.post(route('articles.markAsUnread', article.id))
     } else {
+        markRead(article.id, article.feed?.id)
         allArticles.value[idx] = { ...allArticles.value[idx], is_read: true }
+        localUnreadCount.value = Math.max(0, localUnreadCount.value - 1)
         adjustUnreadCount(article.feed?.id, -1)
         if (!isOnline.value) {
             enqueue('post', route('articles.markAsRead'), { article_ids: [article.id] })
@@ -881,9 +898,9 @@ function formatLastUpdated(date) {
         <template #title>
             {{ filterTitle }}
             <span
-                v-if="unreadCount > 0"
+                v-if="localUnreadCount > 0"
                 class="ml-2 inline-flex items-center rounded-full bg-blue-600 px-2 py-0.5 text-xs font-medium text-white">
-                {{ unreadCount }}
+                {{ localUnreadCount }}
             </span>
         </template>
 
@@ -950,7 +967,7 @@ function formatLastUpdated(date) {
                 </svg>
             </button>
             <button
-                v-if="unreadCount > 0"
+                v-if="localUnreadCount > 0"
                 @click="markAllAsRead"
                 :disabled="markingAllRead"
                 class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer"

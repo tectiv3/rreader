@@ -29,7 +29,7 @@ const { isOnline } = useOnlineStatus()
 const { enqueue } = useOfflineQueue()
 const { success } = useToast()
 const { saveReadingState, clearReadingState } = useReadingState()
-const { markRead } = useArticleReadState()
+const { markRead, markUnread } = useArticleReadState()
 
 const isReadLater = ref(props.article.is_read_later ?? false)
 const togglingReadLater = ref(false)
@@ -126,6 +126,7 @@ function toggleReadLater() {
 function markAsUnread() {
     markingUnread.value = true
     showMenu.value = false
+    markUnread(props.article.id)
 
     if (!isOnline.value) {
         enqueue('post', route('articles.markAsUnread', props.article.id), {})
@@ -289,7 +290,10 @@ function onSwipeEnd(e) {
             articleEl.value.style.transform = `translateX(-${SWIPE_TRANSLATE_PERCENT}%)`
             articleEl.value.style.opacity = '0'
         }
-        setTimeout(() => router.visit(articleUrl(props.nextArticleId)), SWIPE_ANIMATION_MS)
+        setTimeout(
+            () => router.visit(articleUrl(props.nextArticleId), { replace: true }),
+            SWIPE_ANIMATION_MS
+        )
     } else if (deltaX > SWIPE_THRESHOLD && props.prevArticleId) {
         // Swipe right → previous article (newer): slide out to right
         navigating.value = true
@@ -299,7 +303,10 @@ function onSwipeEnd(e) {
             articleEl.value.style.transform = `translateX(${SWIPE_TRANSLATE_PERCENT}%)`
             articleEl.value.style.opacity = '0'
         }
-        setTimeout(() => router.visit(articleUrl(props.prevArticleId)), SWIPE_ANIMATION_MS)
+        setTimeout(
+            () => router.visit(articleUrl(props.prevArticleId), { replace: true }),
+            SWIPE_ANIMATION_MS
+        )
     }
 }
 </script>
