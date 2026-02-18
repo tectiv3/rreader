@@ -116,4 +116,133 @@ class ArticleApiController extends Controller
             'filter_title' => $filterTitle,
         ]);
     }
+
+    public function show(Request $request, Article $article)
+    {
+        $user = $request->user();
+        $userFeedIds = $user->feeds()->pluck('feeds.id');
+
+        if (!$userFeedIds->contains($article->feed_id)) {
+            abort(404);
+        }
+
+        return response()->json([
+            'id' => $article->id,
+            'content' => $article->content,
+            'summary' => $article->summary,
+            'author' => $article->author,
+            'url' => $article->url,
+        ]);
+    }
+
+    public function update(Request $request, Article $article)
+    {
+        $user = $request->user();
+        $userFeedIds = $user->feeds()->pluck('feeds.id');
+
+        if (!$userFeedIds->contains($article->feed_id)) {
+            abort(404);
+        }
+
+        $data = $request->validate([
+            'is_read' => 'sometimes|boolean',
+            'is_read_later' => 'sometimes|boolean',
+        ]);
+
+        $pivot = [];
+        if (array_key_exists('is_read', $data)) {
+            $pivot['is_read'] = $data['is_read'];
+            if ($data['is_read']) {
+                $pivot['read_at'] = now();
+            }
+        }
+        if (array_key_exists('is_read_later', $data)) {
+            $pivot['is_read_later'] = $data['is_read_later'];
+        }
+
+        $user->articles()->syncWithoutDetaching([
+            $article->id => $pivot,
+        ]);
+
+        return response()->noContent();
+    }
+
+    public function markAllRead(Request $request)
+    {
+        $user = $request->user();
+        $feedId = $request->input('feed_id');
+        $categoryId = $request->input('category_id');
+        $filter = $request->input('filter');
+
+        $allFeedIds = $user->feeds()->pluck('feeds.id');
+        $feedIds = $allFeedIds;
+
+        if ($feedId) {
+            $feedIds = collect([$feedId])->intersect($allFeedIds);
+        } elseif ($categoryId) {
+            $category = $user->categories()->where('id', $categoryId)->first();
+            if ($category) {
+                $feedIds = $category->feeds()->pluck('feeds.id');
+            }
+        }
+
+        $articleIds = Article::whereIn('feed_id', $feedIds)
+            ->when($filter === 'today', fn ($q) => $q->whereDate('published_at', today()))
+            ->pluck('id');
+
+        // Upsert read state for all articles
+        $records = $articleIds->mapWithKeys(fn ($id) => [
+            $id => ['is_read' => true, 'read_at' => now()],
+        ])->all();
+
+        $user->articles()->syncWithoutDetaching($records);
+
+        return response()->noContent();
+    }
+
+    public function search(Request $request)
+    {
+        $user = $request->user();
+        $q = $request->query('q', '');
+
+        if (strlen($q) < 2) {
+            return response()->json(['articles' => []]);
+        }
+
+        $feedIds = $user->feeds()->pluck('feeds.id');
+
+        $articles = Article::whereIn('feed_id', $feedIds)
+            ->where(function ($query) use ($q) {
+                $query->where('title', 'like', "%{$q}%")
+                      ->orWhere('summary', 'like', "%{$q}%");
+            })
+            ->leftJoin('user_articles', function ($join) use ($user) {
+                $join->on('articles.id', '=', 'user_articles.article_id')
+                    ->where('user_articles.user_id', '=', $user->id);
+            })
+            ->select([
+                'articles.id', 'articles.title', 'articles.summary',
+                'articles.feed_id', 'articles.image_url',
+                'articles.published_at', 'articles.url',
+                DB::raw('COALESCE(user_articles.is_read, 0) as is_read'),
+                DB::raw('COALESCE(user_articles.is_read_later, 0) as is_read_later'),
+            ])
+            ->orderByDesc('articles.published_at')
+            ->limit(100)
+            ->get();
+
+        $feedMap = $user->feeds()
+            ->select('feeds.id', 'feeds.title', 'feeds.favicon_url')
+            ->get()
+            ->keyBy('id');
+
+        $articles->transform(function ($article) use ($feedMap) {
+            $feed = $feedMap[$article->feed_id] ?? null;
+            $article->feed_title = $feed?->title;
+            $article->feed_favicon_url = $feed?->favicon_url;
+            return $article;
+        });
+
+        return response()->json(['articles' => $articles]);
+    }
 }
