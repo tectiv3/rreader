@@ -9,11 +9,23 @@ function requestFromSW(message) {
             resolve(null);
             return;
         }
+        let settled = false;
         const channel = new MessageChannel();
-        channel.port1.onmessage = (event) => resolve(event.data);
+        channel.port1.onmessage = (event) => {
+            if (!settled) {
+                settled = true;
+                channel.port1.close();
+                resolve(event.data);
+            }
+        };
         navigator.serviceWorker.controller.postMessage(message, [channel.port2]);
-        // Timeout after 500ms — don't block mount
-        setTimeout(() => resolve(null), 500);
+        setTimeout(() => {
+            if (!settled) {
+                settled = true;
+                channel.port1.close();
+                resolve(null);
+            }
+        }, 500);
     });
 }
 

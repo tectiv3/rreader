@@ -29,6 +29,8 @@ self.addEventListener('message', async (event) => {
         } catch {
             // Cache miss or corrupt — ignore
         }
-        event.ports[0].postMessage(state);
+        if (event.ports && event.ports[0]) {
+            event.ports[0].postMessage(state);
+        }
     }
 });

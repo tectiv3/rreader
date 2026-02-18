@@ -67,11 +67,13 @@ onMounted(async () => {
 
     // Restore reading state (e.g. after iOS memory eviction)
     const readingState = await loadReadingState();
-    if (readingState && readingState.selectedArticleId && !selectedArticleId.value) {
+    const currentUrl = window.location.pathname + window.location.search;
+    if (readingState && readingState.selectedArticleId && !selectedArticleId.value
+        && readingState.url === currentUrl) {
         const exists = allArticles.value.some(a => a.id === readingState.selectedArticleId);
         if (exists) {
             selectedArticleId.value = readingState.selectedArticleId;
-            await loadArticleInline(readingState.selectedArticleId);
+            await loadArticleInline(readingState.selectedArticleId, { restoring: true });
             await nextTick();
             if (articleListEl.value && readingState.listScrollTop) {
                 articleListEl.value.scrollTop = readingState.listScrollTop;
@@ -85,6 +87,7 @@ onMounted(async () => {
 onUnmounted(() => {
     window.removeEventListener('resize', checkDesktop);
     articleListEl.value?.removeEventListener('scroll', onArticleListScroll);
+    clearTimeout(scrollSaveTimeout);
 });
 
 function checkDesktop() {
@@ -231,7 +234,7 @@ function openArticle(article) {
     }
 }
 
-async function loadArticleInline(articleId) {
+async function loadArticleInline(articleId, { restoring = false } = {}) {
     loadingArticle.value = true;
     try {
         const response = await fetch(route('articles.show', articleId), {
@@ -244,10 +247,12 @@ async function loadArticleInline(articleId) {
         const data = await response.json();
         selectedArticle.value = data.article;
         selectedIsReadLater.value = data.article.is_read_later ?? false;
-        // Scroll the expanded article into view
         await nextTick();
-        const expandedEl = document.getElementById(`article-expanded-${articleId}`);
-        if (expandedEl) expandedEl.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        if (!restoring) {
+            // Scroll the expanded article into view (skip when restoring — scroll position set separately)
+            const expandedEl = document.getElementById(`article-expanded-${articleId}`);
+            if (expandedEl) expandedEl.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }
         saveReadingState(buildReadingStateSnapshot());
     } catch (err) {
         console.error('Failed to load article:', err);
