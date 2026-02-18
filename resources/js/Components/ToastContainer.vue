@@ -13,7 +13,7 @@ const { toasts, dismiss } = useToast();
             :class="[
                 toast.type === 'success' ? 'bg-green-600 text-white' :
                 toast.type === 'error' ? 'bg-red-600 text-white' :
-                'bg-slate-300 dark:bg-slate-700 text-slate-900 dark:text-slate-100',
+                'bg-neutral-300 dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100',
                 toast.leaving ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0',
             ]"
             role="status"

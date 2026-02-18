@@ -64,13 +64,13 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+    <div class="min-h-screen bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
         <!-- Header -->
-        <header class="sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-slate-900/80">
+        <header class="sticky top-0 z-40 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80">
             <div class="flex h-14 items-center justify-between px-4">
                 <div class="flex items-center gap-3">
                     <slot name="header-left" />
-                    <h1 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    <h1 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
                         <slot name="title">RReader</slot>
                     </h1>
                 </div>
@@ -80,7 +80,7 @@ onUnmounted(() => {
                     <!-- Dark mode toggle -->
                     <button
                         @click="toggle"
-                        class="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                        class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
                         :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
                         :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
                     >
@@ -121,14 +121,14 @@ onUnmounted(() => {
         <ToastContainer />
 
         <!-- Bottom navigation bar (mobile only) -->
-        <nav class="fixed bottom-0 inset-x-0 z-40 border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-slate-900/80 lg:hidden pb-safe transition-transform duration-300"
+        <nav class="fixed bottom-0 inset-x-0 z-40 border-t border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 lg:hidden pb-safe transition-transform duration-300"
              :class="navHidden ? 'translate-y-full' : 'translate-y-0'"
              aria-label="Bottom navigation">
             <div class="flex h-14 items-center justify-around px-2">
                 <!-- Sidebar toggle (hamburger) -->
                 <button
                     @click="toggleSidebar ? toggleSidebar() : router.visit(route('articles.index'))"
-                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
                     title="Open sidebar"
                     aria-label="Open sidebar"
                 >
@@ -142,7 +142,7 @@ onUnmounted(() => {
                 <button
                     @click="navigateTo({ filter: 'read_later' })"
                     class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors"
-                    :class="page.props.activeFilter === 'read_later' ? 'text-amber-500' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'"
+                    :class="page.props.activeFilter === 'read_later' ? 'text-amber-500' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'"
                     title="Read Later"
                     aria-label="Read Later"
                 >
@@ -156,7 +156,7 @@ onUnmounted(() => {
                 <button
                     @click="navigateTo({})"
                     class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors"
-                    :class="!page.props.activeFilter && !page.props.activeFeedId && !page.props.activeCategoryId && page.url.startsWith('/articles') && !page.url.startsWith('/articles/search') ? 'text-blue-500' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'"
+                    :class="!page.props.activeFilter && !page.props.activeFeedId && !page.props.activeCategoryId && page.url.startsWith('/articles') && !page.url.startsWith('/articles/search') ? 'text-blue-500' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'"
                     title="All feeds"
                     aria-label="All feeds"
                 >
@@ -170,7 +170,7 @@ onUnmounted(() => {
                 <button
                     @click="router.visit(route('feeds.create'))"
                     class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors"
-                    :class="page.url.startsWith('/feeds/create') ? 'text-blue-500' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'"
+                    :class="page.url.startsWith('/feeds/create') ? 'text-blue-500' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'"
                     title="Add feed"
                     aria-label="Add feed"
                 >
@@ -185,7 +185,7 @@ onUnmounted(() => {
                 <button
                     @click="router.visit(route('articles.search'))"
                     class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors"
-                    :class="page.url.startsWith('/articles/search') ? 'text-blue-500' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'"
+                    :class="page.url.startsWith('/articles/search') ? 'text-blue-500' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'"
                     title="Search"
                     aria-label="Search"
                 >

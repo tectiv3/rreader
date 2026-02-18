@@ -191,7 +191,7 @@ function reenableFeed(feed) {
         <template #header-left>
             <button
                 @click="goBack"
-                class="rounded-lg p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                class="rounded-lg p-1.5 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
                 title="Back to articles"
                 aria-label="Back to articles"
             >
@@ -206,13 +206,13 @@ function reenableFeed(feed) {
 
             <!-- Create Category -->
             <section>
-                <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-500 mb-3">New Category</h2>
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-500 mb-3">New Category</h2>
                 <form @submit.prevent="createCategory" class="flex gap-2">
                     <input
                         v-model="newCategoryName"
                         type="text"
                         placeholder="Category name"
-                        class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-800 placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                        class="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-base text-neutral-800 placeholder-neutral-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
                     />
                     <button
                         type="submit"
@@ -232,7 +232,7 @@ function reenableFeed(feed) {
                         <button
                             @click="moveCategoryUp(catIndex)"
                             :disabled="catIndex === 0"
-                            class="p-0.5 text-slate-600 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            class="p-0.5 text-neutral-600 dark:text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                             title="Move category up"
                             aria-label="Move category up"
                         >
@@ -243,7 +243,7 @@ function reenableFeed(feed) {
                         <button
                             @click="moveCategoryDown(catIndex)"
                             :disabled="catIndex === localCategories.length - 1"
-                            class="p-0.5 text-slate-600 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            class="p-0.5 text-neutral-600 dark:text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                             title="Move category down"
                             aria-label="Move category down"
                         >
@@ -260,16 +260,16 @@ function reenableFeed(feed) {
                                 <input
                                     v-model="editingCategoryName"
                                     type="text"
-                                    class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-base text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                                    class="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-base text-neutral-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
                                     @keydown.escape="cancelEditCategory"
                                     ref="categoryInput"
                                 />
                                 <button type="submit" class="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors">Save</button>
-                                <button type="button" @click="cancelEditCategory" class="rounded-lg px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">Cancel</button>
+                                <button type="button" @click="cancelEditCategory" class="rounded-lg px-3 py-1.5 text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors">Cancel</button>
                             </form>
                         </template>
                         <template v-else>
-                            <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-500">{{ category.name }}</h2>
+                            <h2 class="text-sm font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-500">{{ category.name }}</h2>
                         </template>
                     </div>
 
@@ -277,7 +277,7 @@ function reenableFeed(feed) {
                     <div v-if="editingCategoryId !== category.id && deletingCategoryId !== category.id" class="flex gap-1">
                         <button
                             @click="startEditCategory(category)"
-                            class="rounded-lg p-1.5 text-slate-600 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                            class="rounded-lg p-1.5 text-neutral-600 dark:text-neutral-500 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
                             title="Rename category"
                             aria-label="Rename category"
                         >
@@ -287,7 +287,7 @@ function reenableFeed(feed) {
                         </button>
                         <button
                             @click="startDeleteCategory(category)"
-                            class="rounded-lg p-1.5 text-slate-500 hover:bg-red-900/50 hover:text-red-400 transition-colors"
+                            class="rounded-lg p-1.5 text-neutral-500 hover:bg-red-900/50 hover:text-red-400 transition-colors"
                             title="Delete category"
                             aria-label="Delete category"
                         >
@@ -307,10 +307,10 @@ function reenableFeed(feed) {
                         </span>
                     </p>
                     <div v-if="category.feeds.length > 0" class="mb-3">
-                        <label class="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Move feeds to:</label>
+                        <label class="text-xs text-neutral-500 dark:text-neutral-400 mb-1 block">Move feeds to:</label>
                         <select
                             v-model="deleteMoveTarget"
-                            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                            class="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
                         >
                             <option :value="null">No category (uncategorized)</option>
                             <option
@@ -331,7 +331,7 @@ function reenableFeed(feed) {
                         </button>
                         <button
                             @click="cancelDeleteCategory"
-                            class="rounded-lg px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                            class="rounded-lg px-3 py-1.5 text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
                         >
                             Cancel
                         </button>
@@ -343,7 +343,7 @@ function reenableFeed(feed) {
                     <div
                         v-for="feed in category.feeds"
                         :key="feed.id"
-                        class="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-4 py-3"
+                        class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-4 py-3"
                     >
                         <!-- Feed row -->
                         <div class="flex items-center gap-3">
@@ -353,42 +353,42 @@ function reenableFeed(feed) {
                                 class="h-5 w-5 shrink-0 rounded-sm"
                                 alt=""
                             />
-                            <div v-else class="h-5 w-5 shrink-0 rounded-sm bg-slate-300 dark:bg-slate-700" />
+                            <div v-else class="h-5 w-5 shrink-0 rounded-sm bg-neutral-300 dark:bg-neutral-700" />
 
                             <div v-if="editingFeedId === feed.id" class="flex-1 min-w-0">
                                 <form @submit.prevent="saveFeed(feed, category.id)" class="flex gap-2">
                                     <input
                                         v-model="editingFeedTitle"
                                         type="text"
-                                        class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-base text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                                        class="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-base text-neutral-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
                                         @keydown.escape="cancelEditFeed"
                                     />
                                     <button type="submit" class="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors">Save</button>
-                                    <button type="button" @click="cancelEditFeed" class="rounded-lg px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">Cancel</button>
+                                    <button type="button" @click="cancelEditFeed" class="rounded-lg px-3 py-1.5 text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors">Cancel</button>
                                 </form>
                             </div>
                             <div v-else-if="movingFeedId === feed.id" class="flex-1 min-w-0">
                                 <div class="flex gap-2 items-center">
                                     <select
                                         v-model="movingFeedCategoryId"
-                                        class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                                        class="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
                                     >
                                         <option :value="null">Uncategorized</option>
                                         <option v-for="cat in allCategories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
                                     </select>
                                     <button @click="confirmMoveFeed(feed)" class="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors">Move</button>
-                                    <button @click="cancelMoveFeed" class="rounded-lg px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">Cancel</button>
+                                    <button @click="cancelMoveFeed" class="rounded-lg px-3 py-1.5 text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors">Cancel</button>
                                 </div>
                             </div>
                             <template v-else>
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center gap-1.5">
-                                        <p class="text-sm text-slate-800 dark:text-slate-200 truncate">{{ feed.title }}</p>
+                                        <p class="text-sm text-neutral-800 dark:text-neutral-200 truncate">{{ feed.title }}</p>
                                         <svg v-if="feed.disabled_at" class="h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-label="Feed disabled">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                                         </svg>
                                     </div>
-                                    <p class="text-xs text-slate-600 dark:text-slate-500 truncate">{{ feed.feed_url }}</p>
+                                    <p class="text-xs text-neutral-600 dark:text-neutral-500 truncate">{{ feed.feed_url }}</p>
                                     <p v-if="feed.disabled_at && feed.last_error" class="text-xs text-amber-600 dark:text-amber-500 mt-0.5 truncate">{{ feed.last_error }}</p>
                                 </div>
                                 <div class="flex shrink-0 gap-1">
@@ -403,7 +403,7 @@ function reenableFeed(feed) {
                                     </button>
                                     <button
                                         @click="startEditFeed(feed)"
-                                        class="rounded-lg p-1.5 text-slate-600 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                                        class="rounded-lg p-1.5 text-neutral-600 dark:text-neutral-500 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
                                         title="Rename feed"
                                         aria-label="Rename feed"
                                     >
@@ -413,7 +413,7 @@ function reenableFeed(feed) {
                                     </button>
                                     <button
                                         @click="startMoveFeed(feed, category.id)"
-                                        class="rounded-lg p-1.5 text-slate-600 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                                        class="rounded-lg p-1.5 text-neutral-600 dark:text-neutral-500 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
                                         title="Move feed"
                                         aria-label="Move feed"
                                     >
@@ -423,7 +423,7 @@ function reenableFeed(feed) {
                                     </button>
                                     <button
                                         @click="startUnsubscribe(feed)"
-                                        class="rounded-lg p-1.5 text-slate-500 hover:bg-red-900/50 hover:text-red-400 transition-colors"
+                                        class="rounded-lg p-1.5 text-neutral-500 hover:bg-red-900/50 hover:text-red-400 transition-colors"
                                         title="Unsubscribe"
                                         aria-label="Unsubscribe"
                                     >
@@ -447,7 +447,7 @@ function reenableFeed(feed) {
                                 </button>
                                 <button
                                     @click="cancelUnsubscribe"
-                                    class="rounded-lg px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                                    class="rounded-lg px-3 py-1.5 text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
                                 >
                                     Cancel
                                 </button>
@@ -455,18 +455,18 @@ function reenableFeed(feed) {
                         </div>
                     </div>
 
-                    <p v-if="category.feeds.length === 0" class="px-4 py-2 text-sm text-slate-600 dark:text-slate-500 italic">No feeds in this category</p>
+                    <p v-if="category.feeds.length === 0" class="px-4 py-2 text-sm text-neutral-600 dark:text-neutral-500 italic">No feeds in this category</p>
                 </div>
             </section>
 
             <!-- Uncategorized Feeds -->
             <section v-if="localUncategorizedFeeds.length > 0">
-                <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-500 mb-3">Uncategorized</h2>
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-500 mb-3">Uncategorized</h2>
                 <div class="space-y-1">
                     <div
                         v-for="feed in localUncategorizedFeeds"
                         :key="feed.id"
-                        class="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-4 py-3"
+                        class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-4 py-3"
                     >
                         <div class="flex items-center gap-3">
                             <img
@@ -475,42 +475,42 @@ function reenableFeed(feed) {
                                 class="h-5 w-5 shrink-0 rounded-sm"
                                 alt=""
                             />
-                            <div v-else class="h-5 w-5 shrink-0 rounded-sm bg-slate-300 dark:bg-slate-700" />
+                            <div v-else class="h-5 w-5 shrink-0 rounded-sm bg-neutral-300 dark:bg-neutral-700" />
 
                             <div v-if="editingFeedId === feed.id" class="flex-1 min-w-0">
                                 <form @submit.prevent="saveFeed(feed, null)" class="flex gap-2">
                                     <input
                                         v-model="editingFeedTitle"
                                         type="text"
-                                        class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-base text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                                        class="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-base text-neutral-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
                                         @keydown.escape="cancelEditFeed"
                                     />
                                     <button type="submit" class="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors">Save</button>
-                                    <button type="button" @click="cancelEditFeed" class="rounded-lg px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">Cancel</button>
+                                    <button type="button" @click="cancelEditFeed" class="rounded-lg px-3 py-1.5 text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors">Cancel</button>
                                 </form>
                             </div>
                             <div v-else-if="movingFeedId === feed.id" class="flex-1 min-w-0">
                                 <div class="flex gap-2 items-center">
                                     <select
                                         v-model="movingFeedCategoryId"
-                                        class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                                        class="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
                                     >
                                         <option :value="null">Uncategorized</option>
                                         <option v-for="cat in allCategories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
                                     </select>
                                     <button @click="confirmMoveFeed(feed)" class="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors">Move</button>
-                                    <button @click="cancelMoveFeed" class="rounded-lg px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">Cancel</button>
+                                    <button @click="cancelMoveFeed" class="rounded-lg px-3 py-1.5 text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors">Cancel</button>
                                 </div>
                             </div>
                             <template v-else>
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center gap-1.5">
-                                        <p class="text-sm text-slate-800 dark:text-slate-200 truncate">{{ feed.title }}</p>
+                                        <p class="text-sm text-neutral-800 dark:text-neutral-200 truncate">{{ feed.title }}</p>
                                         <svg v-if="feed.disabled_at" class="h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-label="Feed disabled">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                                         </svg>
                                     </div>
-                                    <p class="text-xs text-slate-600 dark:text-slate-500 truncate">{{ feed.feed_url }}</p>
+                                    <p class="text-xs text-neutral-600 dark:text-neutral-500 truncate">{{ feed.feed_url }}</p>
                                     <p v-if="feed.disabled_at && feed.last_error" class="text-xs text-amber-600 dark:text-amber-500 mt-0.5 truncate">{{ feed.last_error }}</p>
                                 </div>
                                 <div class="flex shrink-0 gap-1">
@@ -525,7 +525,7 @@ function reenableFeed(feed) {
                                     </button>
                                     <button
                                         @click="startEditFeed(feed)"
-                                        class="rounded-lg p-1.5 text-slate-600 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                                        class="rounded-lg p-1.5 text-neutral-600 dark:text-neutral-500 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
                                         title="Rename feed"
                                         aria-label="Rename feed"
                                     >
@@ -535,7 +535,7 @@ function reenableFeed(feed) {
                                     </button>
                                     <button
                                         @click="startMoveFeed(feed, null)"
-                                        class="rounded-lg p-1.5 text-slate-600 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                                        class="rounded-lg p-1.5 text-neutral-600 dark:text-neutral-500 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
                                         title="Move feed"
                                         aria-label="Move feed"
                                     >
@@ -545,7 +545,7 @@ function reenableFeed(feed) {
                                     </button>
                                     <button
                                         @click="startUnsubscribe(feed)"
-                                        class="rounded-lg p-1.5 text-slate-500 hover:bg-red-900/50 hover:text-red-400 transition-colors"
+                                        class="rounded-lg p-1.5 text-neutral-500 hover:bg-red-900/50 hover:text-red-400 transition-colors"
                                         title="Unsubscribe"
                                         aria-label="Unsubscribe"
                                     >
@@ -569,7 +569,7 @@ function reenableFeed(feed) {
                                 </button>
                                 <button
                                     @click="cancelUnsubscribe"
-                                    class="rounded-lg px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                                    class="rounded-lg px-3 py-1.5 text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
                                 >
                                     Cancel
                                 </button>
@@ -581,10 +581,10 @@ function reenableFeed(feed) {
 
             <!-- Empty state -->
             <div v-if="localCategories.length === 0 && localUncategorizedFeeds.length === 0" class="text-center py-12">
-                <svg class="mx-auto h-12 w-12 text-slate-400 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                <svg class="mx-auto h-12 w-12 text-neutral-400 dark:text-neutral-600" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12.75 19.5v-.75a7.5 7.5 0 00-7.5-7.5H4.5m0-6.75h.75c7.87 0 14.25 6.38 14.25 14.25v.75M6 18.75a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
                 </svg>
-                <p class="mt-3 text-slate-600 dark:text-slate-500">No feeds yet. Add your first feed to get started.</p>
+                <p class="mt-3 text-neutral-600 dark:text-neutral-500">No feeds yet. Add your first feed to get started.</p>
             </div>
         </div>
     </AppLayout>

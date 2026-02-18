@@ -13,8 +13,8 @@ const { isDark, toggle } = useDarkMode();
 
 <template>
     <div>
-        <div class="min-h-screen bg-slate-950">
-            <nav class="border-b border-slate-800 bg-slate-900">
+        <div class="min-h-screen bg-neutral-950">
+            <nav class="border-b border-neutral-800 bg-neutral-900">
                 <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div class="flex h-16 justify-between">
                         <div class="flex">
@@ -37,7 +37,7 @@ const { isDark, toggle } = useDarkMode();
                         <div class="hidden sm:ms-6 sm:flex sm:items-center">
                             <button
                                 @click="toggle"
-                                class="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors mr-2"
+                                class="rounded-lg p-2 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 transition-colors mr-2"
                             >
                                 <svg v-if="isDark" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
@@ -53,7 +53,7 @@ const { isDark, toggle } = useDarkMode();
                                         <span class="inline-flex rounded-md">
                                             <button
                                                 type="button"
-                                                class="inline-flex items-center rounded-md border border-transparent bg-slate-900 px-3 py-2 text-sm font-medium leading-4 text-slate-300 transition duration-150 ease-in-out hover:text-slate-100 focus:outline-none"
+                                                class="inline-flex items-center rounded-md border border-transparent bg-neutral-900 px-3 py-2 text-sm font-medium leading-4 text-neutral-300 transition duration-150 ease-in-out hover:text-neutral-100 focus:outline-none"
                                             >
                                                 {{ $page.props.auth.user.name }}
                                                 <svg class="-me-0.5 ms-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -78,7 +78,7 @@ const { isDark, toggle } = useDarkMode();
                         <div class="-me-2 flex items-center sm:hidden">
                             <button
                                 @click="showingNavigationDropdown = !showingNavigationDropdown"
-                                class="inline-flex items-center justify-center rounded-md p-2 text-slate-400 transition duration-150 ease-in-out hover:bg-slate-800 hover:text-slate-200 focus:bg-slate-800 focus:text-slate-200 focus:outline-none"
+                                class="inline-flex items-center justify-center rounded-md p-2 text-neutral-400 transition duration-150 ease-in-out hover:bg-neutral-800 hover:text-neutral-200 focus:bg-neutral-800 focus:text-neutral-200 focus:outline-none"
                             >
                                 <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                                     <path :class="{ hidden: showingNavigationDropdown, 'inline-flex': !showingNavigationDropdown }" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -96,10 +96,10 @@ const { isDark, toggle } = useDarkMode();
                         </ResponsiveNavLink>
                     </div>
 
-                    <div class="border-t border-slate-700 pb-1 pt-4">
+                    <div class="border-t border-neutral-700 pb-1 pt-4">
                         <div class="px-4">
-                            <div class="text-base font-medium text-slate-200">{{ $page.props.auth.user.name }}</div>
-                            <div class="text-sm font-medium text-slate-400">{{ $page.props.auth.user.email }}</div>
+                            <div class="text-base font-medium text-neutral-200">{{ $page.props.auth.user.name }}</div>
+                            <div class="text-sm font-medium text-neutral-400">{{ $page.props.auth.user.email }}</div>
                         </div>
 
                         <div class="mt-3 space-y-1">
@@ -110,7 +110,7 @@ const { isDark, toggle } = useDarkMode();
                 </div>
             </nav>
 
-            <header class="bg-slate-900 shadow-sm shadow-slate-900/50" v-if="$slots.header">
+            <header class="bg-neutral-900 shadow-sm shadow-neutral-900/50" v-if="$slots.header">
                 <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                     <slot name="header" />
                 </div>

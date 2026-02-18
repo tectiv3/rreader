@@ -153,10 +153,10 @@ onUnmounted(() => {
         <template #title>Search</template>
 
         <!-- Search input -->
-        <div class="sticky top-14 z-20 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 px-4 py-3 backdrop-blur">
+        <div class="sticky top-14 z-20 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-950/95 px-4 py-3 backdrop-blur">
             <div class="relative">
                 <svg
-                    class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500"
+                    class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500"
                     fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
                 >
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -167,14 +167,14 @@ onUnmounted(() => {
                     @input="onInput"
                     type="search"
                     placeholder="Search articles..."
-                    class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 py-2.5 pl-10 pr-10 text-base text-slate-800 dark:text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-offset-0"
+                    class="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 py-2.5 pl-10 pr-10 text-base text-neutral-800 dark:text-neutral-100 placeholder-neutral-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-offset-0"
                     autocomplete="off"
                 />
                 <!-- Clear button -->
                 <button
                     v-if="searchQuery"
                     @click="clearSearch"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 rounded p-0.5 text-neutral-400 dark:text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
                     aria-label="Clear search"
                 >
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -196,20 +196,20 @@ onUnmounted(() => {
 
         <!-- Initial state: no search yet -->
         <div v-if="!hasSearched && !searchQuery" class="flex flex-col items-center justify-center px-4 py-20 text-center">
-            <svg class="h-16 w-16 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+            <svg class="h-16 w-16 text-neutral-300 dark:text-neutral-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
-            <h3 class="mt-4 text-lg font-medium text-slate-700 dark:text-slate-300">Search your articles</h3>
-            <p class="mt-2 text-sm text-slate-600 dark:text-slate-500">Find articles by title or content across all your feeds.</p>
+            <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">Search your articles</h3>
+            <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">Find articles by title or content across all your feeds.</p>
         </div>
 
         <!-- Empty results -->
         <div v-else-if="hasSearched && allArticles.length === 0 && !isSearching" class="flex flex-col items-center justify-center px-4 py-20 text-center">
-            <svg class="h-16 w-16 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+            <svg class="h-16 w-16 text-neutral-300 dark:text-neutral-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
-            <h3 class="mt-4 text-lg font-medium text-slate-700 dark:text-slate-300">No results found</h3>
-            <p class="mt-2 text-sm text-slate-600 dark:text-slate-500">No articles match "{{ searchQuery }}". Try different keywords.</p>
+            <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">No results found</h3>
+            <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">No articles match "{{ searchQuery }}". Try different keywords.</p>
         </div>
 
         <!-- Search results -->
@@ -219,14 +219,14 @@ onUnmounted(() => {
                 <div
                     v-for="article in allArticles"
                     :key="article.id"
-                    class="border-b border-slate-200/50 dark:border-slate-800/50"
+                    class="border-b border-neutral-200/50 dark:border-neutral-800/50"
                 >
                     <button
                         @click="openArticle(article)"
-                        class="flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50 active:bg-slate-100 dark:active:bg-slate-800/50"
+                        class="flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/50 active:bg-neutral-100 dark:active:bg-neutral-800/50"
                     >
                         <div class="min-w-0 flex-1">
-                            <div class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-500">
+                            <div class="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-500">
                                 <img
                                     v-if="article.feed?.favicon_url"
                                     :src="article.feed.favicon_url"
@@ -239,11 +239,11 @@ onUnmounted(() => {
                             </div>
                             <h3
                                 class="mt-1 text-sm leading-snug"
-                                :class="article.is_read ? 'text-slate-600 dark:text-slate-500 font-normal' : 'text-slate-900 dark:text-slate-100 font-semibold'"
+                                :class="article.is_read ? 'text-neutral-600 dark:text-neutral-500 font-normal' : 'text-neutral-900 dark:text-neutral-100 font-semibold'"
                             >
                                 {{ article.title }}
                             </h3>
-                            <p v-if="article.summary" class="mt-0.5 line-clamp-2 text-xs text-slate-600 dark:text-slate-500">
+                            <p v-if="article.summary" class="mt-0.5 line-clamp-2 text-xs text-neutral-600 dark:text-neutral-500">
                                 {{ article.summary }}
                             </p>
                         </div>
@@ -264,7 +264,7 @@ onUnmounted(() => {
                     v-for="article in allArticles"
                     :key="article.id"
                     @click="openArticle(article)"
-                    class="flex w-full items-center gap-3 border-b border-slate-200/50 dark:border-slate-800/50 px-4 py-2.5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50 active:bg-slate-100 dark:active:bg-slate-800/50"
+                    class="flex w-full items-center gap-3 border-b border-neutral-200/50 dark:border-neutral-800/50 px-4 py-2.5 text-left transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/50 active:bg-neutral-100 dark:active:bg-neutral-800/50"
                 >
                     <img
                         v-if="article.feed?.favicon_url"
@@ -272,27 +272,27 @@ onUnmounted(() => {
                         class="h-4 w-4 shrink-0 rounded-sm"
                         alt=""
                     />
-                    <span class="w-32 shrink-0 truncate text-xs text-slate-600 dark:text-slate-500">{{ article.feed?.title }}</span>
+                    <span class="w-32 shrink-0 truncate text-xs text-neutral-600 dark:text-neutral-500">{{ article.feed?.title }}</span>
                     <h3
                         class="min-w-0 flex-1 truncate text-sm"
-                        :class="article.is_read ? 'text-slate-600 dark:text-slate-500 font-normal' : 'text-slate-900 dark:text-slate-100 font-medium'"
+                        :class="article.is_read ? 'text-neutral-600 dark:text-neutral-500 font-normal' : 'text-neutral-900 dark:text-neutral-100 font-medium'"
                     >
                         {{ article.title }}
                     </h3>
-                    <span v-if="article.summary" class="hidden xl:block w-64 shrink-0 truncate text-xs text-slate-500 dark:text-slate-600">
+                    <span v-if="article.summary" class="hidden xl:block w-64 shrink-0 truncate text-xs text-neutral-500 dark:text-neutral-600">
                         {{ article.summary }}
                     </span>
-                    <span class="w-12 shrink-0 text-right text-xs text-slate-500 dark:text-slate-600">{{ timeAgo(article.published_at) }}</span>
+                    <span class="w-12 shrink-0 text-right text-xs text-neutral-500 dark:text-neutral-600">{{ timeAgo(article.published_at) }}</span>
                 </button>
             </div>
 
             <!-- Infinite scroll sentinel -->
             <div v-if="nextPageUrl" :ref="onSentinel" class="flex justify-center py-6">
-                <div v-if="loadingMore" class="text-sm text-slate-600 dark:text-slate-500">Loading more...</div>
+                <div v-if="loadingMore" class="text-sm text-neutral-600 dark:text-neutral-500">Loading more...</div>
             </div>
 
             <!-- End of results -->
-            <div v-else class="py-8 text-center text-sm text-slate-500 dark:text-slate-600">
+            <div v-else class="py-8 text-center text-sm text-neutral-500 dark:text-neutral-600">
                 End of results
             </div>
         </div>

@@ -23,9 +23,9 @@ function refreshFeeds() {
         <template #title>RReader</template>
 
         <div class="p-4">
-            <div class="rounded-lg border border-slate-800 bg-slate-900 p-6">
+            <div class="rounded-lg border border-neutral-800 bg-neutral-900 p-6">
                 <div class="flex items-center justify-between">
-                    <p class="text-slate-300">
+                    <p class="text-neutral-300">
                         Welcome to RReader. Your feeds will appear here.
                     </p>
                     <button

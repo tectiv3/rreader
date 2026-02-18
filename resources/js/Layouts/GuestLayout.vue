@@ -4,7 +4,7 @@ import { Link } from '@inertiajs/vue3';
 
 <template>
     <div
-        class="flex min-h-screen flex-col items-center bg-slate-950 pt-6 sm:justify-center sm:pt-0"
+        class="flex min-h-screen flex-col items-center bg-neutral-950 pt-6 sm:justify-center sm:pt-0"
     >
         <div>
             <Link href="/" class="text-3xl font-bold text-blue-500">
@@ -13,7 +13,7 @@ import { Link } from '@inertiajs/vue3';
         </div>
 
         <div
-            class="mt-6 w-full overflow-hidden border border-slate-800 bg-slate-900 px-6 py-4 shadow-md sm:max-w-md sm:rounded-lg"
+            class="mt-6 w-full overflow-hidden border border-neutral-800 bg-neutral-900 px-6 py-4 shadow-md sm:max-w-md sm:rounded-lg"
         >
             <slot />
         </div>

@@ -1,18 +1,15 @@
 {
-  "permissions": {
-    "allow": [
-      "mcp__serena__find_symbol",
-      "mcp__serena__activate_project",
-      "Bash(npm run build:*)",
-      "mcp__serena__list_memories",
-      "Bash(npx vue-tsc:*)",
-      "mcp__serena__read_memory",
-      "Bash(yarn build:*)",
-      "Bash(php artisan migrate:*)",
-      "Bash(./vendor/bin/pint:*)",
-      "mcp__serena__get_symbols_overview",
-      "Bash(git add:*)",
-      "Bash(git commit:*)"
-    ]
-  }
+    "permissions": {
+        "allow": [
+            "Bash(npm run build:*)",
+            "Bash(npx vue-tsc:*)",
+            "Bash(yarn build:*)",
+            "Bash(php artisan migrate:*)",
+            "Bash(./vendor/bin/pint:*)",
+            "Bash(git add:*)",
+            "Bash(git commit:*)",
+            "Bash(php artisan test:*)"
+        ],
+        "defaultMode": "acceptEdits"
+    }
 }
