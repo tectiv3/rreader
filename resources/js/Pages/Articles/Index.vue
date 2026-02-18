@@ -17,6 +17,7 @@ const props = defineProps({
     sidebar: Object,
     feedCount: Number,
     hasPendingFeeds: Boolean,
+    hideReadArticles: Boolean,
 });
 
 const isReadLaterView = computed(() => props.activeFilter === 'read_later');
@@ -37,6 +38,8 @@ const loading = ref(false);
 const loadingMore = ref(false);
 const markingAllRead = ref(false);
 const sidebarOpen = ref(false);
+const hideRead = ref(props.hideReadArticles);
+const togglingHideRead = ref(false);
 
 // Desktop layout state
 const isDesktop = ref(typeof window !== 'undefined' && window.innerWidth >= 1024);
@@ -120,6 +123,10 @@ watch(() => props.articles, (newArticles) => {
     // Clear selected article on full navigation (filter change, etc.)
     selectedArticle.value = null;
     selectedArticleId.value = null;
+});
+
+watch(() => props.hideReadArticles, (val) => {
+    hideRead.value = val;
 });
 
 // Flat list of articles for keyboard navigation
@@ -315,7 +322,6 @@ function onKeyDown(e) {
 
     switch (e.key) {
         case 'ArrowRight':
-        case 'ArrowDown':
         case 'j': {
             // Next article
             e.preventDefault();
@@ -327,7 +333,6 @@ function onKeyDown(e) {
             break;
         }
         case 'ArrowLeft':
-        case 'ArrowUp':
         case 'k': {
             // Previous article
             e.preventDefault();
@@ -439,16 +444,39 @@ function refreshFeeds() {
     });
 }
 
-// Swipe-to-remove for Read Later view
+// Use fetch instead of router.patch to avoid Inertia page revisit,
+// which would re-filter articles immediately and break the "hide on refresh only" behavior
+async function toggleHideRead() {
+    togglingHideRead.value = true;
+    const newValue = !hideRead.value;
+    try {
+        await fetch(route('settings.update'), {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-XSRF-TOKEN': decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] || ''),
+            },
+            body: JSON.stringify({ hide_read_articles: newValue }),
+        });
+        hideRead.value = newValue;
+        success(newValue ? 'Hiding read articles on next refresh' : 'Showing all articles on next refresh');
+    } finally {
+        togglingHideRead.value = false;
+    }
+}
+
+// Bidirectional swipe gestures
 const swipeState = ref({});
-const SWIPE_THRESHOLD = 100;
+const SWIPE_THRESHOLD = 80;
+const SWIPE_DEAD_ZONE = 10;
 
 function onTouchStart(articleId, e) {
-    if (!isReadLaterView.value) return;
     swipeState.value[articleId] = {
         startX: e.touches[0].clientX,
+        startY: e.touches[0].clientY,
         currentX: 0,
         swiping: false,
+        directionLocked: false,
     };
 }
 
@@ -456,19 +484,92 @@ function onTouchMove(articleId, e) {
     const state = swipeState.value[articleId];
     if (!state) return;
     const deltaX = e.touches[0].clientX - state.startX;
-    if (deltaX < -10) {
+    const deltaY = e.touches[0].clientY - state.startY;
+
+    // Lock direction once past dead zone — ignore vertical swipes
+    if (!state.directionLocked && (Math.abs(deltaX) > SWIPE_DEAD_ZONE || Math.abs(deltaY) > SWIPE_DEAD_ZONE)) {
+        state.directionLocked = true;
+        if (Math.abs(deltaY) > Math.abs(deltaX)) {
+            delete swipeState.value[articleId];
+            return;
+        }
+    }
+
+    if (state.directionLocked && Math.abs(deltaX) > SWIPE_DEAD_ZONE) {
         state.swiping = true;
-        state.currentX = Math.max(deltaX, -200);
+        state.currentX = Math.max(Math.min(deltaX, 200), -200);
     }
 }
 
 function onTouchEnd(articleId, article) {
     const state = swipeState.value[articleId];
     if (!state) return;
+
     if (state.currentX < -SWIPE_THRESHOLD) {
-        removeFromReadLater(article);
+        // Swipe left → toggle read/unread
+        swipeToggleRead(article);
+    } else if (state.currentX > SWIPE_THRESHOLD) {
+        // Swipe right → toggle read later
+        swipeToggleReadLater(article);
     }
+
     delete swipeState.value[articleId];
+}
+
+function swipeToggleRead(article) {
+    const idx = allArticles.value.findIndex(a => a.id === article.id);
+    if (idx === -1) return;
+
+    if (article.is_read) {
+        allArticles.value[idx] = { ...allArticles.value[idx], is_read: false };
+        if (!isOnline.value) {
+            enqueue('post', route('articles.markAsUnread', article.id), {});
+            return;
+        }
+        router.post(route('articles.markAsUnread', article.id), {}, {
+            preserveScroll: true,
+            preserveState: true,
+        });
+    } else {
+        allArticles.value[idx] = { ...allArticles.value[idx], is_read: true };
+        if (!isOnline.value) {
+            enqueue('post', route('articles.markAsRead'), { article_ids: [article.id] });
+            return;
+        }
+        router.post(route('articles.markAsRead'), { article_ids: [article.id] }, {
+            preserveScroll: true,
+            preserveState: true,
+        });
+    }
+}
+
+function swipeToggleReadLater(article) {
+    if (isReadLaterView.value) {
+        // In Read Later view, right-swipe removes from list
+        allArticles.value = allArticles.value.filter(a => a.id !== article.id);
+        if (!isOnline.value) {
+            enqueue('post', route('articles.toggleReadLater', article.id), {});
+            return;
+        }
+        router.post(route('articles.toggleReadLater', article.id), {}, {
+            preserveScroll: true,
+            preserveState: true,
+        });
+    } else {
+        const idx = allArticles.value.findIndex(a => a.id === article.id);
+        if (idx !== -1) {
+            const current = allArticles.value[idx].is_read_later;
+            allArticles.value[idx] = { ...allArticles.value[idx], is_read_later: !current };
+        }
+        if (!isOnline.value) {
+            enqueue('post', route('articles.toggleReadLater', article.id), {});
+            return;
+        }
+        router.post(route('articles.toggleReadLater', article.id), {}, {
+            preserveScroll: true,
+            preserveState: true,
+        });
+    }
 }
 
 function getSwipeStyle(articleId) {
@@ -484,18 +585,10 @@ function isSwipingArticle(articleId) {
     return swipeState.value[articleId]?.swiping ?? false;
 }
 
-function removeFromReadLater(article) {
-    allArticles.value = allArticles.value.filter(a => a.id !== article.id);
-
-    if (!isOnline.value) {
-        enqueue('post', route('articles.toggleReadLater', article.id), {});
-        return;
-    }
-
-    router.post(route('articles.toggleReadLater', article.id), {}, {
-        preserveScroll: true,
-        preserveState: true,
-    });
+function getSwipeDirection(articleId) {
+    const state = swipeState.value[articleId];
+    if (!state || !state.swiping) return null;
+    return state.currentX > 0 ? 'right' : 'left';
 }
 
 // Load more is now manual (button click) to avoid infinite scroll loops
@@ -534,6 +627,26 @@ function formatLastUpdated(date) {
         </template>
 
         <template #header-right>
+            <button
+                @click="toggleHideRead"
+                :disabled="togglingHideRead"
+                class="rounded-lg p-2 transition-colors cursor-pointer"
+                :class="hideRead
+                    ? 'text-blue-500 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50'
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200'"
+                :title="hideRead ? 'Showing unread only' : 'Showing all articles'"
+                :aria-label="hideRead ? 'Show all articles' : 'Hide read articles'"
+            >
+                <!-- Eye-off icon when hiding read -->
+                <svg v-if="hideRead" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                </svg>
+                <!-- Eye icon when showing all -->
+                <svg v-else class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </button>
             <button
                 @click="refreshFeeds"
                 :disabled="loading"
@@ -651,7 +764,16 @@ function formatLastUpdated(date) {
                                         <header class="mb-6">
                                             <div class="flex items-start justify-between gap-4">
                                                 <h1 class="text-2xl font-bold leading-tight text-slate-900 dark:text-slate-100">
-                                                    {{ selectedArticle.title }}
+                                                    <a
+                                                        v-if="selectedArticle.url"
+                                                        :href="selectedArticle.url"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        class="hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                                                    >
+                                                        {{ selectedArticle.title }}
+                                                    </a>
+                                                    <template v-else>{{ selectedArticle.title }}</template>
                                                 </h1>
                                                 <!-- Toolbar: bookmark, unread, close -->
                                                 <div class="flex shrink-0 items-center gap-1">
@@ -918,15 +1040,29 @@ function formatLastUpdated(date) {
                                 :key="article.id"
                                 class="relative overflow-hidden border-b border-slate-200/50 dark:border-slate-800/50"
                             >
-                                <!-- Swipe reveal background (Read Later view only) -->
+                                <!-- Swipe right reveal: Read Later (left side) -->
                                 <div
-                                    v-if="isReadLaterView && isSwipingArticle(article.id)"
-                                    class="absolute inset-0 flex items-center justify-end bg-red-600/90 px-6"
+                                    v-if="isSwipingArticle(article.id) && getSwipeDirection(article.id) === 'right'"
+                                    class="absolute inset-0 flex items-center bg-slate-800 px-6"
                                 >
                                     <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l1.664 1.664M21 21l-1.5-1.5m-5.533-1.8a3.75 3.75 0 01-5.3-5.3m5.3 5.3l-5.3-5.3m5.3 5.3L17.25 21m-1.35-1.35L21 21m-5.533-1.8L9.7 13.133m0 0l-1.225-1.225M9.7 13.133L3 6.433" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
                                     </svg>
-                                    <span class="ml-2 text-sm font-medium text-white">Remove</span>
+                                    <span class="ml-2 text-sm font-medium text-white uppercase tracking-wide">
+                                        {{ article.is_read_later ? 'Saved' : 'Read Later' }}
+                                    </span>
+                                </div>
+                                <!-- Swipe left reveal: Mark as Read/Unread (right side) -->
+                                <div
+                                    v-if="isSwipingArticle(article.id) && getSwipeDirection(article.id) === 'left'"
+                                    class="absolute inset-0 flex items-center justify-end bg-slate-800 px-6"
+                                >
+                                    <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                    </svg>
+                                    <span class="ml-2 text-sm font-medium text-white uppercase tracking-wide">
+                                        {{ article.is_read ? 'Mark as Unread' : 'Mark as Read' }}
+                                    </span>
                                 </div>
                                 <button
                                     @click="!isSwipingArticle(article.id) && openArticle(article)"
@@ -934,7 +1070,7 @@ function formatLastUpdated(date) {
                                     @touchmove="onTouchMove(article.id, $event)"
                                     @touchend="onTouchEnd(article.id, article)"
                                     class="relative flex w-full gap-3 bg-white dark:bg-slate-950 px-4 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50 active:bg-slate-100 dark:active:bg-slate-800/50"
-                                    :style="isReadLaterView ? getSwipeStyle(article.id) : {}"
+                                    :style="getSwipeStyle(article.id)"
                                 >
                                     <div class="min-w-0 flex-1">
                                         <div class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-500">

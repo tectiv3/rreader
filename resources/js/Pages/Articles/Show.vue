@@ -223,7 +223,16 @@ function onSwipeEnd(e) {
             <!-- Article header -->
             <header class="mb-6">
                 <h1 class="text-2xl font-bold leading-tight text-slate-900 dark:text-slate-100">
-                    {{ article.title }}
+                    <a
+                        v-if="article.url"
+                        :href="article.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                    >
+                        {{ article.title }}
+                    </a>
+                    <template v-else>{{ article.title }}</template>
                 </h1>
                 <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
                     <div class="flex items-center gap-2">

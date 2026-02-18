@@ -78,6 +78,11 @@ class ArticleController extends Controller
             }
         }
 
+        $hideReadArticles = $user->settings['hide_read_articles'] ?? false;
+        if ($hideReadArticles) {
+            $query->where(fn ($q) => $q->whereNull('user_articles.is_read')->orWhere('user_articles.is_read', false));
+        }
+
         $articles = $query->orderByDesc('articles.published_at')
             ->paginate(30)
             ->withQueryString();
@@ -113,6 +118,7 @@ class ArticleController extends Controller
             'sidebar' => $sidebarData,
             'feedCount' => $feedCount,
             'hasPendingFeeds' => $hasPendingFeeds,
+            'hideReadArticles' => $hideReadArticles,
         ]);
     }
 

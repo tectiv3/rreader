@@ -30,6 +30,7 @@ const prefsForm = useForm({
     font_size: props.settings.font_size,
     refresh_interval: props.settings.refresh_interval,
     mark_read_on_scroll: props.settings.mark_read_on_scroll,
+    hide_read_articles: props.settings.hide_read_articles,
 });
 
 const savePrefs = () => {
@@ -220,6 +221,23 @@ const logout = () => {
                             <span
                                 class="inline-block h-4 w-4 rounded-full bg-white transition-transform"
                                 :class="prefsForm.mark_read_on_scroll ? 'translate-x-6' : 'translate-x-1'"
+                            />
+                        </button>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <label for="hide_read_articles" class="text-sm text-slate-700 dark:text-slate-300">Hide read articles</label>
+                        <button
+                            id="hide_read_articles"
+                            @click="prefsForm.hide_read_articles = !prefsForm.hide_read_articles"
+                            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+                            :class="prefsForm.hide_read_articles ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'"
+                            role="switch"
+                            :aria-checked="prefsForm.hide_read_articles"
+                        >
+                            <span
+                                class="inline-block h-4 w-4 rounded-full bg-white transition-transform"
+                                :class="prefsForm.hide_read_articles ? 'translate-x-6' : 'translate-x-1'"
                             />
                         </button>
                     </div>

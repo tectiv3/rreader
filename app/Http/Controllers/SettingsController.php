@@ -17,6 +17,7 @@ class SettingsController extends Controller
         'font_size' => 'medium',
         'refresh_interval' => 30,
         'mark_read_on_scroll' => false,
+        'hide_read_articles' => false,
     ];
 
     public function index(Request $request): Response
@@ -42,6 +43,7 @@ class SettingsController extends Controller
             'font_size' => ['sometimes', 'in:small,medium,large'],
             'refresh_interval' => ['sometimes', 'integer', 'min:5', 'max:1440'],
             'mark_read_on_scroll' => ['sometimes', 'boolean'],
+            'hide_read_articles' => ['sometimes', 'boolean'],
         ]);
 
         $user = $request->user();
