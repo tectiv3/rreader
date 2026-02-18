@@ -20,7 +20,7 @@ const { isDark, toggle } = useDarkMode()
                         <div class="flex">
                             <div class="flex shrink-0 items-center">
                                 <Link
-                                    :href="route('dashboard')"
+                                    :href="'/dashboard'"
                                     class="text-xl font-bold text-blue-500">
                                     RReader
                                 </Link>
@@ -28,7 +28,7 @@ const { isDark, toggle } = useDarkMode()
 
                             <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                                 <NavLink
-                                    :href="route('dashboard')"
+                                    :href="'/dashboard'"
                                     :active="route().current('dashboard')">
                                     Dashboard
                                 </NavLink>
@@ -88,11 +88,11 @@ const { isDark, toggle } = useDarkMode()
                                     </template>
 
                                     <template #content>
-                                        <DropdownLink :href="route('profile.edit')">
+                                        <DropdownLink :href="'/profile'">
                                             Profile
                                         </DropdownLink>
                                         <DropdownLink
-                                            :href="route('logout')"
+                                            :href="'/logout'"
                                             method="post"
                                             as="button">
                                             Log Out
@@ -143,7 +143,7 @@ const { isDark, toggle } = useDarkMode()
                     class="sm:hidden">
                     <div class="space-y-1 pb-3 pt-2">
                         <ResponsiveNavLink
-                            :href="route('dashboard')"
+                            :href="'/dashboard'"
                             :active="route().current('dashboard')">
                             Dashboard
                         </ResponsiveNavLink>
@@ -160,10 +160,10 @@ const { isDark, toggle } = useDarkMode()
                         </div>
 
                         <div class="mt-3 space-y-1">
-                            <ResponsiveNavLink :href="route('profile.edit')"
+                            <ResponsiveNavLink :href="'/profile'"
                                 >Profile</ResponsiveNavLink
                             >
-                            <ResponsiveNavLink :href="route('logout')" method="post" as="button"
+                            <ResponsiveNavLink :href="'/logout'" method="post" as="button"
                                 >Log Out</ResponsiveNavLink
                             >
                         </div>

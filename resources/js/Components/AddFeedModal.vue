@@ -2,7 +2,8 @@
 import InputError from '@/Components/InputError.vue'
 import InputLabel from '@/Components/InputLabel.vue'
 import TextInput from '@/Components/TextInput.vue'
-import { router } from '@inertiajs/vue3'
+import { useSidebarStore } from '@/Stores/useSidebarStore.js'
+import axios from 'axios'
 import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
@@ -87,7 +88,7 @@ async function discoverFeed() {
     isSearching.value = true
 
     try {
-        const response = await window.axios.post(route('feeds.preview'), {
+        const response = await axios.post('/api/feeds/preview', {
             url: url.value,
         })
 
@@ -115,28 +116,29 @@ function toggleNewCategory() {
     }
 }
 
-function subscribe() {
+async function subscribe() {
     isSubscribing.value = true
     subscribeErrors.value = {}
 
-    const data = {
-        feed_url: feedUrl.value,
-        title: title.value || preview.value?.title || '',
-        category_id: categoryId.value || '',
-        new_category: newCategory.value || '',
-    }
+    try {
+        await axios.post('/api/feeds', {
+            feed_url: feedUrl.value,
+            title: title.value || preview.value?.title || '',
+            category_id: categoryId.value || '',
+            new_category: newCategory.value || '',
+        })
 
-    router.post(route('feeds.store'), data, {
-        onSuccess: () => {
-            close()
-        },
-        onError: errors => {
-            subscribeErrors.value = errors
-        },
-        onFinish: () => {
-            isSubscribing.value = false
-        },
-    })
+        useSidebarStore().fetchSidebar()
+        close()
+    } catch (error) {
+        if (error.response?.status === 422 && error.response.data?.errors) {
+            subscribeErrors.value = Object.fromEntries(
+                Object.entries(error.response.data.errors).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v])
+            )
+        }
+    } finally {
+        isSubscribing.value = false
+    }
 }
 
 function goBackToSearch() {
