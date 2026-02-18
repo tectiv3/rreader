@@ -1748,7 +1748,7 @@ function formatLastUpdated(date) {
                                 <div
                                     v-for="article in articles"
                                     :key="article.id"
-                                    class="relative overflow-hidden border-b border-neutral-200/50 dark:border-neutral-800/50">
+                                    class="relative overflow-hidden border-b border-neutral-200/50 dark:border-neutral-800/50 bg-neutral-200 dark:bg-neutral-800">
                                     <!-- Swipe right reveal: Read Later (left side) -->
                                     <div
                                         v-if="

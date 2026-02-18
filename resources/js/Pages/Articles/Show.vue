@@ -49,12 +49,28 @@ function closeMenu(e) {
     }
 }
 
+function navigateToArticle(direction) {
+    if (navigating.value) return
+    const id = direction === 'next' ? props.nextArticleId : props.prevArticleId
+    if (!id) return
+    navigating.value = true
+    sessionStorage.setItem('article-swipe-direction', direction)
+    router.visit(articleUrl(id), { replace: true, showProgress: false })
+}
+
+function onKeydown(e) {
+    if (e.key === 'ArrowRight') navigateToArticle('next')
+    else if (e.key === 'ArrowLeft') navigateToArticle('prev')
+}
+
 onMounted(() => {
     document.addEventListener('click', closeMenu)
+    document.addEventListener('keydown', onKeydown)
 })
 
 onUnmounted(() => {
     document.removeEventListener('click', closeMenu)
+    document.removeEventListener('keydown', onKeydown)
     clearReadingState()
 })
 
@@ -84,6 +100,14 @@ const formattedTime = computed(() => {
 })
 
 function goBack() {
+    // Prefer history.back() to restore the list page from Inertia's history
+    // state (preserves read states, scroll position, etc). This is safe because
+    // swipe navigation uses replace:true, so history never stacks articles.
+    if (window.history.length > 1) {
+        window.history.back()
+        return
+    }
+    // Fallback for direct URL access (no history entry to go back to)
     const params = {}
     if (props.context.feed_id) params.feed_id = props.context.feed_id
     if (props.context.category_id) params.category_id = props.context.category_id
@@ -200,7 +224,7 @@ onMounted(() => {
 
     prefetchAdjacentArticles()
 
-    // Slide-in animation when arriving from a swipe
+    // Slide-in animation when arriving from a swipe (translateX only, no fade)
     const direction = sessionStorage.getItem('article-swipe-direction')
     if (direction && articleEl.value) {
         sessionStorage.removeItem('article-swipe-direction')
@@ -208,17 +232,14 @@ onMounted(() => {
         const translateFrom = direction === 'next' ? '40%' : '-40%'
         el.style.transition = 'none'
         el.style.transform = `translateX(${translateFrom})`
-        el.style.opacity = '0'
         el.offsetHeight // force reflow
-        el.style.transition = `transform ${SWIPE_ANIMATION_MS}ms ease-out, opacity ${SWIPE_ANIMATION_MS}ms ease-out`
+        el.style.transition = `transform ${SWIPE_ANIMATION_MS}ms ease-out`
         el.style.transform = 'translateX(0)'
-        el.style.opacity = '1'
         el.addEventListener(
             'transitionend',
             () => {
                 el.style.transition = ''
                 el.style.transform = ''
-                el.style.opacity = ''
             },
             { once: true }
         )
@@ -239,22 +260,10 @@ function onSwipeEnd(e) {
     // Must be mostly horizontal
     if (angle > SWIPE_ANGLE_LIMIT && angle < 180 - SWIPE_ANGLE_LIMIT) return
 
-    if (deltaX < -SWIPE_THRESHOLD && props.nextArticleId) {
-        // Swipe left → next article (older)
-        navigating.value = true
-        sessionStorage.setItem('article-swipe-direction', 'next')
-        router.visit(articleUrl(props.nextArticleId), {
-            replace: true,
-            showProgress: false,
-        })
-    } else if (deltaX > SWIPE_THRESHOLD && props.prevArticleId) {
-        // Swipe right → previous article (newer)
-        navigating.value = true
-        sessionStorage.setItem('article-swipe-direction', 'prev')
-        router.visit(articleUrl(props.prevArticleId), {
-            replace: true,
-            showProgress: false,
-        })
+    if (deltaX < -SWIPE_THRESHOLD) {
+        navigateToArticle('next')
+    } else if (deltaX > SWIPE_THRESHOLD) {
+        navigateToArticle('prev')
     }
 }
 </script>

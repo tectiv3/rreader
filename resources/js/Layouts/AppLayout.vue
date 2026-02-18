@@ -21,8 +21,9 @@ let removeFinishListener = null
 
 onMounted(() => {
     removeStartListener = router.on('start', event => {
-        // Skip skeleton for article-to-article swipe navigation
-        if (sessionStorage.getItem('article-swipe-direction')) {
+        // Only show skeleton for list-page navigations, not article show pages
+        const url = event.detail.visit.url
+        if (url.pathname.match(/^\/articles\/\d+/)) {
             return
         }
         isNavigating.value = true
