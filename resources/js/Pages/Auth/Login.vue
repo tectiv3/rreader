@@ -1,11 +1,11 @@
 <script setup>
-import Checkbox from '@/Components/Checkbox.vue';
-import GuestLayout from '@/Layouts/GuestLayout.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import Checkbox from '@/Components/Checkbox.vue'
+import GuestLayout from '@/Layouts/GuestLayout.vue'
+import InputError from '@/Components/InputError.vue'
+import InputLabel from '@/Components/InputLabel.vue'
+import PrimaryButton from '@/Components/PrimaryButton.vue'
+import TextInput from '@/Components/TextInput.vue'
+import { Head, Link, useForm } from '@inertiajs/vue3'
 
 defineProps({
     canResetPassword: {
@@ -14,19 +14,19 @@ defineProps({
     status: {
         type: String,
     },
-});
+})
 
 const form = useForm({
     email: '',
     password: '',
     remember: false,
-});
+})
 
 const submit = () => {
     form.post(route('login'), {
         onFinish: () => form.reset('password'),
-    });
-};
+    })
+}
 </script>
 
 <template>
@@ -48,8 +48,7 @@ const submit = () => {
                     v-model="form.email"
                     required
                     autofocus
-                    autocomplete="username"
-                />
+                    autocomplete="username" />
 
                 <InputError class="mt-2" :message="form.errors.email" />
             </div>
@@ -63,8 +62,7 @@ const submit = () => {
                     class="mt-1 block w-full text-base"
                     v-model="form.password"
                     required
-                    autocomplete="current-password"
-                />
+                    autocomplete="current-password" />
 
                 <InputError class="mt-2" :message="form.errors.password" />
             </div>
@@ -80,8 +78,7 @@ const submit = () => {
                 <PrimaryButton
                     class="w-full"
                     :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
+                    :disabled="form.processing">
                     Log in
                 </PrimaryButton>
             </div>
@@ -90,15 +87,13 @@ const submit = () => {
                 <Link
                     v-if="canResetPassword"
                     :href="route('password.request')"
-                    class="text-sm text-neutral-400 underline hover:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-neutral-900 rounded-md"
-                >
+                    class="text-sm text-neutral-400 underline hover:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-neutral-900 rounded-md">
                     Forgot your password?
                 </Link>
 
                 <Link
                     :href="route('register')"
-                    class="text-sm text-blue-400 underline hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-neutral-900 rounded-md"
-                >
+                    class="text-sm text-blue-400 underline hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-neutral-900 rounded-md">
                     Create an account
                 </Link>
             </div>

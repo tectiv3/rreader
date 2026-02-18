@@ -417,9 +417,7 @@ function toggleReadLaterInline() {
             preserveState: true,
             onSuccess: () => {
                 selectedIsReadLater.value = !selectedIsReadLater.value
-                success(
-                    selectedIsReadLater.value ? 'Article saved' : 'Removed from Read Later'
-                )
+                success(selectedIsReadLater.value ? 'Article saved' : 'Removed from Read Later')
             },
             onFinish: () => {
                 togglingReadLater.value = false
@@ -865,20 +863,17 @@ function formatLastUpdated(date) {
                 @click="sidebarOpen = true"
                 class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors -ml-2 lg:hidden"
                 title="Open sidebar"
-                aria-label="Open sidebar"
-            >
+                aria-label="Open sidebar">
                 <svg
                     class="h-5 w-5"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke-width="1.5"
-                    stroke="currentColor"
-                >
+                    stroke="currentColor">
                     <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
-                        d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-                    />
+                        d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                 </svg>
             </button>
         </template>
@@ -887,8 +882,7 @@ function formatLastUpdated(date) {
             {{ filterTitle }}
             <span
                 v-if="unreadCount > 0"
-                class="ml-2 inline-flex items-center rounded-full bg-blue-600 px-2 py-0.5 text-xs font-medium text-white"
-            >
+                class="ml-2 inline-flex items-center rounded-full bg-blue-600 px-2 py-0.5 text-xs font-medium text-white">
                 {{ unreadCount }}
             </span>
         </template>
@@ -904,8 +898,7 @@ function formatLastUpdated(date) {
                         : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200'
                 "
                 :title="hideRead ? 'Showing unread only' : 'Showing all articles'"
-                :aria-label="hideRead ? 'Show all articles' : 'Hide read articles'"
-            >
+                :aria-label="hideRead ? 'Show all articles' : 'Hide read articles'">
                 <!-- Eye-off icon when hiding read -->
                 <svg
                     v-if="hideRead"
@@ -913,13 +906,11 @@ function formatLastUpdated(date) {
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke-width="1.5"
-                    stroke="currentColor"
-                >
+                    stroke="currentColor">
                     <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
-                        d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"
-                    />
+                        d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
                 </svg>
                 <!-- Eye icon when showing all -->
                 <svg
@@ -928,18 +919,15 @@ function formatLastUpdated(date) {
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke-width="1.5"
-                    stroke="currentColor"
-                >
+                    stroke="currentColor">
                     <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
-                        d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-                    />
+                        d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                     <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
             </button>
             <button
@@ -947,21 +935,18 @@ function formatLastUpdated(date) {
                 :disabled="loading"
                 class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer"
                 title="Refresh feeds"
-                aria-label="Refresh feeds"
-            >
+                aria-label="Refresh feeds">
                 <svg
                     class="h-5 w-5 transition-transform"
                     :class="{ 'animate-spin': loading }"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke-width="1.5"
-                    stroke="currentColor"
-                >
+                    stroke="currentColor">
                     <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
-                        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182"
-                    />
+                        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" />
                 </svg>
             </button>
             <button
@@ -970,20 +955,17 @@ function formatLastUpdated(date) {
                 :disabled="markingAllRead"
                 class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer"
                 title="Mark all as read"
-                aria-label="Mark all as read"
-            >
+                aria-label="Mark all as read">
                 <svg
                     class="h-5 w-5"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke-width="1.5"
-                    stroke="currentColor"
-                >
+                    stroke="currentColor">
                     <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
-                        d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
+                        d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </button>
             <button
@@ -992,20 +974,17 @@ function formatLastUpdated(date) {
                 :disabled="unsubscribing"
                 class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer"
                 title="Unsubscribe from feed"
-                aria-label="Unsubscribe from feed"
-            >
+                aria-label="Unsubscribe from feed">
                 <svg
                     class="h-5 w-5"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke-width="1.5"
-                    stroke="currentColor"
-                >
+                    stroke="currentColor">
                     <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
-                        d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                    />
+                        d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                 </svg>
             </button>
         </template>
@@ -1016,14 +995,10 @@ function formatLastUpdated(date) {
                 <div
                     v-if="showUnsubscribeConfirm"
                     class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4"
-                    @click.self="cancelUnsubscribe"
-                >
+                    @click.self="cancelUnsubscribe">
                     <div
-                        class="w-full max-w-sm rounded-xl bg-white dark:bg-neutral-900 p-6 shadow-xl"
-                    >
-                        <h3
-                            class="text-lg font-semibold text-neutral-900 dark:text-neutral-100"
-                        >
+                        class="w-full max-w-sm rounded-xl bg-white dark:bg-neutral-900 p-6 shadow-xl">
+                        <h3 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
                             Unsubscribe from feed?
                         </h3>
                         <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
@@ -1036,15 +1011,13 @@ function formatLastUpdated(date) {
                         <div class="mt-6 flex justify-end gap-3">
                             <button
                                 @click="cancelUnsubscribe"
-                                class="rounded-lg px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
-                            >
+                                class="rounded-lg px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer">
                                 Cancel
                             </button>
                             <button
                                 @click="executeUnsubscribe"
                                 :disabled="unsubscribing"
-                                class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer"
-                            >
+                                class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer">
                                 {{ unsubscribing ? 'Removing...' : 'Unsubscribe' }}
                             </button>
                         </div>
@@ -1062,8 +1035,7 @@ function formatLastUpdated(date) {
             :active-feed-id="activeFeedId"
             :active-category-id="activeCategoryId"
             :active-filter="activeFilter"
-            @close="sidebarOpen = false"
-        />
+            @close="sidebarOpen = false" />
 
         <!-- Desktop: 2-column layout (sidebar + full-width article list with inline expansion) -->
         <div v-if="isDesktop" class="flex" style="height: calc(100vh - 2.75rem)">
@@ -1076,19 +1048,16 @@ function formatLastUpdated(date) {
                 :active-feed-id="activeFeedId"
                 :active-category-id="activeCategoryId"
                 :active-filter="activeFilter"
-                @collapse-toggle="toggleSidebarCollapse"
-            />
+                @collapse-toggle="toggleSidebarCollapse" />
 
             <!-- Article list with inline expansion -->
             <div ref="articleListEl" class="flex-1 flex flex-col overflow-y-auto">
                 <!-- Desktop article list with inline expansion -->
                 <template v-for="(articles, dateLabel) in groupedArticles" :key="dateLabel">
                     <div
-                        class="sticky top-0 z-10 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-950/95 px-4 py-2 backdrop-blur"
-                    >
+                        class="sticky top-0 z-10 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-950/95 px-4 py-2 backdrop-blur">
                         <h2
-                            class="text-xs font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-500"
-                        >
+                            class="text-xs font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-500">
                             {{ dateLabel }}
                         </h2>
                     </div>
@@ -1103,14 +1072,12 @@ function formatLastUpdated(date) {
                                     selectedArticleId === article.id
                                         ? 'bg-blue-50 dark:bg-neutral-900 border-l-2 border-l-blue-500'
                                         : 'hover:bg-neutral-50 dark:hover:bg-neutral-900/50',
-                                ]"
-                            >
+                                ]">
                                 <img
                                     v-if="article.feed?.favicon_url"
                                     :src="article.feed.favicon_url"
                                     class="h-4 w-4 shrink-0 rounded-sm"
-                                    alt=""
-                                />
+                                    alt="" />
                                 <span
                                     class="w-32 shrink-0 truncate text-xs text-neutral-600 dark:text-neutral-500 hover:underline cursor-pointer"
                                     @click.stop="
@@ -1128,14 +1095,12 @@ function formatLastUpdated(date) {
                                         article.is_read
                                             ? 'text-neutral-600 dark:text-neutral-500 font-normal'
                                             : 'text-neutral-900 dark:text-neutral-100 font-medium'
-                                    "
-                                >
+                                    ">
                                     {{ article.title }}
                                 </h3>
                                 <span
                                     v-if="article.summary && selectedArticleId !== article.id"
-                                    class="hidden xl:block w-64 shrink-0 truncate text-xs text-neutral-500 dark:text-neutral-600"
-                                >
+                                    class="hidden xl:block w-64 shrink-0 truncate text-xs text-neutral-500 dark:text-neutral-600">
                                     {{ article.summary }}
                                 </span>
                                 <span
@@ -1148,31 +1113,26 @@ function formatLastUpdated(date) {
                             <div
                                 v-if="selectedArticleId === article.id"
                                 :id="`article-expanded-${article.id}`"
-                                class="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50"
-                            >
+                                class="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50">
                                 <!-- Loading state -->
                                 <div
                                     v-if="loadingArticle && !selectedArticle"
-                                    class="flex items-center justify-center py-12"
-                                >
+                                    class="flex items-center justify-center py-12">
                                     <svg
                                         class="h-8 w-8 animate-spin text-neutral-400"
                                         fill="none"
-                                        viewBox="0 0 24 24"
-                                    >
+                                        viewBox="0 0 24 24">
                                         <circle
                                             class="opacity-25"
                                             cx="12"
                                             cy="12"
                                             r="10"
                                             stroke="currentColor"
-                                            stroke-width="4"
-                                        />
+                                            stroke-width="4" />
                                         <path
                                             class="opacity-75"
                                             fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                        />
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                     </svg>
                                 </div>
 
@@ -1180,19 +1140,16 @@ function formatLastUpdated(date) {
                                 <template v-if="selectedArticle">
                                     <!-- Compact sticky header bar: title + action buttons inline, metadata below -->
                                     <div
-                                        class="sticky top-0 z-10 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/95 dark:bg-neutral-900/80 backdrop-blur px-4 py-2"
-                                    >
+                                        class="sticky top-0 z-10 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/95 dark:bg-neutral-900/80 backdrop-blur px-4 py-2">
                                         <div class="flex items-center justify-between gap-3">
                                             <h2
-                                                class="min-w-0 flex-1 truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100"
-                                            >
+                                                class="min-w-0 flex-1 truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
                                                 <a
                                                     v-if="selectedArticle.url"
                                                     :href="selectedArticle.url"
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    class="hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
-                                                >
+                                                    class="hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
                                                     {{ selectedArticle.title }}
                                                 </a>
                                                 <template v-else>{{
@@ -1218,8 +1175,7 @@ function formatLastUpdated(date) {
                                                         selectedIsReadLater
                                                             ? 'Remove from Read Later'
                                                             : 'Save to Read Later'
-                                                    "
-                                                >
+                                                    ">
                                                     <svg
                                                         class="h-4 w-4"
                                                         :fill="
@@ -1229,13 +1185,11 @@ function formatLastUpdated(date) {
                                                         "
                                                         viewBox="0 0 24 24"
                                                         stroke-width="1.5"
-                                                        stroke="currentColor"
-                                                    >
+                                                        stroke="currentColor">
                                                         <path
                                                             stroke-linecap="round"
                                                             stroke-linejoin="round"
-                                                            d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
-                                                        />
+                                                            d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
                                                     </svg>
                                                 </button>
                                                 <button
@@ -1243,47 +1197,40 @@ function formatLastUpdated(date) {
                                                     :disabled="markingUnread"
                                                     class="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors cursor-pointer"
                                                     title="Mark as unread"
-                                                    aria-label="Mark as unread"
-                                                >
+                                                    aria-label="Mark as unread">
                                                     <svg
                                                         class="h-4 w-4"
                                                         fill="none"
                                                         viewBox="0 0 24 24"
                                                         stroke-width="1.5"
-                                                        stroke="currentColor"
-                                                    >
+                                                        stroke="currentColor">
                                                         <path
                                                             stroke-linecap="round"
                                                             stroke-linejoin="round"
-                                                            d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V18"
-                                                        />
+                                                            d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V18" />
                                                     </svg>
                                                 </button>
                                                 <button
                                                     @click.stop="closeArticlePanel"
                                                     class="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors cursor-pointer"
                                                     title="Close article"
-                                                    aria-label="Close article"
-                                                >
+                                                    aria-label="Close article">
                                                     <svg
                                                         class="h-4 w-4"
                                                         fill="none"
                                                         viewBox="0 0 24 24"
                                                         stroke-width="1.5"
-                                                        stroke="currentColor"
-                                                    >
+                                                        stroke="currentColor">
                                                         <path
                                                             stroke-linecap="round"
                                                             stroke-linejoin="round"
-                                                            d="M6 18L18 6M6 6l12 12"
-                                                        />
+                                                            d="M6 18L18 6M6 6l12 12" />
                                                     </svg>
                                                 </button>
                                             </div>
                                         </div>
                                         <div
-                                            class="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-neutral-500 dark:text-neutral-500"
-                                        >
+                                            class="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-neutral-500 dark:text-neutral-500">
                                             <a
                                                 v-if="selectedArticle.feed?.id"
                                                 :href="
@@ -1294,14 +1241,12 @@ function formatLastUpdated(date) {
                                                 class="flex items-center gap-1.5 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
                                                 @click.prevent="
                                                     navigateToFeed(selectedArticle.feed.id)
-                                                "
-                                            >
+                                                ">
                                                 <img
                                                     v-if="selectedArticle.feed?.favicon_url"
                                                     :src="selectedArticle.feed.favicon_url"
                                                     class="h-3.5 w-3.5 rounded-sm"
-                                                    alt=""
-                                                />
+                                                    alt="" />
                                                 <span>{{ selectedArticle.feed?.title }}</span>
                                             </a>
                                             <span v-if="selectedArticle.author"
@@ -1320,24 +1265,19 @@ function formatLastUpdated(date) {
                                             :src="selectedArticle.image_url"
                                             :alt="selectedArticle.title"
                                             class="mb-6 w-full max-h-80 object-cover rounded-lg"
-                                            loading="lazy"
-                                        />
+                                            loading="lazy" />
 
                                         <div
                                             class="article-content prose max-w-none dark:prose-invert prose-headings:text-neutral-800 dark:prose-headings:text-neutral-200 prose-p:text-neutral-700 dark:prose-p:text-neutral-300 prose-a:text-blue-500 prose-a:no-underline hover:prose-a:underline prose-strong:text-neutral-800 dark:prose-strong:text-neutral-200 prose-code:text-blue-600 dark:prose-code:text-blue-300 prose-pre:bg-white dark:prose-pre:bg-neutral-900 prose-pre:border prose-pre:border-neutral-200 dark:prose-pre:border-neutral-800 prose-img:rounded-lg prose-blockquote:border-neutral-300 dark:prose-blockquote:border-neutral-700 prose-blockquote:text-neutral-500 dark:prose-blockquote:text-neutral-400"
                                             v-html="
-                                                selectedArticle.content ||
-                                                selectedArticle.summary
-                                            "
-                                        />
+                                                selectedArticle.content || selectedArticle.summary
+                                            " />
 
                                         <div
                                             v-if="
-                                                !selectedArticle.content &&
-                                                !selectedArticle.summary
+                                                !selectedArticle.content && !selectedArticle.summary
                                             "
-                                            class="py-12 text-center"
-                                        >
+                                            class="py-12 text-center">
                                             <p class="text-neutral-500 dark:text-neutral-400">
                                                 No article content available.
                                             </p>
@@ -1346,16 +1286,14 @@ function formatLastUpdated(date) {
                                                 :href="selectedArticle.url"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                class="mt-4 inline-block rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-                                            >
+                                                class="mt-4 inline-block rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
                                                 Read on original site
                                             </a>
                                         </div>
 
                                         <!-- Keyboard shortcut hints -->
                                         <div
-                                            class="mt-8 border-t border-neutral-200 dark:border-neutral-800 pt-4 text-xs text-neutral-400 dark:text-neutral-600"
-                                        >
+                                            class="mt-8 border-t border-neutral-200 dark:border-neutral-800 pt-4 text-xs text-neutral-400 dark:text-neutral-600">
                                             <span class="font-medium text-neutral-500"
                                                 >Shortcuts:</span
                                             >
@@ -1409,8 +1347,7 @@ function formatLastUpdated(date) {
                 <!-- Empty state (desktop) -->
                 <div
                     v-if="allArticles.length === 0"
-                    class="flex flex-col items-center justify-center px-4 py-20 text-center"
-                >
+                    class="flex flex-col items-center justify-center px-4 py-20 text-center">
                     <!-- Read Later empty -->
                     <template v-if="activeFilter === 'read_later'">
                         <svg
@@ -1418,17 +1355,13 @@ function formatLastUpdated(date) {
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke-width="1"
-                            stroke="currentColor"
-                        >
+                            stroke="currentColor">
                             <path
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-                            />
+                                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                         </svg>
-                        <h3
-                            class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300"
-                        >
+                        <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
                             No saved articles
                         </h3>
                         <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
@@ -1442,17 +1375,13 @@ function formatLastUpdated(date) {
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke-width="1"
-                            stroke="currentColor"
-                        >
+                            stroke="currentColor">
                             <path
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-                            />
+                                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                         </svg>
-                        <h3
-                            class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300"
-                        >
+                        <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
                             No articles yet
                         </h3>
                         <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
@@ -1461,8 +1390,7 @@ function formatLastUpdated(date) {
                         <button
                             type="button"
                             @click="openAddFeedModal()"
-                            class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer"
-                        >
+                            class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
                             Add a Feed
                         </button>
                     </template>
@@ -1473,17 +1401,13 @@ function formatLastUpdated(date) {
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke-width="1"
-                            stroke="currentColor"
-                        >
+                            stroke="currentColor">
                             <path
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
+                                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <h3
-                            class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300"
-                        >
+                        <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
                             All caught up!
                         </h3>
                         <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
@@ -1491,8 +1415,7 @@ function formatLastUpdated(date) {
                         </p>
                         <button
                             @click="showAllArticles"
-                            class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer"
-                        >
+                            class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
                             Show all articles
                         </button>
                     </template>
@@ -1502,25 +1425,20 @@ function formatLastUpdated(date) {
                             class="h-10 w-10 animate-spin text-neutral-400 dark:text-neutral-600"
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
-                            viewBox="0 0 24 24"
-                        >
+                            viewBox="0 0 24 24">
                             <circle
                                 class="opacity-25"
                                 cx="12"
                                 cy="12"
                                 r="10"
                                 stroke="currentColor"
-                                stroke-width="4"
-                            ></circle>
+                                stroke-width="4"></circle>
                             <path
                                 class="opacity-75"
                                 fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <h3
-                            class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300"
-                        >
+                        <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
                             Fetching your feeds...
                         </h3>
                         <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
@@ -1534,17 +1452,13 @@ function formatLastUpdated(date) {
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke-width="1"
-                            stroke="currentColor"
-                        >
+                            stroke="currentColor">
                             <path
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-                            />
+                                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                         </svg>
-                        <h3
-                            class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300"
-                        >
+                        <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
                             No articles in this feed
                         </h3>
                         <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
@@ -1558,17 +1472,13 @@ function formatLastUpdated(date) {
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke-width="1"
-                            stroke="currentColor"
-                        >
+                            stroke="currentColor">
                             <path
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-                            />
+                                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                         </svg>
-                        <h3
-                            class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300"
-                        >
+                        <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
                             No articles yet
                         </h3>
                         <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
@@ -1577,8 +1487,7 @@ function formatLastUpdated(date) {
                         <button
                             type="button"
                             @click="openAddFeedModal()"
-                            class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer"
-                        >
+                            class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
                             Add a Feed
                         </button>
                     </template>
@@ -1589,8 +1498,7 @@ function formatLastUpdated(date) {
                     <button
                         @click="loadMore"
                         :disabled="loadingMore"
-                        class="rounded-lg bg-neutral-100 dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors disabled:opacity-50"
-                    >
+                        class="rounded-lg bg-neutral-100 dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors disabled:opacity-50">
                         {{ loadingMore ? 'Loading...' : 'Load more articles' }}
                     </button>
                 </div>
@@ -1598,16 +1506,14 @@ function formatLastUpdated(date) {
                 <!-- End of list -->
                 <div
                     v-else-if="allArticles.length > 0"
-                    class="py-8 text-center text-sm text-neutral-500 dark:text-neutral-600"
-                >
+                    class="py-8 text-center text-sm text-neutral-500 dark:text-neutral-600">
                     You're all caught up
                 </div>
 
                 <!-- Last updated timestamp (shown when offline) -->
                 <div
                     v-if="!isOnline"
-                    class="pb-4 text-center text-xs text-neutral-500 dark:text-neutral-600"
-                >
+                    class="pb-4 text-center text-xs text-neutral-500 dark:text-neutral-600">
                     Last updated at {{ formatLastUpdated(lastUpdatedAt) }}
                 </div>
             </div>
@@ -1619,8 +1525,7 @@ function formatLastUpdated(date) {
             <div
                 class="flex items-center justify-center overflow-hidden transition-all duration-200"
                 :style="{ height: pullDistance + 'px' }"
-                :class="{ 'transition-none': isPulling }"
-            >
+                :class="{ 'transition-none': isPulling }">
                 <div class="flex flex-col items-center gap-1">
                     <svg
                         class="h-5 w-5 text-neutral-500 dark:text-neutral-400 transition-transform duration-200"
@@ -1637,13 +1542,11 @@ function formatLastUpdated(date) {
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke-width="1.5"
-                        stroke="currentColor"
-                    >
+                        stroke="currentColor">
                         <path
                             stroke-linecap="round"
                             stroke-linejoin="round"
-                            d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182"
-                        />
+                            d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" />
                     </svg>
                     <span
                         v-if="!isRefreshing && pullDistance >= PULL_THRESHOLD"
@@ -1662,13 +1565,11 @@ function formatLastUpdated(date) {
             <div
                 @touchstart.passive="onPullStart"
                 @touchmove.passive="onPullMove"
-                @touchend="onPullEnd"
-            >
+                @touchend="onPullEnd">
                 <!-- Empty state -->
                 <div
                     v-if="allArticles.length === 0"
-                    class="flex flex-col items-center justify-center px-4 py-20 text-center"
-                >
+                    class="flex flex-col items-center justify-center px-4 py-20 text-center">
                     <!-- Read Later empty -->
                     <template v-if="activeFilter === 'read_later'">
                         <svg
@@ -1676,17 +1577,13 @@ function formatLastUpdated(date) {
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke-width="1"
-                            stroke="currentColor"
-                        >
+                            stroke="currentColor">
                             <path
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-                            />
+                                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                         </svg>
-                        <h3
-                            class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300"
-                        >
+                        <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
                             No saved articles
                         </h3>
                         <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
@@ -1700,17 +1597,13 @@ function formatLastUpdated(date) {
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke-width="1"
-                            stroke="currentColor"
-                        >
+                            stroke="currentColor">
                             <path
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-                            />
+                                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                         </svg>
-                        <h3
-                            class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300"
-                        >
+                        <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
                             No articles yet
                         </h3>
                         <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
@@ -1719,8 +1612,7 @@ function formatLastUpdated(date) {
                         <button
                             type="button"
                             @click="openAddFeedModal()"
-                            class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer"
-                        >
+                            class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
                             Add a Feed
                         </button>
                     </template>
@@ -1731,17 +1623,13 @@ function formatLastUpdated(date) {
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke-width="1"
-                            stroke="currentColor"
-                        >
+                            stroke="currentColor">
                             <path
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
+                                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <h3
-                            class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300"
-                        >
+                        <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
                             All caught up!
                         </h3>
                         <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
@@ -1749,8 +1637,7 @@ function formatLastUpdated(date) {
                         </p>
                         <button
                             @click="showAllArticles"
-                            class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer"
-                        >
+                            class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
                             Show all articles
                         </button>
                     </template>
@@ -1760,25 +1647,20 @@ function formatLastUpdated(date) {
                             class="h-10 w-10 animate-spin text-neutral-400 dark:text-neutral-600"
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
-                            viewBox="0 0 24 24"
-                        >
+                            viewBox="0 0 24 24">
                             <circle
                                 class="opacity-25"
                                 cx="12"
                                 cy="12"
                                 r="10"
                                 stroke="currentColor"
-                                stroke-width="4"
-                            ></circle>
+                                stroke-width="4"></circle>
                             <path
                                 class="opacity-75"
                                 fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <h3
-                            class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300"
-                        >
+                        <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
                             Fetching your feeds...
                         </h3>
                         <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
@@ -1792,17 +1674,13 @@ function formatLastUpdated(date) {
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke-width="1"
-                            stroke="currentColor"
-                        >
+                            stroke="currentColor">
                             <path
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-                            />
+                                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                         </svg>
-                        <h3
-                            class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300"
-                        >
+                        <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
                             No articles in this feed
                         </h3>
                         <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
@@ -1816,17 +1694,13 @@ function formatLastUpdated(date) {
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke-width="1"
-                            stroke="currentColor"
-                        >
+                            stroke="currentColor">
                             <path
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-                            />
+                                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                         </svg>
-                        <h3
-                            class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300"
-                        >
+                        <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
                             No articles yet
                         </h3>
                         <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
@@ -1835,8 +1709,7 @@ function formatLastUpdated(date) {
                         <button
                             type="button"
                             @click="openAddFeedModal()"
-                            class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer"
-                        >
+                            class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
                             Add a Feed
                         </button>
                     </template>
@@ -1846,16 +1719,11 @@ function formatLastUpdated(date) {
                 <div v-else>
                     <!-- Mobile view: card layout -->
                     <div>
-                        <template
-                            v-for="(articles, dateLabel) in groupedArticles"
-                            :key="dateLabel"
-                        >
+                        <template v-for="(articles, dateLabel) in groupedArticles" :key="dateLabel">
                             <div
-                                class="sticky top-14 z-10 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-950/95 px-4 py-2 backdrop-blur"
-                            >
+                                class="sticky top-14 z-10 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-950/95 px-4 py-2 backdrop-blur">
                                 <h2
-                                    class="text-xs font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-500"
-                                >
+                                    class="text-xs font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-500">
                                     {{ dateLabel }}
                                 </h2>
                             </div>
@@ -1863,35 +1731,28 @@ function formatLastUpdated(date) {
                                 <div
                                     v-for="article in articles"
                                     :key="article.id"
-                                    class="relative overflow-hidden border-b border-neutral-200/50 dark:border-neutral-800/50"
-                                >
+                                    class="relative overflow-hidden border-b border-neutral-200/50 dark:border-neutral-800/50">
                                     <!-- Swipe right reveal: Read Later (left side) -->
                                     <div
                                         v-if="
                                             isSwipingArticle(article.id) &&
                                             getSwipeDirection(article.id) === 'right'
                                         "
-                                        class="absolute inset-0 flex items-center bg-neutral-800 px-6"
-                                    >
+                                        class="absolute inset-0 flex items-center bg-neutral-800 px-6">
                                         <svg
                                             class="h-5 w-5 text-white"
                                             fill="none"
                                             viewBox="0 0 24 24"
                                             stroke-width="1.5"
-                                            stroke="currentColor"
-                                        >
+                                            stroke="currentColor">
                                             <path
                                                 stroke-linecap="round"
                                                 stroke-linejoin="round"
-                                                d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
-                                            />
+                                                d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
                                         </svg>
                                         <span
-                                            class="ml-2 text-sm font-medium text-white uppercase tracking-wide"
-                                        >
-                                            {{
-                                                article.is_read_later ? 'Saved' : 'Read Later'
-                                            }}
+                                            class="ml-2 text-sm font-medium text-white uppercase tracking-wide">
+                                            {{ article.is_read_later ? 'Saved' : 'Read Later' }}
                                         </span>
                                     </div>
                                     <!-- Swipe left reveal: Mark as Read/Unread (right side) -->
@@ -1900,52 +1761,42 @@ function formatLastUpdated(date) {
                                             isSwipingArticle(article.id) &&
                                             getSwipeDirection(article.id) === 'left'
                                         "
-                                        class="absolute inset-0 flex items-center justify-end bg-neutral-800 px-6"
-                                    >
+                                        class="absolute inset-0 flex items-center justify-end bg-neutral-800 px-6">
                                         <svg
                                             class="h-5 w-5 text-white"
                                             fill="none"
                                             viewBox="0 0 24 24"
                                             stroke-width="1.5"
-                                            stroke="currentColor"
-                                        >
+                                            stroke="currentColor">
                                             <path
                                                 stroke-linecap="round"
                                                 stroke-linejoin="round"
-                                                d="M4.5 12.75l6 6 9-13.5"
-                                            />
+                                                d="M4.5 12.75l6 6 9-13.5" />
                                         </svg>
                                         <span
-                                            class="ml-2 text-sm font-medium text-white uppercase tracking-wide"
-                                        >
+                                            class="ml-2 text-sm font-medium text-white uppercase tracking-wide">
                                             {{
-                                                article.is_read
-                                                    ? 'Mark as Unread'
-                                                    : 'Mark as Read'
+                                                article.is_read ? 'Mark as Unread' : 'Mark as Read'
                                             }}
                                         </span>
                                     </div>
                                     <button
                                         @click="
-                                            !isSwipingArticle(article.id) &&
-                                                openArticle(article)
+                                            !isSwipingArticle(article.id) && openArticle(article)
                                         "
                                         @touchstart="onTouchStart(article.id, $event)"
                                         @touchmove="onTouchMove(article.id, $event)"
                                         @touchend="onTouchEnd(article.id, article)"
                                         class="relative flex w-full gap-3 bg-white dark:bg-neutral-950 px-4 py-3 text-left transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/50 active:bg-neutral-100 dark:active:bg-neutral-800/50"
-                                        :style="getSwipeStyle(article.id)"
-                                    >
+                                        :style="getSwipeStyle(article.id)">
                                         <div class="min-w-0 flex-1">
                                             <div
-                                                class="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-500"
-                                            >
+                                                class="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-500">
                                                 <img
                                                     v-if="article.feed?.favicon_url"
                                                     :src="article.feed.favicon_url"
                                                     class="h-3.5 w-3.5 rounded-sm"
-                                                    alt=""
-                                                />
+                                                    alt="" />
                                                 <span
                                                     class="truncate hover:underline"
                                                     @click.stop="
@@ -1968,14 +1819,12 @@ function formatLastUpdated(date) {
                                                     article.is_read
                                                         ? 'text-neutral-600 dark:text-neutral-500 font-normal'
                                                         : 'text-neutral-900 dark:text-neutral-100 font-semibold'
-                                                "
-                                            >
+                                                ">
                                                 {{ article.title }}
                                             </h3>
                                             <p
                                                 v-if="article.summary"
-                                                class="mt-0.5 line-clamp-2 text-xs text-neutral-600 dark:text-neutral-500"
-                                            >
+                                                class="mt-0.5 line-clamp-2 text-xs text-neutral-600 dark:text-neutral-500">
                                                 {{ article.summary }}
                                             </p>
                                         </div>
@@ -1984,8 +1833,7 @@ function formatLastUpdated(date) {
                                             :src="article.image_url"
                                             class="h-16 w-16 shrink-0 rounded-lg object-cover"
                                             :alt="article.title"
-                                            loading="lazy"
-                                        />
+                                            loading="lazy" />
                                     </button>
                                 </div>
                             </div>
@@ -1997,8 +1845,7 @@ function formatLastUpdated(date) {
                         <button
                             @click="loadMore"
                             :disabled="loadingMore"
-                            class="rounded-lg bg-neutral-100 dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors disabled:opacity-50"
-                        >
+                            class="rounded-lg bg-neutral-100 dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors disabled:opacity-50">
                             {{ loadingMore ? 'Loading...' : 'Load more articles' }}
                         </button>
                     </div>
@@ -2006,16 +1853,14 @@ function formatLastUpdated(date) {
                     <!-- End of list -->
                     <div
                         v-else
-                        class="py-8 text-center text-sm text-neutral-500 dark:text-neutral-600"
-                    >
+                        class="py-8 text-center text-sm text-neutral-500 dark:text-neutral-600">
                         You're all caught up
                     </div>
 
                     <!-- Last updated timestamp (shown when offline) -->
                     <div
                         v-if="!isOnline"
-                        class="pb-4 text-center text-xs text-neutral-500 dark:text-neutral-600"
-                    >
+                        class="pb-4 text-center text-xs text-neutral-500 dark:text-neutral-600">
                         Last updated at {{ formatLastUpdated(lastUpdatedAt) }}
                     </div>
                 </div>

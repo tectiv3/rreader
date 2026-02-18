@@ -1,11 +1,12 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 @plugin "@tailwindcss/forms";
 @plugin "@tailwindcss/typography";
 
 @variant dark (&:where(.dark, .dark *));
 
 @theme {
-    --font-sans: 'Figtree', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Figtree', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     --color-primary: #3b82f6;
     --color-primary-dark: #2563eb;
 }
