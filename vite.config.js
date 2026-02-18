@@ -21,7 +21,7 @@ export default defineConfig({
         tailwindcss(),
         VitePWA({
             registerType: false,
-            includeAssets: ['favicon.ico', 'robots.txt'],
+            includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon.png', 'robots.txt'],
             manifest: {
                 name: 'RReader',
                 short_name: 'RReader',
