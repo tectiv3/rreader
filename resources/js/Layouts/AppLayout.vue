@@ -68,7 +68,7 @@ onUnmounted(() => {
 <template>
     <div class="min-h-screen bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
         <!-- Header -->
-        <header class="sticky top-0 z-40 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80">
+        <header class="sticky top-0 z-40 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 pt-safe">
             <div class="flex h-14 items-center justify-between px-4">
                 <div class="flex items-center gap-3">
                     <slot name="header-left" />
@@ -202,6 +202,9 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+.pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+}
 .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
 }
