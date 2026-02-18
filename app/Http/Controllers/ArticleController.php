@@ -79,13 +79,28 @@ class ArticleController extends Controller
         }
 
         $hideReadArticles = $user->settings['hide_read_articles'] ?? false;
-        if ($hideReadArticles) {
+        $showAll = $request->boolean('show_all');
+        if ($hideReadArticles && !$showAll) {
             $query->where(fn ($q) => $q->whereNull('user_articles.is_read')->orWhere('user_articles.is_read', false));
         }
 
         $articles = $query->orderByDesc('articles.published_at')
             ->paginate(30)
             ->withQueryString();
+
+        // Check if empty result is due to all articles being read
+        $allArticlesRead = false;
+        if ($hideReadArticles && !$showAll && $articles->isEmpty()) {
+            $existsQuery = Article::whereIn('feed_id', $activeFilter === 'read_later' ? $allFeedIds : $feedIds);
+            if ($activeFilter === 'today') {
+                $existsQuery->whereDate('published_at', today());
+            } elseif ($activeFilter === 'read_later') {
+                $existsQuery->whereHas('users', function ($q) use ($user) {
+                    $q->where('user_id', $user->id)->where('is_read_later', true);
+                });
+            }
+            $allArticlesRead = $existsQuery->exists();
+        }
 
         // Sidebar data includes totalUnread, so reuse it
         $sidebarData = $this->getSidebarData($user, $allFeedIds);
@@ -119,6 +134,8 @@ class ArticleController extends Controller
             'feedCount' => $feedCount,
             'hasPendingFeeds' => $hasPendingFeeds,
             'hideReadArticles' => $hideReadArticles,
+            'allArticlesRead' => $allArticlesRead,
+            'showAll' => $showAll,
         ]);
     }
 

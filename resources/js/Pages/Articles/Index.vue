@@ -19,6 +19,8 @@ const props = defineProps({
     feedCount: Number,
     hasPendingFeeds: Boolean,
     hideReadArticles: Boolean,
+    allArticlesRead: Boolean,
+    showAll: Boolean,
 });
 
 const isReadLaterView = computed(() => props.activeFilter === 'read_later');
@@ -573,6 +575,15 @@ async function toggleHideRead() {
     }
 }
 
+function showAllArticles() {
+    const params = {};
+    if (props.activeFeedId) params.feed_id = props.activeFeedId;
+    if (props.activeCategoryId) params.category_id = props.activeCategoryId;
+    if (props.activeFilter) params.filter = props.activeFilter;
+    params.show_all = 1;
+    router.get(route('articles.index'), params);
+}
+
 // Bidirectional swipe gestures
 const swipeState = ref({});
 const SWIPE_THRESHOLD = 80;
@@ -986,6 +997,20 @@ function formatLastUpdated(date) {
                             Add a Feed
                         </Link>
                     </template>
+                    <!-- All articles read (hide-read mode) -->
+                    <template v-else-if="hideReadArticles && allArticlesRead && !showAll">
+                        <svg class="h-16 w-16 text-green-400 dark:text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">All caught up!</h3>
+                        <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">You've read everything in this view.</p>
+                        <button
+                            @click="showAllArticles"
+                            class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer"
+                        >
+                            Show all articles
+                        </button>
+                    </template>
                     <!-- Feeds exist but still being fetched -->
                     <template v-else-if="hasPendingFeeds">
                         <svg class="h-10 w-10 animate-spin text-neutral-400 dark:text-neutral-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -1094,6 +1119,20 @@ function formatLastUpdated(date) {
                     >
                         Add a Feed
                     </Link>
+                </template>
+                <!-- All articles read (hide-read mode) -->
+                <template v-else-if="hideReadArticles && allArticlesRead && !showAll">
+                    <svg class="h-16 w-16 text-green-400 dark:text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">All caught up!</h3>
+                    <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">You've read everything in this view.</p>
+                    <button
+                        @click="showAllArticles"
+                        class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer"
+                    >
+                        Show all articles
+                    </button>
                 </template>
                 <!-- Feeds exist but still being fetched -->
                 <template v-else-if="hasPendingFeeds">
