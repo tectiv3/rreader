@@ -1,16 +1,29 @@
 <script setup>
 import { useOnlineStatus } from '@/Composables/useOnlineStatus.js';
 import { useOfflineQueue } from '@/Composables/useOfflineQueue.js';
+import AddFeedModal from '@/Components/AddFeedModal.vue';
 import ToastContainer from '@/Components/ToastContainer.vue';
 import { router, usePage } from '@inertiajs/vue3';
 import ArticleListSkeleton from '@/Components/ArticleListSkeleton.vue';
-import { inject, ref, onMounted, onUnmounted } from 'vue';
+import { inject, provide, ref, onMounted, onUnmounted } from 'vue';
 const { isOnline } = useOnlineStatus();
 useOfflineQueue(); // Initialize queue — auto-flushes when back online
 
 const page = usePage();
 const toggleSidebar = inject('toggleSidebar', null);
-const openAddFeedModal = inject('openAddFeedModal', null);
+const injectedOpenAddFeedModal = inject('openAddFeedModal', null);
+const localAddFeedModalOpen = ref(false);
+
+function openAddFeedModal() {
+    if (typeof injectedOpenAddFeedModal === 'function') {
+        injectedOpenAddFeedModal();
+        return;
+    }
+
+    localAddFeedModalOpen.value = true;
+}
+
+provide('openAddFeedModal', openAddFeedModal);
 
 // Navigation loading state for skeleton screens
 const isNavigating = ref(false);
@@ -109,6 +122,10 @@ onUnmounted(() => {
 
         <!-- Toast notifications -->
         <ToastContainer />
+        <AddFeedModal
+            :show="localAddFeedModalOpen"
+            @close="localAddFeedModalOpen = false"
+        />
 
         <!-- Bottom navigation bar (mobile only) -->
         <nav class="fixed bottom-0 inset-x-0 z-40 border-t border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 lg:hidden pb-safe transition-transform duration-300"
@@ -158,7 +175,7 @@ onUnmounted(() => {
 
                 <!-- Add Feed (RSS+ icon) -->
                 <button
-                    @click="openAddFeedModal ? openAddFeedModal() : router.visit(route('feeds.create'))"
+                    @click="openAddFeedModal()"
                     class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200"
                     title="Add feed"
                     aria-label="Add feed"

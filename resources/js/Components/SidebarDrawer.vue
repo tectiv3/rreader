@@ -226,7 +226,7 @@ function isActiveAll() {
                 <!-- Drawer footer -->
                 <div class="border-t border-neutral-200 dark:border-neutral-800 p-3 space-y-2">
                     <button
-                        @click="openAddFeedModal ? (emit('close'), openAddFeedModal()) : router.visit(route('feeds.create'))"
+                        @click="openAddFeedModal ? (emit('close'), openAddFeedModal()) : router.visit(route('articles.index'))"
                         class="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer"
                     >
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -437,7 +437,7 @@ function isActiveAll() {
             <!-- Sidebar footer -->
             <div class="border-t border-neutral-200 dark:border-neutral-800 p-3 space-y-2">
                 <button
-                    @click="openAddFeedModal ? openAddFeedModal() : router.visit(route('feeds.create'))"
+                    @click="openAddFeedModal ? openAddFeedModal() : router.visit(route('articles.index'))"
                     class="flex w-full items-center rounded-lg bg-blue-600 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer"
                     :class="collapsed ? 'justify-center p-2.5' : 'justify-center gap-2 px-4 py-2.5'"
                     :title="collapsed ? 'Add Feed' : undefined"

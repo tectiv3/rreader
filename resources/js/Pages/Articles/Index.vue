@@ -1130,12 +1130,13 @@ function formatLastUpdated(date) {
                         </svg>
                         <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">No articles yet</h3>
                         <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">Subscribe to feeds to start seeing articles here.</p>
-                        <Link
-                            :href="route('feeds.create')"
-                            class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                        <button
+                            type="button"
+                            @click="addFeedModalOpen = true"
+                            class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer"
                         >
                             Add a Feed
-                        </Link>
+                        </button>
                     </template>
                     <!-- All articles read (hide-read mode) -->
                     <template v-else-if="hideReadArticles && allArticlesRead && !showAll">
@@ -1175,12 +1176,13 @@ function formatLastUpdated(date) {
                         </svg>
                         <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">No articles yet</h3>
                         <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">Subscribe to feeds to start seeing articles here.</p>
-                        <Link
-                            :href="route('feeds.create')"
-                            class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                        <button
+                            type="button"
+                            @click="addFeedModalOpen = true"
+                            class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer"
                         >
                             Add a Feed
-                        </Link>
+                        </button>
                     </template>
                 </div>
 
@@ -1253,12 +1255,13 @@ function formatLastUpdated(date) {
                     </svg>
                     <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">No articles yet</h3>
                     <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">Subscribe to feeds to start seeing articles here.</p>
-                    <Link
-                        :href="route('feeds.create')"
-                        class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                    <button
+                        type="button"
+                        @click="addFeedModalOpen = true"
+                        class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer"
                     >
                         Add a Feed
-                    </Link>
+                    </button>
                 </template>
                 <!-- All articles read (hide-read mode) -->
                 <template v-else-if="hideReadArticles && allArticlesRead && !showAll">
@@ -1298,12 +1301,13 @@ function formatLastUpdated(date) {
                     </svg>
                     <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">No articles yet</h3>
                     <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">Subscribe to feeds to start seeing articles here.</p>
-                    <Link
-                        :href="route('feeds.create')"
-                        class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                    <button
+                        type="button"
+                        @click="addFeedModalOpen = true"
+                        class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer"
                     >
                         Add a Feed
-                    </Link>
+                    </button>
                 </template>
             </div>
 
