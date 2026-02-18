@@ -6,6 +6,7 @@ import { createInertiaApp } from '@inertiajs/vue3'
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers'
 import { createApp, h } from 'vue'
 import { ZiggyVue } from '../../vendor/tightenco/ziggy'
+import router from '@/router.js'
 const appName = import.meta.env.VITE_APP_NAME || 'RReader'
 
 // Register SW and store promise globally for composables to use
@@ -59,11 +60,17 @@ async function boot() {
         resolve: name =>
             resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob('./Pages/**/*.vue')),
         setup({ el, App, props, plugin }) {
-            return createApp({ render: () => h(App, props) })
+            const app = createApp({ render: () => h(App, props) })
                 .use(plugin)
                 .use(ZiggyVue)
                 .use(createPinia())
-                .mount(el)
+
+            // Only install Vue Router on the AppShell page (not auth pages)
+            if (props.initialPage.component === 'AppShell') {
+                app.use(router)
+            }
+
+            return app.mount(el)
         },
         progress: {
             color: '#3b82f6',

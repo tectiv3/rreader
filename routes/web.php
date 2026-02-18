@@ -6,6 +6,7 @@ use App\Http\Controllers\FeedController;
 use App\Http\Controllers\OpmlController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingsController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -61,6 +62,18 @@ Route::middleware('auth')->group(function () {
     Route::post('/articles/mark-all-read', [ArticleController::class, 'markAllAsRead'])->name('articles.markAllAsRead');
     Route::post('/articles/{article}/toggle-read-later', [ArticleController::class, 'toggleReadLater'])->name('articles.toggleReadLater');
     Route::post('/articles/{article}/mark-unread', [ArticleController::class, 'markAsUnread'])->name('articles.markAsUnread');
+
+    // SPA catch-all — must be last in the auth group
+    Route::get('/{any}', function (Request $request) {
+        $user = $request->user();
+        $allFeedIds = $user->feeds()->pluck('feeds.id');
+        $sidebarData = app(ArticleController::class)->getSidebarData($user, $allFeedIds);
+
+        return Inertia::render('AppShell', [
+            'initialSidebar' => $sidebarData,
+            'user' => $user,
+        ]);
+    })->where('any', '^(?!api/).*$')->name('spa');
 });
 
 require __DIR__.'/auth.php';
