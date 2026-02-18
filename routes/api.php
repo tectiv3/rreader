@@ -25,6 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/feeds/{feed}', [FeedApiController::class, 'update']);
     Route::delete('/feeds/{feed}', [FeedApiController::class, 'destroy']);
     Route::post('/feeds/{feed}/reenable', [FeedApiController::class, 'reenable']);
+    Route::post('/feeds/{feed}/refresh', [FeedApiController::class, 'refresh']);
 
     // Categories
     Route::post('/categories', [CategoryApiController::class, 'store']);

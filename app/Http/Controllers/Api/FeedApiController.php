@@ -148,6 +148,17 @@ final class FeedApiController extends Controller
         return response()->noContent();
     }
 
+    public function refresh(Request $request, Feed $feed): Response
+    {
+        if ($feed->user_id !== $request->user()->id) {
+            abort(404);
+        }
+
+        FetchFeed::dispatchSync($feed);
+
+        return response()->noContent();
+    }
+
     public function reenable(Request $request, Feed $feed): Response
     {
         if ($feed->user_id !== $request->user()->id) {

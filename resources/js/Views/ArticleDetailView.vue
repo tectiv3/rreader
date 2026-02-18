@@ -104,8 +104,8 @@ const formattedDate = computed(() => {
 
 const formattedTime = computed(() => {
     if (!article.value) return ''
-    return new Date(article.value.published_at).toLocaleTimeString('en-US', {
-        hour: 'numeric',
+    return new Date(article.value.published_at).toLocaleTimeString('en-GB', {
+        hour: '2-digit',
         minute: '2-digit',
     })
 })

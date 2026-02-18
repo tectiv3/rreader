@@ -1,4 +1,5 @@
 <script setup>
+import axios from 'axios'
 import { useArticleStore } from '@/Stores/useArticleStore.js'
 import { useSidebarStore } from '@/Stores/useSidebarStore.js'
 import { useOnlineStatus } from '@/Composables/useOnlineStatus.js'
@@ -277,8 +278,8 @@ const selectedFormattedDate = computed(() => {
 
 const selectedFormattedTime = computed(() => {
     if (!selectedArticle.value) return ''
-    return new Date(selectedArticle.value.published_at).toLocaleTimeString('en-US', {
-        hour: 'numeric',
+    return new Date(selectedArticle.value.published_at).toLocaleTimeString('en-GB', {
+        hour: '2-digit',
         minute: '2-digit',
     })
 })
@@ -355,8 +356,20 @@ function markAllAsRead() {
 }
 
 // --- Refresh ---
+const refreshing = ref(false)
 async function refreshFeeds() {
-    await Promise.all([articleStore.forceRefresh(), sidebarStore.fetchSidebar()])
+    refreshing.value = true
+    try {
+        if (activeFeedId.value) {
+            const endpoint = activeFeedInfo.value?.disabled_at
+                ? `/api/feeds/${activeFeedId.value}/reenable`
+                : `/api/feeds/${activeFeedId.value}/refresh`
+            await axios.post(endpoint)
+        }
+        await Promise.all([articleStore.forceRefresh(), sidebarStore.fetchSidebar()])
+    } finally {
+        refreshing.value = false
+    }
 }
 
 // --- Pull-to-refresh ---
@@ -526,13 +539,24 @@ function getSwipeDirection(articleId) {
                 </button>
                 <button
                     @click="refreshFeeds"
-                    :disabled="articleStore.loading"
-                    class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer"
-                    title="Refresh feeds"
-                    aria-label="Refresh feeds">
+                    :disabled="refreshing"
+                    class="rounded-lg p-2 transition-colors cursor-pointer"
+                    :class="
+                        activeFeedInfo?.disabled_at
+                            ? 'text-amber-500 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30'
+                            : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200'
+                    "
+                    :title="
+                        activeFeedInfo?.disabled_at
+                            ? 'Feed is broken — click to retry'
+                            : 'Refresh feed'
+                    "
+                    :aria-label="
+                        activeFeedInfo?.disabled_at ? 'Retry broken feed' : 'Refresh feed'
+                    ">
                     <svg
                         class="h-5 w-5 transition-transform"
-                        :class="{ 'animate-spin': articleStore.loading }"
+                        :class="{ 'animate-spin': refreshing }"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke-width="1.5"
