@@ -344,6 +344,11 @@ function closeArticlePanel() {
     clearReadingState();
 }
 
+function navigateToFeed(feedId) {
+    closeArticlePanel();
+    router.get(route('articles.index', { feed_id: feedId }));
+}
+
 function buildReadingStateSnapshot() {
     return {
         url: window.location.pathname + window.location.search,
@@ -1051,7 +1056,7 @@ function formatLastUpdated(date) {
                                                 v-if="selectedArticle.feed?.id"
                                                 :href="route('articles.index', { feed_id: selectedArticle.feed.id })"
                                                 class="flex items-center gap-1.5 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
-                                                @click.prevent="router.get(route('articles.index', { feed_id: selectedArticle.feed.id }))"
+                                                @click.prevent="navigateToFeed(selectedArticle.feed.id)"
                                             >
                                                 <img
                                                     v-if="selectedArticle.feed?.favicon_url"
