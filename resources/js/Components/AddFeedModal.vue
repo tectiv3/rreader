@@ -133,7 +133,10 @@ async function subscribe() {
     } catch (error) {
         if (error.response?.status === 422 && error.response.data?.errors) {
             subscribeErrors.value = Object.fromEntries(
-                Object.entries(error.response.data.errors).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v])
+                Object.entries(error.response.data.errors).map(([k, v]) => [
+                    k,
+                    Array.isArray(v) ? v[0] : v,
+                ])
             )
         }
     } finally {

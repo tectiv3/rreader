@@ -19,9 +19,7 @@ const { isDark, toggle } = useDarkMode()
                     <div class="flex h-16 justify-between">
                         <div class="flex">
                             <div class="flex shrink-0 items-center">
-                                <Link
-                                    :href="'/dashboard'"
-                                    class="text-xl font-bold text-blue-500">
+                                <Link :href="'/dashboard'" class="text-xl font-bold text-blue-500">
                                     RReader
                                 </Link>
                             </div>
@@ -88,13 +86,8 @@ const { isDark, toggle } = useDarkMode()
                                     </template>
 
                                     <template #content>
-                                        <DropdownLink :href="'/profile'">
-                                            Profile
-                                        </DropdownLink>
-                                        <DropdownLink
-                                            :href="'/logout'"
-                                            method="post"
-                                            as="button">
+                                        <DropdownLink :href="'/profile'"> Profile </DropdownLink>
+                                        <DropdownLink :href="'/logout'" method="post" as="button">
                                             Log Out
                                         </DropdownLink>
                                     </template>
@@ -160,9 +153,7 @@ const { isDark, toggle } = useDarkMode()
                         </div>
 
                         <div class="mt-3 space-y-1">
-                            <ResponsiveNavLink :href="'/profile'"
-                                >Profile</ResponsiveNavLink
-                            >
+                            <ResponsiveNavLink :href="'/profile'">Profile</ResponsiveNavLink>
                             <ResponsiveNavLink :href="'/logout'" method="post" as="button"
                                 >Log Out</ResponsiveNavLink
                             >
