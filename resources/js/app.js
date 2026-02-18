@@ -26,7 +26,7 @@ window.__swReady =
               .catch(() => null)
         : Promise.resolve(null)
 
-// Check reading state before mounting Inertia to prevent flash
+// Check reading state before mounting Inertia to restore article position
 async function boot() {
     try {
         const sw = await Promise.race([

@@ -18,10 +18,28 @@ const menuRef = ref(null)
 const articleEl = ref(null)
 const navigating = ref(false)
 
+// --- Reading state persistence (restore article on app reopen) ---
+function saveReadingState(url) {
+    window.__swReady?.then(sw => {
+        if (sw) sw.postMessage({ type: 'save-reading-state', state: { url } })
+    })
+}
+
+function clearReadingState() {
+    window.__swReady?.then(sw => {
+        if (sw) sw.postMessage({ type: 'clear-reading-state' })
+    })
+}
+
+onUnmounted(() => clearReadingState())
+
 // --- Load article ---
 async function loadArticle(id) {
     loading.value = true
     article.value = null
+
+    const url = `/articles/${id}`
+    saveReadingState(url)
 
     try {
         const content = await articleStore.fetchContent(Number(id))
@@ -31,6 +49,7 @@ async function loadArticle(id) {
         articleStore.markRead(Number(id))
         articleStore.prefetchAdjacent(Number(id))
     } catch {
+        clearReadingState()
         router.replace({ name: 'articles.index' })
     } finally {
         loading.value = false

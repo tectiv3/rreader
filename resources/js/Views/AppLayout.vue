@@ -22,16 +22,40 @@ const route = useRoute()
 
 const { isAddFeedModalOpen, openAddFeedModal, closeAddFeedModal } = useAddFeedModal()
 
-// Provide toggleSidebar for child components
+// Desktop detection via matchMedia
+const desktopQuery = typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)') : null
+const isDesktop = ref(desktopQuery ? desktopQuery.matches : false)
+
+function onMediaChange(e) {
+    isDesktop.value = e.matches
+}
+
+// Sidebar collapsed state persisted to localStorage
+const sidebarCollapsed = ref(
+    typeof window !== 'undefined'
+        ? localStorage.getItem('rreader-sidebar-collapsed') === 'true'
+        : false
+)
+
+function toggleSidebarCollapse() {
+    sidebarCollapsed.value = !sidebarCollapsed.value
+    localStorage.setItem('rreader-sidebar-collapsed', String(sidebarCollapsed.value))
+}
+
+// Provide toggleSidebar for child components (smart: desktop = collapse, mobile = drawer)
 function toggleSidebar() {
-    uiStore.toggleSidebar()
+    if (isDesktop.value) {
+        toggleSidebarCollapse()
+    } else {
+        uiStore.toggleSidebar()
+    }
 }
 provide('toggleSidebar', toggleSidebar)
 
 // Build sidebar data object compatible with SidebarDrawer props
 const sidebarData = computed(() => ({
-    totalUnread: articleStore.loaded ? articleStore.unreadCount : sidebarStore.totalUnread,
-    readLaterCount: articleStore.loaded ? articleStore.readLaterCount : sidebarStore.readLaterCount,
+    totalUnread: sidebarStore.totalUnread,
+    readLaterCount: sidebarStore.readLaterCount,
     todayCount: sidebarStore.todayCount,
     categories: sidebarStore.categories,
     uncategorizedFeeds: sidebarStore.uncategorizedFeeds,
@@ -83,16 +107,22 @@ function onScroll() {
 
 onMounted(() => {
     window.addEventListener('scroll', onScroll, { passive: true })
+    if (desktopQuery) {
+        desktopQuery.addEventListener('change', onMediaChange)
+    }
 })
 
 onUnmounted(() => {
     window.removeEventListener('scroll', onScroll)
+    if (desktopQuery) {
+        desktopQuery.removeEventListener('change', onMediaChange)
+    }
 })
 </script>
 
 <template>
     <div class="min-h-screen bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
-        <!-- Offline indicator banner -->
+        <!-- Offline indicator banner (full width, above everything) -->
         <div
             v-if="!isOnline"
             class="flex items-center justify-center gap-2 bg-amber-600 px-4 py-1.5 text-xs font-medium text-white">
@@ -110,21 +140,37 @@ onUnmounted(() => {
             You're offline — viewing cached content
         </div>
 
-        <!-- Main content with keep-alive for ArticleListView -->
-        <main class="pb-16 lg:pb-0">
-            <router-view v-slot="{ Component }">
-                <keep-alive include="ArticleListView">
-                    <component :is="Component" />
-                </keep-alive>
-            </router-view>
-        </main>
+        <div class="flex" :style="isDesktop ? 'height: 100vh' : undefined">
+            <!-- Desktop: persistent sidebar -->
+            <SidebarDrawer
+                v-if="isDesktop"
+                :open="true"
+                :persistent="true"
+                :collapsed="sidebarCollapsed"
+                :sidebar="sidebarData"
+                :active-feed-id="activeFeedId"
+                :active-category-id="activeCategoryId"
+                :active-filter="activeFilter"
+                @collapse-toggle="toggleSidebarCollapse"
+                @navigate="navigateTo" />
+
+            <!-- Main content with keep-alive for ArticleListView -->
+            <main class="flex-1 overflow-y-auto" :class="isDesktop ? '' : 'pb-16'">
+                <router-view v-slot="{ Component }">
+                    <keep-alive include="ArticleListView">
+                        <component :is="Component" />
+                    </keep-alive>
+                </router-view>
+            </main>
+        </div>
 
         <!-- Toast notifications -->
         <ToastContainer />
         <AddFeedModal :show="isAddFeedModalOpen" @close="closeAddFeedModal" />
 
-        <!-- Sidebar drawer (mobile) -->
+        <!-- Mobile: overlay sidebar drawer -->
         <SidebarDrawer
+            v-if="!isDesktop"
             :open="uiStore.sidebarOpen"
             :sidebar="sidebarData"
             :active-feed-id="activeFeedId"
@@ -135,7 +181,8 @@ onUnmounted(() => {
 
         <!-- Bottom navigation bar (mobile only) -->
         <nav
-            class="fixed bottom-0 inset-x-0 z-40 border-t border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 lg:hidden pb-safe transition-transform duration-300"
+            v-if="!isDesktop"
+            class="fixed bottom-0 inset-x-0 z-40 border-t border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 pb-safe transition-transform duration-300"
             :class="navHidden ? 'translate-y-full' : 'translate-y-0'"
             aria-label="Bottom navigation">
             <div class="flex h-14 items-center justify-around px-2">

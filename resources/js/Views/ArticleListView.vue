@@ -1,24 +1,23 @@
 <script setup>
 import { useArticleStore } from '@/Stores/useArticleStore.js'
 import { useSidebarStore } from '@/Stores/useSidebarStore.js'
-import { useUIStore } from '@/Stores/useUIStore.js'
 import { useOnlineStatus } from '@/Composables/useOnlineStatus.js'
 import { useToast } from '@/Composables/useToast.js'
 import { useAddFeedModal } from '@/Composables/useAddFeedModal.js'
 import { useRouter, useRoute } from 'vue-router'
 import { setTitle } from '@/router.js'
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, inject } from 'vue'
 
 defineOptions({ name: 'ArticleListView' })
 
 const articleStore = useArticleStore()
 const sidebarStore = useSidebarStore()
-const uiStore = useUIStore()
 const router = useRouter()
 const route = useRoute()
 const { isOnline } = useOnlineStatus()
 const { success } = useToast()
 const { openAddFeedModal } = useAddFeedModal()
+const toggleSidebar = inject('toggleSidebar')
 
 // --- View derivation from route query params ---
 function deriveView() {
@@ -53,8 +52,31 @@ watch(
 
 // --- Computed helpers ---
 const activeFeedId = computed(() => (route.query.feed_id ? Number(route.query.feed_id) : null))
+const activeCategoryId = computed(() =>
+    route.query.category_id ? Number(route.query.category_id) : null
+)
 const activeFilter = computed(() => route.query.filter || null)
 const isReadLaterView = computed(() => activeFilter.value === 'read_later')
+
+// Unread count for the header badge — always from sidebar store (server-provided)
+const headerUnreadCount = computed(() => {
+    if (activeFilter.value === 'read_later') return sidebarStore.readLaterCount
+    if (activeFilter.value === 'today') return sidebarStore.todayCount
+    if (activeFilter.value === 'recently_read') return 0
+    if (activeFeedId.value) {
+        for (const cat of sidebarStore.categories) {
+            const feed = cat.feeds.find(f => f.id === activeFeedId.value)
+            if (feed) return feed.unread_count || 0
+        }
+        const uncatFeed = sidebarStore.uncategorizedFeeds.find(f => f.id === activeFeedId.value)
+        return uncatFeed?.unread_count || 0
+    }
+    if (activeCategoryId.value) {
+        const cat = sidebarStore.categories.find(c => c.id === activeCategoryId.value)
+        return cat?.unread_count || 0
+    }
+    return sidebarStore.totalUnread
+})
 
 const feedCount = computed(() => {
     let count = sidebarStore.uncategorizedFeeds.length
@@ -418,7 +440,7 @@ function getSwipeDirection(articleId) {
         <div class="flex h-11 items-center justify-between px-4">
             <div class="flex items-center gap-2 min-w-0">
                 <button
-                    @click="uiStore.toggleSidebar()"
+                    @click="toggleSidebar()"
                     class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors -ml-2"
                     title="Open sidebar"
                     aria-label="Open sidebar">
@@ -437,9 +459,9 @@ function getSwipeDirection(articleId) {
                 <h1 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100 truncate">
                     {{ articleStore.filterTitle }}
                     <span
-                        v-if="articleStore.unreadCount > 0"
+                        v-if="headerUnreadCount > 0"
                         class="ml-1 inline-flex items-center rounded-full bg-blue-600 px-2 py-0.5 text-xs font-medium text-white">
-                        {{ articleStore.unreadCount }}
+                        {{ headerUnreadCount }}
                     </span>
                 </h1>
             </div>
