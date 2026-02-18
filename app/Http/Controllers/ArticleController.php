@@ -342,21 +342,101 @@ class ArticleController extends Controller
             }
         }
 
-        $prevQuery = Article::whereIn('feed_id', $scopeFeedIds)
-            ->where('published_at', '>', $article->published_at)
-            ->orderBy('published_at', 'asc');
+        if ($contextFilter === 'read_later') {
+            $prevQuery = Article::whereIn('articles.feed_id', $userFeedIds)
+                ->join('user_articles', function ($join) use ($user) {
+                    $join->on('articles.id', '=', 'user_articles.article_id')
+                        ->where('user_articles.user_id', '=', $user->id)
+                        ->where('user_articles.is_read_later', '=', true);
+                })
+                ->where(function ($q) use ($article) {
+                    $q->where('published_at', '>', $article->published_at)
+                        ->orWhere(function ($q2) use ($article) {
+                            $q2->where('published_at', $article->published_at)
+                                ->where('articles.id', '>', $article->id);
+                        });
+                })
+                ->orderBy('published_at', 'asc')
+                ->orderBy('articles.id', 'asc');
 
-        $nextQuery = Article::whereIn('feed_id', $scopeFeedIds)
-            ->where('published_at', '<', $article->published_at)
-            ->orderBy('published_at', 'desc');
+            $nextQuery = Article::whereIn('articles.feed_id', $userFeedIds)
+                ->join('user_articles', function ($join) use ($user) {
+                    $join->on('articles.id', '=', 'user_articles.article_id')
+                        ->where('user_articles.user_id', '=', $user->id)
+                        ->where('user_articles.is_read_later', '=', true);
+                })
+                ->where(function ($q) use ($article) {
+                    $q->where('published_at', '<', $article->published_at)
+                        ->orWhere(function ($q2) use ($article) {
+                            $q2->where('published_at', $article->published_at)
+                                ->where('articles.id', '<', $article->id);
+                        });
+                })
+                ->orderBy('published_at', 'desc')
+                ->orderBy('articles.id', 'desc');
+        } elseif ($user->settings['hide_read_articles'] ?? false) {
+            $prevQuery = Article::whereIn('articles.feed_id', $scopeFeedIds)
+                ->leftJoin('user_articles', function ($join) use ($user) {
+                    $join->on('articles.id', '=', 'user_articles.article_id')
+                        ->where('user_articles.user_id', '=', $user->id);
+                })
+                ->where(fn ($q) => $q->whereNull('user_articles.is_read')->orWhere('user_articles.is_read', false))
+                ->where(function ($q) use ($article) {
+                    $q->where('published_at', '>', $article->published_at)
+                        ->orWhere(function ($q2) use ($article) {
+                            $q2->where('published_at', $article->published_at)
+                                ->where('articles.id', '>', $article->id);
+                        });
+                })
+                ->orderBy('published_at', 'asc')
+                ->orderBy('articles.id', 'asc');
+
+            $nextQuery = Article::whereIn('articles.feed_id', $scopeFeedIds)
+                ->leftJoin('user_articles', function ($join) use ($user) {
+                    $join->on('articles.id', '=', 'user_articles.article_id')
+                        ->where('user_articles.user_id', '=', $user->id);
+                })
+                ->where(fn ($q) => $q->whereNull('user_articles.is_read')->orWhere('user_articles.is_read', false))
+                ->where(function ($q) use ($article) {
+                    $q->where('published_at', '<', $article->published_at)
+                        ->orWhere(function ($q2) use ($article) {
+                            $q2->where('published_at', $article->published_at)
+                                ->where('articles.id', '<', $article->id);
+                        });
+                })
+                ->orderBy('published_at', 'desc')
+                ->orderBy('articles.id', 'desc');
+        } else {
+            $prevQuery = Article::whereIn('feed_id', $scopeFeedIds)
+                ->where(function ($q) use ($article) {
+                    $q->where('published_at', '>', $article->published_at)
+                        ->orWhere(function ($q2) use ($article) {
+                            $q2->where('published_at', $article->published_at)
+                                ->where('id', '>', $article->id);
+                        });
+                })
+                ->orderBy('published_at', 'asc')
+                ->orderBy('id', 'asc');
+
+            $nextQuery = Article::whereIn('feed_id', $scopeFeedIds)
+                ->where(function ($q) use ($article) {
+                    $q->where('published_at', '<', $article->published_at)
+                        ->orWhere(function ($q2) use ($article) {
+                            $q2->where('published_at', $article->published_at)
+                                ->where('id', '<', $article->id);
+                        });
+                })
+                ->orderBy('published_at', 'desc')
+                ->orderBy('id', 'desc');
+        }
 
         if ($contextFilter === 'today') {
             $prevQuery->whereDate('published_at', today());
             $nextQuery->whereDate('published_at', today());
         }
 
-        $prevArticle = $prevQuery->first(['id']);
-        $nextArticle = $nextQuery->first(['id']);
+        $prevArticle = $prevQuery->first(['articles.id']);
+        $nextArticle = $nextQuery->first(['articles.id']);
 
         $context = array_filter([
             'feed_id' => $contextFeedId,
