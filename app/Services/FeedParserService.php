@@ -158,7 +158,7 @@ class FeedParserService
                 'title' => $entry->getTitle(),
                 'author' => $entry->getAuthor()['name'] ?? null,
                 'content' => $entry->getContent(),
-                'summary' => $entry->getDescription(),
+                'summary' => strip_tags($entry->getDescription()),
                 'url' => $entry->getLink(),
                 'image_url' => $this->extractImageUrl($entry->getContent() ?: $entry->getDescription()),
                 'published_at' => $entry->getDateCreated()?->format('Y-m-d H:i:s')
