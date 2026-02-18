@@ -223,7 +223,7 @@ class ArticleController extends Controller
             ]);
         }
 
-        return back();
+        return response()->noContent();
     }
 
     public function markAllAsRead(Request $request)
@@ -428,6 +428,6 @@ class ArticleController extends Controller
             ],
         ]);
 
-        return back();
+        return response()->noContent();
     }
 }

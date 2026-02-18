@@ -284,13 +284,9 @@ function markAsUnreadInline() {
         return;
     }
 
-    router.post(route('articles.markAsUnread', selectedArticle.value.id), {}, {
-        preserveScroll: true,
-        preserveState: true,
-        onFinish: () => {
-            markingUnread.value = false;
-            success('Marked as unread');
-        },
+    axios.post(route('articles.markAsUnread', selectedArticle.value.id)).finally(() => {
+        markingUnread.value = false;
+        success('Marked as unread');
     });
 }
 
@@ -355,7 +351,14 @@ function onKeyDown(e) {
             // Mark as unread
             e.preventDefault();
             if (selectedArticle.value) {
+                const currentIdx = selectedIndex.value;
                 markAsUnreadInline();
+                closeArticlePanel();
+                const nextArticle = flatArticles.value[currentIdx + 1];
+                if (nextArticle) {
+                    selectedArticleId.value = nextArticle.id;
+                    scrollArticleIntoView(nextArticle.id);
+                }
             }
             break;
         }
@@ -526,20 +529,14 @@ function swipeToggleRead(article) {
             enqueue('post', route('articles.markAsUnread', article.id), {});
             return;
         }
-        router.post(route('articles.markAsUnread', article.id), {}, {
-            preserveScroll: true,
-            preserveState: true,
-        });
+        axios.post(route('articles.markAsUnread', article.id));
     } else {
         allArticles.value[idx] = { ...allArticles.value[idx], is_read: true };
         if (!isOnline.value) {
             enqueue('post', route('articles.markAsRead'), { article_ids: [article.id] });
             return;
         }
-        router.post(route('articles.markAsRead'), { article_ids: [article.id] }, {
-            preserveScroll: true,
-            preserveState: true,
-        });
+        axios.post(route('articles.markAsRead'), { article_ids: [article.id] });
     }
 }
 
@@ -760,7 +757,7 @@ function formatLastUpdated(date) {
 
                                 <!-- Article content -->
                                 <template v-if="selectedArticle">
-                                    <article class="mx-auto max-w-3xl px-6 py-6">
+                                    <article class="mx-auto max-w-3xl px-6 pt-10 pb-6">
                                         <header class="mb-6">
                                             <div class="flex items-start justify-between gap-4">
                                                 <h1 class="text-2xl font-bold leading-tight text-neutral-900 dark:text-neutral-100">
