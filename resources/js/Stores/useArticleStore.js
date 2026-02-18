@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import axios from 'axios'
 
 export const useArticleStore = defineStore('articles', () => {
     // --- State ---
@@ -45,47 +46,169 @@ export const useArticleStore = defineStore('articles', () => {
         }
     }
 
-    // --- Actions (stubs for now) ---
+    // --- Actions ---
     async function fetchArticles(view) {
-        // TODO: Phase 2
+        // Don't refetch if same view is already loaded
+        if (
+            loaded.value &&
+            activeView.value.type === view.type &&
+            activeView.value.feedId === view.feedId &&
+            activeView.value.categoryId === view.categoryId
+        ) {
+            return
+        }
+
+        loading.value = true
+        activeView.value = view
+
+        const params = new URLSearchParams()
+        if (view.feedId) params.set('feed_id', view.feedId)
+        if (view.categoryId) params.set('category_id', view.categoryId)
+        if (view.type === 'today') params.set('filter', 'today')
+        if (view.type === 'read_later') params.set('filter', 'read_later')
+        if (view.type === 'recently_read') params.set('filter', 'recently_read')
+
+        try {
+            const response = await axios.get('/api/articles?' + params.toString())
+            articles.value = response.data.articles
+            filterTitle.value = response.data.filter_title
+            loaded.value = true
+        } finally {
+            loading.value = false
+        }
     }
 
     async function fetchContent(id) {
-        // TODO: Phase 2
+        // 1. Cache hit
+        const cached = contentCache.value.get(id)
+        if (cached) {
+            // Move to end (most recently used)
+            contentCache.value.delete(id)
+            contentCache.value.set(id, cached)
+            return cached
+        }
+
+        // 2. In-flight dedup
+        if (inFlightRequests.has(id)) {
+            return inFlightRequests.get(id)
+        }
+
+        // 3. Fetch
+        const promise = axios
+            .get(`/api/articles/${id}`)
+            .then(res => {
+                const content = res.data
+                contentCache.value.set(id, content)
+
+                // Evict LRU if over max
+                if (contentCache.value.size > CONTENT_CACHE_MAX) {
+                    const firstKey = contentCache.value.keys().next().value
+                    contentCache.value.delete(firstKey)
+                }
+
+                inFlightRequests.delete(id)
+                return content
+            })
+            .catch(err => {
+                inFlightRequests.delete(id)
+                throw err
+            })
+
+        inFlightRequests.set(id, promise)
+        return promise
     }
 
     function prefetchAdjacent(id) {
-        // TODO: Phase 2
+        const { prev, next } = adjacentIds(id)
+        if (next) fetchContent(next).catch(() => {})
+        if (prev) fetchContent(prev).catch(() => {})
     }
 
     function markRead(id) {
-        // TODO: Phase 3
+        const article = articles.value.find(a => a.id === id)
+        if (!article || article.is_read) return
+        article.is_read = true
+        article.read_at = new Date().toISOString()
+        axios.patch(`/api/articles/${id}`, { is_read: true }).catch(() => {
+            article.is_read = false
+            article.read_at = null
+        })
     }
 
     function markUnread(id) {
-        // TODO: Phase 3
+        const article = articles.value.find(a => a.id === id)
+        if (!article || !article.is_read) return
+        article.is_read = false
+        article.read_at = null
+        axios.patch(`/api/articles/${id}`, { is_read: false }).catch(() => {
+            article.is_read = true
+        })
     }
 
     function toggleReadLater(id) {
-        // TODO: Phase 3
+        const article = articles.value.find(a => a.id === id)
+        if (!article) return
+        const was = article.is_read_later
+        article.is_read_later = !was
+        axios.patch(`/api/articles/${id}`, { is_read_later: !was }).catch(() => {
+            article.is_read_later = was
+        })
     }
 
     function markAllRead(feedId = null) {
-        // TODO: Phase 3
+        const targets = feedId
+            ? articles.value.filter(a => a.feed_id === feedId && !a.is_read)
+            : articles.value.filter(a => !a.is_read)
+
+        targets.forEach(a => {
+            a.is_read = true
+            a.read_at = new Date().toISOString()
+        })
+
+        axios
+            .post('/api/articles/mark-all-read', {
+                feed_id: activeView.value.feedId ?? null,
+                category_id: activeView.value.categoryId ?? null,
+                filter: ['today', 'read_later'].includes(activeView.value.type)
+                    ? activeView.value.type
+                    : null,
+            })
+            .catch(() => {
+                // Revert on failure
+                targets.forEach(a => {
+                    a.is_read = false
+                    a.read_at = null
+                })
+            })
     }
 
     function forceRefresh() {
-        // TODO: Phase 3
+        loaded.value = false
+        return fetchArticles(activeView.value)
     }
 
     return {
         // state
-        articles, contentCache, activeView, loading, loaded, filterTitle,
+        articles,
+        contentCache,
+        activeView,
+        loading,
+        loaded,
+        filterTitle,
         // getters
-        unreadCount, readLaterCount, unreadByFeed,
-        getContent, adjacentIds,
+        unreadCount,
+        readLaterCount,
+        unreadByFeed,
+        getContent,
+        adjacentIds,
         // actions
-        fetchArticles, fetchContent, prefetchAdjacent,
-        markRead, markUnread, toggleReadLater, markAllRead, forceRefresh,
+        fetchArticles,
+        fetchContent,
+        prefetchAdjacent,
+        markRead,
+        markUnread,
+        toggleReadLater,
+        markAllRead,
+        forceRefresh,
     }
 })
