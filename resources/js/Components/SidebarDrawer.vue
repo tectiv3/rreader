@@ -75,6 +75,7 @@ function isActiveAll() {
                         <button
                             @click="emit('close')"
                             class="rounded-lg p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                            title="Close sidebar"
                             aria-label="Close sidebar"
                         >
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -148,6 +149,7 @@ function isActiveAll() {
                                     @click="toggleCategory(category.id)"
                                     class="shrink-0 rounded-lg p-2.5 text-slate-600 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors cursor-pointer"
                                     :aria-expanded="isCategoryExpanded(category.id)"
+                                    :title="`Toggle ${category.name} feeds`"
                                     :aria-label="`Toggle ${category.name} feeds`"
                                 >
                                     <svg
@@ -184,7 +186,10 @@ function isActiveAll() {
                                     />
                                     <div v-else class="h-4 w-4 shrink-0 rounded-sm bg-slate-300 dark:bg-slate-700" />
                                     <span class="flex-1 truncate text-left">{{ feed.title }}</span>
-                                    <span v-if="feed.unread_count > 0" class="text-xs text-slate-600 dark:text-slate-500">{{ feed.unread_count }}</span>
+                                    <svg v-if="feed.disabled_at" class="h-3.5 w-3.5 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-label="Feed disabled">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                    </svg>
+                                    <span v-else-if="feed.unread_count > 0" class="text-xs text-slate-600 dark:text-slate-500">{{ feed.unread_count }}</span>
                                 </button>
                             </div>
                         </div>
@@ -206,7 +211,10 @@ function isActiveAll() {
                                 />
                                 <div v-else class="h-4 w-4 shrink-0 rounded-sm bg-slate-300 dark:bg-slate-700" />
                                 <span class="flex-1 truncate text-left">{{ feed.title }}</span>
-                                <span v-if="feed.unread_count > 0" class="text-xs text-slate-600 dark:text-slate-500">{{ feed.unread_count }}</span>
+                                <svg v-if="feed.disabled_at" class="h-3.5 w-3.5 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-label="Feed disabled">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                </svg>
+                                <span v-else-if="feed.unread_count > 0" class="text-xs text-slate-600 dark:text-slate-500">{{ feed.unread_count }}</span>
                             </button>
                         </div>
                     </div>
@@ -259,6 +267,7 @@ function isActiveAll() {
                     <button
                         @click="emit('collapse-toggle')"
                         class="rounded-lg p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                        :title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
                         :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
                     >
                         <svg class="h-5 w-5 transition-transform duration-200" :class="collapsed ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -351,6 +360,7 @@ function isActiveAll() {
                                     @click="toggleCategory(category.id)"
                                     class="shrink-0 rounded-lg p-2.5 text-slate-600 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors cursor-pointer"
                                     :aria-expanded="isCategoryExpanded(category.id)"
+                                    :title="`Toggle ${category.name} feeds`"
                                     :aria-label="`Toggle ${category.name} feeds`"
                                 >
                                     <svg
@@ -386,7 +396,10 @@ function isActiveAll() {
                                     />
                                     <div v-else class="h-4 w-4 shrink-0 rounded-sm bg-slate-300 dark:bg-slate-700" />
                                     <span class="flex-1 truncate text-left">{{ feed.title }}</span>
-                                    <span v-if="feed.unread_count > 0" class="text-xs text-slate-600 dark:text-slate-500">{{ feed.unread_count }}</span>
+                                    <svg v-if="feed.disabled_at" class="h-3.5 w-3.5 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-label="Feed disabled">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                    </svg>
+                                    <span v-else-if="feed.unread_count > 0" class="text-xs text-slate-600 dark:text-slate-500">{{ feed.unread_count }}</span>
                                 </button>
                             </div>
                         </div>
@@ -408,7 +421,10 @@ function isActiveAll() {
                                 />
                                 <div v-else class="h-4 w-4 shrink-0 rounded-sm bg-slate-300 dark:bg-slate-700" />
                                 <span class="flex-1 truncate text-left">{{ feed.title }}</span>
-                                <span v-if="feed.unread_count > 0" class="text-xs text-slate-600 dark:text-slate-500">{{ feed.unread_count }}</span>
+                                <svg v-if="feed.disabled_at" class="h-3.5 w-3.5 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-label="Feed disabled">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                </svg>
+                                <span v-else-if="feed.unread_count > 0" class="text-xs text-slate-600 dark:text-slate-500">{{ feed.unread_count }}</span>
                             </button>
                         </div>
                     </template>

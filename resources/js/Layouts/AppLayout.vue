@@ -81,6 +81,7 @@ onUnmounted(() => {
                     <button
                         @click="toggle"
                         class="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                        :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
                         :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
                     >
                         <!-- Sun icon (shown in dark mode) -->
@@ -128,6 +129,7 @@ onUnmounted(() => {
                 <button
                     @click="toggleSidebar ? toggleSidebar() : router.visit(route('articles.index'))"
                     class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                    title="Open sidebar"
                     aria-label="Open sidebar"
                 >
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -141,6 +143,7 @@ onUnmounted(() => {
                     @click="navigateTo({ filter: 'read_later' })"
                     class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors"
                     :class="page.props.activeFilter === 'read_later' ? 'text-amber-500' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'"
+                    title="Read Later"
                     aria-label="Read Later"
                 >
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -154,6 +157,7 @@ onUnmounted(() => {
                     @click="navigateTo({})"
                     class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors"
                     :class="!page.props.activeFilter && !page.props.activeFeedId && !page.props.activeCategoryId && page.url.startsWith('/articles') && !page.url.startsWith('/articles/search') ? 'text-blue-500' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'"
+                    title="All feeds"
                     aria-label="All feeds"
                 >
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -167,6 +171,7 @@ onUnmounted(() => {
                     @click="router.visit(route('feeds.create'))"
                     class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors"
                     :class="page.url.startsWith('/feeds/create') ? 'text-blue-500' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'"
+                    title="Add feed"
                     aria-label="Add feed"
                 >
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -181,6 +186,7 @@ onUnmounted(() => {
                     @click="router.visit(route('articles.search'))"
                     class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors"
                     :class="page.url.startsWith('/articles/search') ? 'text-blue-500' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'"
+                    title="Search"
                     aria-label="Search"
                 >
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">

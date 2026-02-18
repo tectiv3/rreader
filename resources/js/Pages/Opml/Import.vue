@@ -174,15 +174,14 @@ const exportOpml = () => {
 
                 <!-- Select all toggle -->
                 <div class="flex items-center gap-2 mb-3 pb-3 border-b border-slate-200 dark:border-slate-800">
-                    <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
+                    <div class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer" @click="toggleAll">
                         <input
                             type="checkbox"
                             :checked="allSelected"
-                            @change="toggleAll"
-                            class="rounded border-slate-300 bg-white text-blue-500 focus:ring-blue-500 focus:ring-offset-white dark:border-slate-600 dark:bg-slate-800 dark:focus:ring-offset-slate-900"
+                            class="rounded border-slate-300 bg-white text-blue-500 focus:ring-blue-500 focus:ring-offset-white dark:border-slate-600 dark:bg-slate-800 dark:focus:ring-offset-slate-900 pointer-events-none"
                         />
                         Select all new feeds ({{ allNewFeeds.length }})
-                    </label>
+                    </div>
                 </div>
 
                 <!-- Categories -->
@@ -195,18 +194,18 @@ const exportOpml = () => {
                     </h3>
 
                     <div class="space-y-1 pl-1">
-                        <label
+                        <div
                             v-for="(feed, feedIdx) in category.feeds"
                             :key="feedIdx"
                             class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition"
                             :class="feed.is_duplicate ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800'"
+                            @click="!feed.is_duplicate && toggleFeed(feed.feed_url)"
                         >
                             <input
                                 type="checkbox"
                                 :checked="feed.is_duplicate ? false : isFeedSelected(feed.feed_url)"
                                 :disabled="feed.is_duplicate"
-                                @change="toggleFeed(feed.feed_url)"
-                                class="rounded border-slate-300 bg-white text-blue-500 focus:ring-blue-500 focus:ring-offset-white dark:border-slate-600 dark:bg-slate-800 dark:focus:ring-offset-slate-900 disabled:opacity-40"
+                                class="rounded border-slate-300 bg-white text-blue-500 focus:ring-blue-500 focus:ring-offset-white dark:border-slate-600 dark:bg-slate-800 dark:focus:ring-offset-slate-900 disabled:opacity-40 pointer-events-none"
                             />
                             <img
                                 v-if="feed.favicon_url"
@@ -218,7 +217,7 @@ const exportOpml = () => {
                                 {{ feed.title }}
                             </span>
                             <span v-if="feed.is_duplicate" class="text-xs text-slate-600 dark:text-slate-500 shrink-0">subscribed</span>
-                        </label>
+                        </div>
                     </div>
                 </div>
 
@@ -232,18 +231,18 @@ const exportOpml = () => {
                     </h3>
 
                     <div class="space-y-1 pl-1">
-                        <label
+                        <div
                             v-for="(feed, feedIdx) in preview.uncategorized"
                             :key="feedIdx"
                             class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition"
                             :class="feed.is_duplicate ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800'"
+                            @click="!feed.is_duplicate && toggleFeed(feed.feed_url)"
                         >
                             <input
                                 type="checkbox"
                                 :checked="feed.is_duplicate ? false : isFeedSelected(feed.feed_url)"
                                 :disabled="feed.is_duplicate"
-                                @change="toggleFeed(feed.feed_url)"
-                                class="rounded border-slate-300 bg-white text-blue-500 focus:ring-blue-500 focus:ring-offset-white dark:border-slate-600 dark:bg-slate-800 dark:focus:ring-offset-slate-900 disabled:opacity-40"
+                                class="rounded border-slate-300 bg-white text-blue-500 focus:ring-blue-500 focus:ring-offset-white dark:border-slate-600 dark:bg-slate-800 dark:focus:ring-offset-slate-900 disabled:opacity-40 pointer-events-none"
                             />
                             <img
                                 v-if="feed.favicon_url"
@@ -255,7 +254,7 @@ const exportOpml = () => {
                                 {{ feed.title }}
                             </span>
                             <span v-if="feed.is_duplicate" class="text-xs text-slate-600 dark:text-slate-500 shrink-0">subscribed</span>
-                        </label>
+                        </div>
                     </div>
                 </div>
 

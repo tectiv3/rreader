@@ -178,6 +178,12 @@ function cancelUnsubscribe() {
 function goBack() {
     router.visit(route('articles.index'));
 }
+
+function reenableFeed(feed) {
+    router.post(route('feeds.reenable', feed.id), {}, {
+        preserveScroll: true,
+    });
+}
 </script>
 
 <template>
@@ -186,6 +192,7 @@ function goBack() {
             <button
                 @click="goBack"
                 class="rounded-lg p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                title="Back to articles"
                 aria-label="Back to articles"
             >
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -226,6 +233,7 @@ function goBack() {
                             @click="moveCategoryUp(catIndex)"
                             :disabled="catIndex === 0"
                             class="p-0.5 text-slate-600 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            title="Move category up"
                             aria-label="Move category up"
                         >
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -236,6 +244,7 @@ function goBack() {
                             @click="moveCategoryDown(catIndex)"
                             :disabled="catIndex === localCategories.length - 1"
                             class="p-0.5 text-slate-600 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            title="Move category down"
                             aria-label="Move category down"
                         >
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -269,6 +278,7 @@ function goBack() {
                         <button
                             @click="startEditCategory(category)"
                             class="rounded-lg p-1.5 text-slate-600 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                            title="Rename category"
                             aria-label="Rename category"
                         >
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -278,6 +288,7 @@ function goBack() {
                         <button
                             @click="startDeleteCategory(category)"
                             class="rounded-lg p-1.5 text-slate-500 hover:bg-red-900/50 hover:text-red-400 transition-colors"
+                            title="Delete category"
                             aria-label="Delete category"
                         >
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -371,13 +382,29 @@ function goBack() {
                             </div>
                             <template v-else>
                                 <div class="flex-1 min-w-0">
-                                    <p class="text-sm text-slate-800 dark:text-slate-200 truncate">{{ feed.title }}</p>
+                                    <div class="flex items-center gap-1.5">
+                                        <p class="text-sm text-slate-800 dark:text-slate-200 truncate">{{ feed.title }}</p>
+                                        <svg v-if="feed.disabled_at" class="h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-label="Feed disabled">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                        </svg>
+                                    </div>
                                     <p class="text-xs text-slate-600 dark:text-slate-500 truncate">{{ feed.feed_url }}</p>
+                                    <p v-if="feed.disabled_at && feed.last_error" class="text-xs text-amber-600 dark:text-amber-500 mt-0.5 truncate">{{ feed.last_error }}</p>
                                 </div>
                                 <div class="flex shrink-0 gap-1">
                                     <button
+                                        v-if="feed.disabled_at"
+                                        @click="reenableFeed(feed)"
+                                        class="rounded-lg px-2.5 py-1.5 text-xs font-medium text-amber-600 dark:text-amber-500 border border-amber-500/50 hover:bg-amber-500/10 transition-colors"
+                                        title="Retry feed"
+                                        aria-label="Retry feed"
+                                    >
+                                        Retry
+                                    </button>
+                                    <button
                                         @click="startEditFeed(feed)"
                                         class="rounded-lg p-1.5 text-slate-600 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                                        title="Rename feed"
                                         aria-label="Rename feed"
                                     >
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -387,6 +414,7 @@ function goBack() {
                                     <button
                                         @click="startMoveFeed(feed, category.id)"
                                         class="rounded-lg p-1.5 text-slate-600 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                                        title="Move feed"
                                         aria-label="Move feed"
                                     >
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -396,6 +424,7 @@ function goBack() {
                                     <button
                                         @click="startUnsubscribe(feed)"
                                         class="rounded-lg p-1.5 text-slate-500 hover:bg-red-900/50 hover:text-red-400 transition-colors"
+                                        title="Unsubscribe"
                                         aria-label="Unsubscribe"
                                     >
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -475,13 +504,29 @@ function goBack() {
                             </div>
                             <template v-else>
                                 <div class="flex-1 min-w-0">
-                                    <p class="text-sm text-slate-800 dark:text-slate-200 truncate">{{ feed.title }}</p>
+                                    <div class="flex items-center gap-1.5">
+                                        <p class="text-sm text-slate-800 dark:text-slate-200 truncate">{{ feed.title }}</p>
+                                        <svg v-if="feed.disabled_at" class="h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-label="Feed disabled">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                        </svg>
+                                    </div>
                                     <p class="text-xs text-slate-600 dark:text-slate-500 truncate">{{ feed.feed_url }}</p>
+                                    <p v-if="feed.disabled_at && feed.last_error" class="text-xs text-amber-600 dark:text-amber-500 mt-0.5 truncate">{{ feed.last_error }}</p>
                                 </div>
                                 <div class="flex shrink-0 gap-1">
                                     <button
+                                        v-if="feed.disabled_at"
+                                        @click="reenableFeed(feed)"
+                                        class="rounded-lg px-2.5 py-1.5 text-xs font-medium text-amber-600 dark:text-amber-500 border border-amber-500/50 hover:bg-amber-500/10 transition-colors"
+                                        title="Retry feed"
+                                        aria-label="Retry feed"
+                                    >
+                                        Retry
+                                    </button>
+                                    <button
                                         @click="startEditFeed(feed)"
                                         class="rounded-lg p-1.5 text-slate-600 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                                        title="Rename feed"
                                         aria-label="Rename feed"
                                     >
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -491,6 +536,7 @@ function goBack() {
                                     <button
                                         @click="startMoveFeed(feed, null)"
                                         class="rounded-lg p-1.5 text-slate-600 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                                        title="Move feed"
                                         aria-label="Move feed"
                                     >
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -500,6 +546,7 @@ function goBack() {
                                     <button
                                         @click="startUnsubscribe(feed)"
                                         class="rounded-lg p-1.5 text-slate-500 hover:bg-red-900/50 hover:text-red-400 transition-colors"
+                                        title="Unsubscribe"
                                         aria-label="Unsubscribe"
                                     >
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">

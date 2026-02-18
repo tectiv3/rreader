@@ -15,6 +15,8 @@ const props = defineProps({
     activeCategoryId: Number,
     activeFilter: String,
     sidebar: Object,
+    feedCount: Number,
+    hasPendingFeeds: Boolean,
 });
 
 const isReadLaterView = computed(() => props.activeFilter === 'read_later');
@@ -37,7 +39,7 @@ const markingAllRead = ref(false);
 const sidebarOpen = ref(false);
 
 // Desktop layout state
-const isDesktop = ref(false);
+const isDesktop = ref(typeof window !== 'undefined' && window.innerWidth >= 1024);
 const sidebarCollapsed = ref(false);
 const selectedArticle = ref(null);
 const selectedArticleId = ref(null);
@@ -188,7 +190,11 @@ function openArticle(article) {
     }
 
     if (isDesktop.value) {
-        // Desktop: load article inline
+        // Desktop: toggle inline expansion (clicking same article collapses it)
+        if (selectedArticleId.value === article.id) {
+            closeArticlePanel();
+            return;
+        }
         selectedArticleId.value = article.id;
         loadArticleInline(article.id);
     } else {
@@ -210,10 +216,10 @@ async function loadArticleInline(articleId) {
         const data = await response.json();
         selectedArticle.value = data.article;
         selectedIsReadLater.value = data.article.is_read_later ?? false;
-        // Scroll the reader panel to top
+        // Scroll the expanded article into view
         await nextTick();
-        const readerEl = document.getElementById('article-reader-panel');
-        if (readerEl) readerEl.scrollTop = 0;
+        const expandedEl = document.getElementById(`article-expanded-${articleId}`);
+        if (expandedEl) expandedEl.scrollIntoView({ block: 'start', behavior: 'smooth' });
     } catch (err) {
         console.error('Failed to load article:', err);
         // Fallback: navigate to show page
@@ -281,33 +287,6 @@ function markAsUnreadInline() {
     });
 }
 
-function openInBrowserInline() {
-    if (selectedArticle.value?.url) {
-        try {
-            const url = new URL(selectedArticle.value.url);
-            if (url.protocol === 'http:' || url.protocol === 'https:') {
-                window.open(url.href, '_blank', 'noopener,noreferrer');
-            }
-        } catch {
-            // Invalid URL
-        }
-    }
-}
-
-function shareArticleInline() {
-    if (!selectedArticle.value) return;
-    if (navigator.share) {
-        navigator.share({
-            title: selectedArticle.value.title,
-            url: selectedArticle.value.url,
-        }).catch(() => {});
-    } else if (selectedArticle.value.url) {
-        navigator.clipboard.writeText(selectedArticle.value.url).then(() => {
-            success('Link copied to clipboard');
-        }).catch(() => {});
-    }
-}
-
 const selectedFormattedDate = computed(() => {
     if (!selectedArticle.value) return '';
     const date = new Date(selectedArticle.value.published_at);
@@ -335,6 +314,8 @@ function onKeyDown(e) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
 
     switch (e.key) {
+        case 'ArrowRight':
+        case 'ArrowDown':
         case 'j': {
             // Next article
             e.preventDefault();
@@ -345,6 +326,8 @@ function onKeyDown(e) {
             }
             break;
         }
+        case 'ArrowLeft':
+        case 'ArrowUp':
         case 'k': {
             // Previous article
             e.preventDefault();
@@ -531,6 +514,7 @@ function formatLastUpdated(date) {
             <button
                 @click="sidebarOpen = true"
                 class="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors -ml-2 lg:hidden"
+                title="Open sidebar"
                 aria-label="Open sidebar"
             >
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -554,6 +538,7 @@ function formatLastUpdated(date) {
                 @click="refreshFeeds"
                 :disabled="loading"
                 class="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                title="Refresh feeds"
                 aria-label="Refresh feeds"
             >
                 <svg
@@ -569,6 +554,7 @@ function formatLastUpdated(date) {
                 @click="markAllAsRead"
                 :disabled="markingAllRead"
                 class="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                title="Mark all as read"
                 aria-label="Mark all as read"
             >
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -589,7 +575,7 @@ function formatLastUpdated(date) {
             @close="sidebarOpen = false"
         />
 
-        <!-- Desktop: 3-column layout -->
+        <!-- Desktop: 2-column layout (sidebar + full-width article list with inline expansion) -->
         <div v-if="isDesktop" class="flex" style="height: calc(100vh - 3.5rem);">
             <!-- Left: Persistent sidebar -->
             <SidebarDrawer
@@ -603,69 +589,210 @@ function formatLastUpdated(date) {
                 @collapse-toggle="toggleSidebarCollapse"
             />
 
-            <!-- Center: Article list -->
+            <!-- Article list with inline expansion -->
             <div
                 ref="articleListEl"
-                class="flex flex-col border-r border-slate-200 dark:border-slate-800 overflow-y-auto"
-                :class="selectedArticle ? 'w-96 shrink-0' : 'flex-1'"
+                class="flex-1 flex flex-col overflow-y-auto"
             >
-                <!-- Desktop compact article list -->
+                <!-- Desktop article list with inline expansion -->
                 <template v-for="(articles, dateLabel) in groupedArticles" :key="dateLabel">
                     <div class="sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 px-4 py-2 backdrop-blur">
                         <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-500">{{ dateLabel }}</h2>
                     </div>
                     <div>
-                        <button
-                            v-for="article in articles"
-                            :key="article.id"
-                            :id="`article-row-${article.id}`"
-                            @click="openArticle(article)"
-                            class="flex w-full items-center gap-3 border-b border-slate-200/50 dark:border-slate-800/50 px-4 py-2.5 text-left transition-colors cursor-pointer"
-                            :class="[
-                                selectedArticleId === article.id
-                                    ? 'bg-blue-600/10 border-l-2 border-l-blue-500'
-                                    : 'hover:bg-slate-100/50 dark:hover:bg-slate-900/50',
-                            ]"
-                        >
-                            <img
-                                v-if="article.feed?.favicon_url"
-                                :src="article.feed.favicon_url"
-                                class="h-4 w-4 shrink-0 rounded-sm"
-                                alt=""
-                            />
-                            <span class="w-32 shrink-0 truncate text-xs text-slate-600 dark:text-slate-500">{{ article.feed?.title }}</span>
-                            <h3
-                                class="min-w-0 flex-1 truncate text-sm"
-                                :class="article.is_read ? 'text-slate-600 dark:text-slate-500 font-normal' : 'text-slate-900 dark:text-slate-100 font-medium'"
+                        <template v-for="article in articles" :key="article.id">
+                            <!-- Article row -->
+                            <button
+                                :id="`article-row-${article.id}`"
+                                @click="openArticle(article)"
+                                class="flex w-full items-center gap-3 border-b border-slate-200/50 dark:border-slate-800/50 px-4 py-2.5 text-left transition-colors cursor-pointer"
+                                :class="[
+                                    selectedArticleId === article.id
+                                        ? 'bg-blue-50 dark:bg-slate-900 border-l-2 border-l-blue-500'
+                                        : 'hover:bg-slate-50 dark:hover:bg-slate-900/50',
+                                ]"
                             >
-                                {{ article.title }}
-                            </h3>
-                            <span v-if="article.summary && !selectedArticle" class="hidden xl:block w-64 shrink-0 truncate text-xs text-slate-500 dark:text-slate-600">
-                                {{ article.summary }}
-                            </span>
-                            <span class="w-12 shrink-0 text-right text-xs text-slate-500 dark:text-slate-600">{{ timeAgo(article.published_at) }}</span>
-                        </button>
+                                <img
+                                    v-if="article.feed?.favicon_url"
+                                    :src="article.feed.favicon_url"
+                                    class="h-4 w-4 shrink-0 rounded-sm"
+                                    alt=""
+                                />
+                                <span class="w-32 shrink-0 truncate text-xs text-slate-600 dark:text-slate-500">{{ article.feed?.title }}</span>
+                                <h3
+                                    class="min-w-0 flex-1 truncate text-sm"
+                                    :class="article.is_read ? 'text-slate-600 dark:text-slate-500 font-normal' : 'text-slate-900 dark:text-slate-100 font-medium'"
+                                >
+                                    {{ article.title }}
+                                </h3>
+                                <span v-if="article.summary && selectedArticleId !== article.id" class="hidden xl:block w-64 shrink-0 truncate text-xs text-slate-500 dark:text-slate-600">
+                                    {{ article.summary }}
+                                </span>
+                                <span class="w-12 shrink-0 text-right text-xs text-slate-500 dark:text-slate-600">{{ timeAgo(article.published_at) }}</span>
+                            </button>
+
+                            <!-- Inline expanded article (Feedly-style) -->
+                            <div
+                                v-if="selectedArticleId === article.id"
+                                :id="`article-expanded-${article.id}`"
+                                class="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50"
+                            >
+                                <!-- Loading state -->
+                                <div v-if="loadingArticle && !selectedArticle" class="flex items-center justify-center py-12">
+                                    <svg class="h-8 w-8 animate-spin text-slate-400" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                    </svg>
+                                </div>
+
+                                <!-- Article content -->
+                                <template v-if="selectedArticle">
+                                    <article class="mx-auto max-w-3xl px-6 py-6">
+                                        <header class="mb-6">
+                                            <div class="flex items-start justify-between gap-4">
+                                                <h1 class="text-2xl font-bold leading-tight text-slate-900 dark:text-slate-100">
+                                                    {{ selectedArticle.title }}
+                                                </h1>
+                                                <!-- Toolbar: bookmark, unread, close -->
+                                                <div class="flex shrink-0 items-center gap-1">
+                                                    <button
+                                                        @click.stop="toggleReadLaterInline"
+                                                        :disabled="togglingReadLater"
+                                                        class="rounded-lg p-1.5 transition-colors cursor-pointer"
+                                                        :class="selectedIsReadLater ? 'text-blue-500 hover:bg-slate-200 dark:hover:bg-slate-800' : 'text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300'"
+                                                        :title="selectedIsReadLater ? 'Remove from Read Later' : 'Save to Read Later'"
+                                                        :aria-label="selectedIsReadLater ? 'Remove from Read Later' : 'Save to Read Later'"
+                                                    >
+                                                        <svg class="h-5 w-5" :fill="selectedIsReadLater ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                                                        </svg>
+                                                    </button>
+                                                    <button
+                                                        @click.stop="markAsUnreadInline"
+                                                        :disabled="markingUnread"
+                                                        class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 transition-colors cursor-pointer"
+                                                        title="Mark as unread"
+                                                        aria-label="Mark as unread"
+                                                    >
+                                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V18" />
+                                                        </svg>
+                                                    </button>
+                                                    <button
+                                                        @click.stop="closeArticlePanel"
+                                                        class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 transition-colors cursor-pointer"
+                                                        title="Close article"
+                                                        aria-label="Close article"
+                                                    >
+                                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
+                                                <div class="flex items-center gap-2">
+                                                    <img
+                                                        v-if="selectedArticle.feed?.favicon_url"
+                                                        :src="selectedArticle.feed.favicon_url"
+                                                        class="h-4 w-4 rounded-sm"
+                                                        alt=""
+                                                    />
+                                                    <span>{{ selectedArticle.feed?.title }}</span>
+                                                </div>
+                                                <span v-if="selectedArticle.author">&middot; {{ selectedArticle.author }}</span>
+                                                <span>&middot; {{ selectedFormattedDate }} at {{ selectedFormattedTime }}</span>
+                                            </div>
+                                        </header>
+
+                                        <div
+                                            class="article-content prose max-w-none dark:prose-invert prose-headings:text-slate-800 dark:prose-headings:text-slate-200 prose-p:text-slate-700 dark:prose-p:text-slate-300 prose-a:text-blue-500 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-800 dark:prose-strong:text-slate-200 prose-code:text-blue-600 dark:prose-code:text-blue-300 prose-pre:bg-white dark:prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-200 dark:prose-pre:border-slate-800 prose-img:rounded-lg prose-blockquote:border-slate-300 dark:prose-blockquote:border-slate-700 prose-blockquote:text-slate-500 dark:prose-blockquote:text-slate-400"
+                                            v-html="selectedArticle.content || selectedArticle.summary"
+                                        />
+
+                                        <div v-if="!selectedArticle.content && !selectedArticle.summary" class="py-12 text-center">
+                                            <p class="text-slate-500 dark:text-slate-400">No article content available.</p>
+                                            <a
+                                                v-if="selectedArticle.url"
+                                                :href="selectedArticle.url"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                class="mt-4 inline-block rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                                            >
+                                                Read on original site
+                                            </a>
+                                        </div>
+
+                                        <!-- Keyboard shortcut hints -->
+                                        <div class="mt-8 border-t border-slate-200 dark:border-slate-800 pt-4 text-xs text-slate-400 dark:text-slate-600">
+                                            <span class="font-medium text-slate-500">Shortcuts:</span>
+                                            <span class="ml-2"><kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5">j</kbd>/<kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5">k</kbd> or <kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5">&larr;</kbd>/<kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5">&rarr;</kbd> navigate</span>
+                                            <span class="ml-2"><kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5">s</kbd> save</span>
+                                            <span class="ml-2"><kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5">m</kbd> mark unread</span>
+                                            <span class="ml-2"><kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5">Esc</kbd> close</span>
+                                        </div>
+                                    </article>
+                                </template>
+                            </div>
+                        </template>
                     </div>
                 </template>
 
                 <!-- Empty state (desktop) -->
                 <div v-if="allArticles.length === 0" class="flex flex-col items-center justify-center px-4 py-20 text-center">
-                    <svg class="h-16 w-16 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                    </svg>
-                    <h3 class="mt-4 text-lg font-medium text-slate-700 dark:text-slate-300">
-                        {{ activeFilter === 'read_later' ? 'No saved articles' : 'No articles yet' }}
-                    </h3>
-                    <p class="mt-2 text-sm text-slate-600 dark:text-slate-500">
-                        {{ activeFilter === 'read_later' ? 'Save articles from your feeds to read later.' : 'Subscribe to feeds to start seeing articles here.' }}
-                    </p>
-                    <a
-                        v-if="!activeFilter"
-                        :href="route('feeds.create')"
-                        class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-                    >
-                        Add a Feed
-                    </a>
+                    <!-- Read Later empty -->
+                    <template v-if="activeFilter === 'read_later'">
+                        <svg class="h-16 w-16 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                        </svg>
+                        <h3 class="mt-4 text-lg font-medium text-slate-700 dark:text-slate-300">No saved articles</h3>
+                        <p class="mt-2 text-sm text-slate-600 dark:text-slate-500">Save articles from your feeds to read later.</p>
+                    </template>
+                    <!-- No feeds at all -->
+                    <template v-else-if="feedCount === 0">
+                        <svg class="h-16 w-16 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                        </svg>
+                        <h3 class="mt-4 text-lg font-medium text-slate-700 dark:text-slate-300">No articles yet</h3>
+                        <p class="mt-2 text-sm text-slate-600 dark:text-slate-500">Subscribe to feeds to start seeing articles here.</p>
+                        <a
+                            :href="route('feeds.create')"
+                            class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                        >
+                            Add a Feed
+                        </a>
+                    </template>
+                    <!-- Feeds exist but still being fetched -->
+                    <template v-else-if="hasPendingFeeds">
+                        <svg class="h-10 w-10 animate-spin text-slate-400 dark:text-slate-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <h3 class="mt-4 text-lg font-medium text-slate-700 dark:text-slate-300">Fetching your feeds...</h3>
+                        <p class="mt-2 text-sm text-slate-600 dark:text-slate-500">Articles will appear here shortly as your feeds are being updated.</p>
+                    </template>
+                    <!-- Specific feed has no articles -->
+                    <template v-else-if="activeFeedId">
+                        <svg class="h-16 w-16 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                        </svg>
+                        <h3 class="mt-4 text-lg font-medium text-slate-700 dark:text-slate-300">No articles in this feed</h3>
+                        <p class="mt-2 text-sm text-slate-600 dark:text-slate-500">This feed doesn't have any articles yet.</p>
+                    </template>
+                    <!-- Generic fallback -->
+                    <template v-else>
+                        <svg class="h-16 w-16 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                        </svg>
+                        <h3 class="mt-4 text-lg font-medium text-slate-700 dark:text-slate-300">No articles yet</h3>
+                        <p class="mt-2 text-sm text-slate-600 dark:text-slate-500">Subscribe to feeds to start seeing articles here.</p>
+                        <a
+                            :href="route('feeds.create')"
+                            class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                        >
+                            Add a Feed
+                        </a>
+                    </template>
                 </div>
 
                 <!-- Infinite scroll sentinel -->
@@ -688,142 +815,6 @@ function formatLastUpdated(date) {
                 <div v-if="!isOnline" class="pb-4 text-center text-xs text-slate-500 dark:text-slate-600">
                     Last updated at {{ formatLastUpdated(lastUpdatedAt) }}
                 </div>
-            </div>
-
-            <!-- Right: Article reader panel -->
-            <div
-                v-if="selectedArticle || loadingArticle"
-                id="article-reader-panel"
-                class="flex-1 overflow-y-auto"
-            >
-                <!-- Loading state -->
-                <div v-if="loadingArticle && !selectedArticle" class="flex items-center justify-center py-20">
-                    <svg class="h-8 w-8 animate-spin text-slate-500" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                </div>
-
-                <!-- Article content -->
-                <template v-if="selectedArticle">
-                    <!-- Reader toolbar -->
-                    <div class="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 px-4 py-2 backdrop-blur">
-                        <button
-                            @click="closeArticlePanel"
-                            class="rounded-lg p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                            aria-label="Close article"
-                        >
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                        <div class="flex items-center gap-1">
-                            <!-- Save to Read Later -->
-                            <button
-                                @click="toggleReadLaterInline"
-                                :disabled="togglingReadLater"
-                                class="rounded-lg p-1.5 transition-colors cursor-pointer"
-                                :class="selectedIsReadLater ? 'text-blue-400 hover:bg-slate-200 dark:hover:bg-slate-800' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200'"
-                                :aria-label="selectedIsReadLater ? 'Remove from Read Later' : 'Save to Read Later'"
-                            >
-                                <svg class="h-5 w-5" :fill="selectedIsReadLater ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
-                                </svg>
-                            </button>
-                            <!-- Mark as Unread -->
-                            <button
-                                @click="markAsUnreadInline"
-                                :disabled="markingUnread"
-                                class="rounded-lg p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                                aria-label="Mark as unread"
-                            >
-                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V18" />
-                                </svg>
-                            </button>
-                            <!-- Open in Browser -->
-                            <button
-                                v-if="selectedArticle.url"
-                                @click="openInBrowserInline"
-                                class="rounded-lg p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                                aria-label="Open in browser"
-                            >
-                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                                </svg>
-                            </button>
-                            <!-- Share -->
-                            <button
-                                @click="shareArticleInline"
-                                class="rounded-lg p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                                aria-label="Share article"
-                            >
-                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Article body -->
-                    <article class="mx-auto max-w-3xl px-6 py-6">
-                        <header class="mb-6">
-                            <h1 class="text-2xl font-bold leading-tight text-slate-900 dark:text-slate-100">
-                                {{ selectedArticle.title }}
-                            </h1>
-                            <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
-                                <div class="flex items-center gap-2">
-                                    <img
-                                        v-if="selectedArticle.feed?.favicon_url"
-                                        :src="selectedArticle.feed.favicon_url"
-                                        class="h-4 w-4 rounded-sm"
-                                        alt=""
-                                    />
-                                    <span>{{ selectedArticle.feed?.title }}</span>
-                                </div>
-                                <span v-if="selectedArticle.author">&middot; {{ selectedArticle.author }}</span>
-                                <span>&middot; {{ selectedFormattedDate }} at {{ selectedFormattedTime }}</span>
-                            </div>
-                        </header>
-
-                        <div
-                            class="article-content prose max-w-none dark:prose-invert prose-headings:text-slate-800 dark:prose-headings:text-slate-200 prose-p:text-slate-700 dark:prose-p:text-slate-300 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-800 dark:prose-strong:text-slate-200 prose-code:text-blue-300 prose-pre:bg-slate-50 dark:prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-200 dark:prose-pre:border-slate-800 prose-img:rounded-lg prose-blockquote:border-slate-300 dark:prose-blockquote:border-slate-700 prose-blockquote:text-slate-500 dark:prose-blockquote:text-slate-400"
-                            v-html="selectedArticle.content || selectedArticle.summary"
-                        />
-
-                        <div v-if="!selectedArticle.content && !selectedArticle.summary" class="py-12 text-center">
-                            <p class="text-slate-500 dark:text-slate-400">No article content available.</p>
-                            <button
-                                v-if="selectedArticle.url"
-                                @click="openInBrowserInline"
-                                class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer"
-                            >
-                                Read on original site
-                            </button>
-                        </div>
-
-                        <!-- Keyboard shortcut hints -->
-                        <div class="mt-8 border-t border-slate-200 dark:border-slate-800 pt-4 text-xs text-slate-500 dark:text-slate-600">
-                            <span class="font-medium text-slate-600 dark:text-slate-500">Shortcuts:</span>
-                            <span class="ml-2"><kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 text-slate-500 dark:text-slate-400">j</kbd>/<kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 text-slate-500 dark:text-slate-400">k</kbd> navigate</span>
-                            <span class="ml-2"><kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 text-slate-500 dark:text-slate-400">s</kbd> save</span>
-                            <span class="ml-2"><kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 text-slate-500 dark:text-slate-400">m</kbd> mark unread</span>
-                            <span class="ml-2"><kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 text-slate-500 dark:text-slate-400">Esc</kbd> close</span>
-                        </div>
-                    </article>
-                </template>
-            </div>
-
-            <!-- Empty reader state (no article selected) -->
-            <div
-                v-else-if="allArticles.length > 0"
-                class="flex flex-1 flex-col items-center justify-center text-slate-500 dark:text-slate-600"
-            >
-                <svg class="h-16 w-16 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                </svg>
-                <p class="mt-4 text-sm">Select an article to read</p>
-                <p class="mt-1 text-xs text-slate-400 dark:text-slate-700">Use <kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 text-slate-600 dark:text-slate-500">j</kbd>/<kbd class="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 text-slate-600 dark:text-slate-500">k</kbd> to navigate</p>
             </div>
         </div>
 
@@ -858,22 +849,59 @@ function formatLastUpdated(date) {
 
             <!-- Empty state -->
             <div v-if="allArticles.length === 0" class="flex flex-col items-center justify-center px-4 py-20 text-center">
-                <svg class="h-16 w-16 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                </svg>
-                <h3 class="mt-4 text-lg font-medium text-slate-700 dark:text-slate-300">
-                    {{ activeFilter === 'read_later' ? 'No saved articles' : 'No articles yet' }}
-                </h3>
-                <p class="mt-2 text-sm text-slate-600 dark:text-slate-500">
-                    {{ activeFilter === 'read_later' ? 'Save articles from your feeds to read later.' : 'Subscribe to feeds to start seeing articles here.' }}
-                </p>
-                <a
-                    v-if="!activeFilter"
-                    :href="route('feeds.create')"
-                    class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-                >
-                    Add a Feed
-                </a>
+                <!-- Read Later empty -->
+                <template v-if="activeFilter === 'read_later'">
+                    <svg class="h-16 w-16 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                    </svg>
+                    <h3 class="mt-4 text-lg font-medium text-slate-700 dark:text-slate-300">No saved articles</h3>
+                    <p class="mt-2 text-sm text-slate-600 dark:text-slate-500">Save articles from your feeds to read later.</p>
+                </template>
+                <!-- No feeds at all -->
+                <template v-else-if="feedCount === 0">
+                    <svg class="h-16 w-16 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                    </svg>
+                    <h3 class="mt-4 text-lg font-medium text-slate-700 dark:text-slate-300">No articles yet</h3>
+                    <p class="mt-2 text-sm text-slate-600 dark:text-slate-500">Subscribe to feeds to start seeing articles here.</p>
+                    <a
+                        :href="route('feeds.create')"
+                        class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                    >
+                        Add a Feed
+                    </a>
+                </template>
+                <!-- Feeds exist but still being fetched -->
+                <template v-else-if="hasPendingFeeds">
+                    <svg class="h-10 w-10 animate-spin text-slate-400 dark:text-slate-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <h3 class="mt-4 text-lg font-medium text-slate-700 dark:text-slate-300">Fetching your feeds...</h3>
+                    <p class="mt-2 text-sm text-slate-600 dark:text-slate-500">Articles will appear here shortly as your feeds are being updated.</p>
+                </template>
+                <!-- Specific feed has no articles -->
+                <template v-else-if="activeFeedId">
+                    <svg class="h-16 w-16 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                    </svg>
+                    <h3 class="mt-4 text-lg font-medium text-slate-700 dark:text-slate-300">No articles in this feed</h3>
+                    <p class="mt-2 text-sm text-slate-600 dark:text-slate-500">This feed doesn't have any articles yet.</p>
+                </template>
+                <!-- Generic fallback -->
+                <template v-else>
+                    <svg class="h-16 w-16 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                    </svg>
+                    <h3 class="mt-4 text-lg font-medium text-slate-700 dark:text-slate-300">No articles yet</h3>
+                    <p class="mt-2 text-sm text-slate-600 dark:text-slate-500">Subscribe to feeds to start seeing articles here.</p>
+                    <a
+                        :href="route('feeds.create')"
+                        class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                    >
+                        Add a Feed
+                    </a>
+                </template>
             </div>
 
             <!-- Article list -->

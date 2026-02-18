@@ -32,6 +32,8 @@ class FeedController extends Controller
                             'title' => $feed->title,
                             'feed_url' => $feed->feed_url,
                             'favicon_url' => $feed->favicon_url,
+                            'disabled_at' => $feed->disabled_at,
+                            'last_error' => $feed->last_error,
                         ];
                     })->values()->all(),
                 ];
@@ -49,6 +51,8 @@ class FeedController extends Controller
                     'title' => $feed->title,
                     'feed_url' => $feed->feed_url,
                     'favicon_url' => $feed->favicon_url,
+                    'disabled_at' => $feed->disabled_at,
+                    'last_error' => $feed->last_error,
                 ];
             })
             ->values()
@@ -90,6 +94,8 @@ class FeedController extends Controller
             return back()->withErrors(['url' => 'You are already subscribed to this feed.']);
         }
 
+        $request->session()->put('feed_preview', $data);
+
         $categories = $request->user()->categories()->orderBy('sort_order')->get(['id', 'name']);
 
         return Inertia::render('Feeds/Create', [
@@ -105,7 +111,7 @@ class FeedController extends Controller
         ]);
     }
 
-    public function store(Request $request, FeedParserService $parser)
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'feed_url' => ['required', 'string', 'max:2048'],
@@ -131,14 +137,13 @@ class FeedController extends Controller
             return back()->withErrors(['feed_url' => 'You are already subscribed to this feed.']);
         }
 
-        // Parse the feed to get articles
-        try {
-            $data = $parser->discoverAndParse($validated['feed_url']);
-        } catch (\RuntimeException $e) {
-            return back()->withErrors(['feed_url' => $e->getMessage()]);
+        $data = $request->session()->get('feed_preview');
+
+        if (! $data || $data['feed_url'] !== $validated['feed_url']) {
+            return back()->withErrors(['feed_url' => 'Feed preview expired. Please search for the feed again.']);
         }
 
-        DB::transaction(function () use ($request, $validated, $data) {
+        $feed = DB::transaction(function () use ($request, $validated, $data) {
             $categoryId = $validated['category_id'] ?? null;
 
             // Create new category if requested
@@ -151,24 +156,22 @@ class FeedController extends Controller
                 $categoryId = $category->id;
             }
 
-            // Create the feed
-            $feed = $request->user()->feeds()->create([
+            // Create the feed record using cached preview data
+            return $request->user()->feeds()->create([
                 'category_id' => $categoryId,
                 'title' => $validated['title'] ?: $data['title'],
                 'feed_url' => $data['feed_url'],
                 'site_url' => $data['site_url'],
                 'description' => $data['description'],
                 'favicon_url' => $data['favicon_url'],
-                'last_fetched_at' => now(),
             ]);
-
-            // Store initial articles
-            foreach ($data['articles'] as $articleData) {
-                $feed->articles()->create($articleData);
-            }
         });
 
-        return redirect()->route('dashboard')->with('success', 'Feed added successfully!');
+        $request->session()->forget('feed_preview');
+
+        FetchFeed::dispatch($feed);
+
+        return redirect()->route('articles.index')->with('success', 'Feed added successfully!');
     }
 
     public function update(Request $request, \App\Models\Feed $feed)
@@ -183,9 +186,9 @@ class FeedController extends Controller
         ]);
 
         // Verify category belongs to user if provided
-        if (!empty($validated['category_id'])) {
+        if (! empty($validated['category_id'])) {
             $category = $request->user()->categories()->find($validated['category_id']);
-            if (!$category) {
+            if (! $category) {
                 return back()->withErrors(['category_id' => 'Invalid category.']);
             }
         }
@@ -205,6 +208,18 @@ class FeedController extends Controller
         }
 
         $feed->delete();
+
+        return back();
+    }
+
+    public function reenable(Request $request, \App\Models\Feed $feed)
+    {
+        if ($feed->user_id !== $request->user()->id) {
+            abort(404);
+        }
+
+        $feed->recordSuccess();
+        FetchFeed::dispatch($feed);
 
         return back();
     }

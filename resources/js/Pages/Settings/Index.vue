@@ -35,6 +35,7 @@ const prefsForm = useForm({
 const savePrefs = () => {
     prefsForm.patch(route('settings.update'), {
         preserveScroll: true,
+        preserveState: true,
         onSuccess: () => {
             // Sync client-side theme with saved preference
             setTheme(prefsForm.theme);
@@ -51,6 +52,7 @@ const accountForm = useForm({
 const saveAccount = () => {
     accountForm.patch(route('settings.updateAccount'), {
         preserveScroll: true,
+        preserveState: true,
     });
 };
 
@@ -64,6 +66,7 @@ const passwordForm = useForm({
 const savePassword = () => {
     passwordForm.patch(route('settings.updatePassword'), {
         preserveScroll: true,
+        preserveState: true,
         onSuccess: () => {
             passwordForm.reset();
         },
@@ -88,6 +91,7 @@ const logout = () => {
             <button
                 @click="router.visit(route('articles.index'))"
                 class="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 transition-colors -ml-2"
+                title="Go back"
                 aria-label="Go back"
             >
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">

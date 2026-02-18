@@ -33,6 +33,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/feeds/refresh', [FeedController::class, 'refresh'])->name('feeds.refresh');
     Route::put('/feeds/{feed}', [FeedController::class, 'update'])->name('feeds.update');
     Route::delete('/feeds/{feed}', [FeedController::class, 'destroy'])->name('feeds.destroy');
+    Route::post('/feeds/{feed}/reenable', [FeedController::class, 'reenable'])->name('feeds.reenable');
 
     // Categories
     Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');

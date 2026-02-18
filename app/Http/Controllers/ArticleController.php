@@ -100,6 +100,9 @@ class ArticleController extends Controller
                 ->count();
         }
 
+        $feedCount = $user->feeds()->count();
+        $hasPendingFeeds = $user->feeds()->whereNull('last_fetched_at')->exists();
+
         return Inertia::render('Articles/Index', [
             'articles' => $articles,
             'unreadCount' => $unreadCount,
@@ -108,6 +111,8 @@ class ArticleController extends Controller
             'activeCategoryId' => $activeCategoryId,
             'activeFilter' => $activeFilter,
             'sidebar' => $sidebarData,
+            'feedCount' => $feedCount,
+            'hasPendingFeeds' => $hasPendingFeeds,
         ]);
     }
 
@@ -156,6 +161,7 @@ class ArticleController extends Controller
                         'title' => $feed->title,
                         'favicon_url' => $feed->favicon_url,
                         'unread_count' => $feedUnreadCounts[$feed->id] ?? 0,
+                        'disabled_at' => $feed->disabled_at,
                     ];
                 });
 
@@ -178,6 +184,7 @@ class ArticleController extends Controller
                     'title' => $feed->title,
                     'favicon_url' => $feed->favicon_url,
                     'unread_count' => $feedUnreadCounts[$feed->id] ?? 0,
+                    'disabled_at' => $feed->disabled_at,
                 ];
             })
             ->values()
@@ -288,12 +295,30 @@ class ArticleController extends Controller
             ],
         ]);
 
+        // Previous article (newer — published_at > current, ordered ASC, take first)
+        $prevArticle = Article::whereIn('feed_id', $userFeedIds)
+            ->where('published_at', '>', $article->published_at)
+            ->orderBy('published_at', 'asc')
+            ->first(['id']);
+
+        // Next article (older — published_at < current, ordered DESC, take first)
+        $nextArticle = Article::whereIn('feed_id', $userFeedIds)
+            ->where('published_at', '<', $article->published_at)
+            ->orderBy('published_at', 'desc')
+            ->first(['id']);
+
         if ($request->wantsJson()) {
-            return response()->json(['article' => $article]);
+            return response()->json([
+                'article' => $article,
+                'prevArticleId' => $prevArticle?->id,
+                'nextArticleId' => $nextArticle?->id,
+            ]);
         }
 
         return Inertia::render('Articles/Show', [
             'article' => $article,
+            'prevArticleId' => $prevArticle?->id,
+            'nextArticleId' => $nextArticle?->id,
         ]);
     }
 

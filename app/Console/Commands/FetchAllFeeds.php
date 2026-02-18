@@ -15,14 +15,29 @@ class FetchAllFeeds extends Command
     public function handle(): int
     {
         $feeds = Feed::all();
-
-        $this->info("Dispatching fetch jobs for {$feeds->count()} feeds...");
+        $dispatched = 0;
+        $skipped = 0;
 
         foreach ($feeds as $feed) {
+            if ($feed->isDisabled()) {
+                $this->line("Skipping disabled feed [{$feed->id}]: {$feed->title}");
+                $skipped++;
+
+                continue;
+            }
+
+            if ($feed->shouldSkipRefresh()) {
+                $this->line("Skipping backoff feed [{$feed->id}] ({$feed->consecutive_failures} failures): {$feed->title}");
+                $skipped++;
+
+                continue;
+            }
+
             FetchFeed::dispatch($feed);
+            $dispatched++;
         }
 
-        $this->info('All feed fetch jobs dispatched.');
+        $this->info("Dispatched {$dispatched} feed fetch jobs, skipped {$skipped}.");
 
         return Command::SUCCESS;
     }

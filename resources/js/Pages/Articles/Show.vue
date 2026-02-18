@@ -8,6 +8,8 @@ import { useToast } from '@/Composables/useToast.js';
 
 const props = defineProps({
     article: Object,
+    prevArticleId: Number,
+    nextArticleId: Number,
 });
 
 const { isOnline } = useOnlineStatus();
@@ -116,6 +118,34 @@ function shareArticle() {
         }
     }
 }
+
+// Swipe navigation between articles
+let touchStartX = 0;
+let touchStartY = 0;
+const SWIPE_THRESHOLD = 80;
+const SWIPE_ANGLE_LIMIT = 30; // degrees — must be mostly horizontal
+
+function onSwipeStart(e) {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+}
+
+function onSwipeEnd(e) {
+    const deltaX = e.changedTouches[0].clientX - touchStartX;
+    const deltaY = e.changedTouches[0].clientY - touchStartY;
+    const angle = Math.abs(Math.atan2(deltaY, deltaX) * 180 / Math.PI);
+
+    // Must be mostly horizontal
+    if (angle > SWIPE_ANGLE_LIMIT && angle < (180 - SWIPE_ANGLE_LIMIT)) return;
+
+    if (deltaX < -SWIPE_THRESHOLD && props.nextArticleId) {
+        // Swipe left → next article (older)
+        router.visit(route('articles.show', props.nextArticleId));
+    } else if (deltaX > SWIPE_THRESHOLD && props.prevArticleId) {
+        // Swipe right → previous article (newer)
+        router.visit(route('articles.show', props.prevArticleId));
+    }
+}
 </script>
 
 <template>
@@ -189,7 +219,7 @@ function shareArticle() {
         </template>
 
         <!-- Article content -->
-        <article class="mx-auto max-w-3xl px-4 py-6">
+        <article class="mx-auto max-w-3xl px-4 py-6" @touchstart.passive="onSwipeStart" @touchend="onSwipeEnd">
             <!-- Article header -->
             <header class="mb-6">
                 <h1 class="text-2xl font-bold leading-tight text-slate-900 dark:text-slate-100">

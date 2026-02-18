@@ -22,10 +22,15 @@ class FetchFeed implements ShouldQueue
 
     public function handle(FeedParserService $parser): void
     {
+        if ($this->feed->isDisabled()) {
+            return;
+        }
+
         try {
             $data = $parser->discoverAndParse($this->feed->feed_url);
         } catch (\RuntimeException $e) {
             Log::warning("FetchFeed failed for feed {$this->feed->id}: {$e->getMessage()}");
+            $this->feed->recordFailure($e->getMessage());
             throw $e;
         }
 
@@ -52,5 +57,7 @@ class FetchFeed implements ShouldQueue
         $this->feed->update(array_merge($metadataUpdates, [
             'last_fetched_at' => now(),
         ]));
+
+        $this->feed->recordSuccess();
     }
 }
