@@ -157,7 +157,7 @@ function goBackToSearch() {
         >
             <div
                 v-if="show"
-                class="fixed inset-0 z-50 flex items-end lg:items-center justify-center"
+                class="fixed inset-0 z-50 flex items-start justify-center pt-[12vh] lg:items-center lg:pt-0"
             >
                 <!-- Backdrop -->
                 <div
@@ -168,16 +168,16 @@ function goBackToSearch() {
                 <!-- Modal panel -->
                 <Transition
                     enter-active-class="duration-200 ease-out"
-                    enter-from-class="translate-y-full lg:translate-y-0 lg:opacity-0 lg:scale-95"
-                    enter-to-class="translate-y-0 lg:opacity-100 lg:scale-100"
+                    enter-from-class="opacity-0 scale-95"
+                    enter-to-class="opacity-100 scale-100"
                     leave-active-class="duration-150 ease-in"
-                    leave-from-class="translate-y-0 lg:opacity-100 lg:scale-100"
-                    leave-to-class="translate-y-full lg:translate-y-0 lg:opacity-0 lg:scale-95"
+                    leave-from-class="opacity-100 scale-100"
+                    leave-to-class="opacity-0 scale-95"
                     appear
                 >
                     <div
                         v-if="show"
-                        class="relative z-10 w-full max-h-[90vh] overflow-y-auto rounded-t-2xl lg:rounded-2xl bg-neutral-50 dark:bg-neutral-900 shadow-2xl lg:max-w-md lg:mx-4"
+                        class="relative z-10 w-full max-h-[80vh] overflow-y-auto rounded-2xl bg-neutral-50 dark:bg-neutral-900 shadow-2xl max-w-md mx-4"
                     >
                         <!-- Header -->
                         <div class="sticky top-0 z-10 flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-5 py-4 rounded-t-2xl">

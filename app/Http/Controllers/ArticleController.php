@@ -80,7 +80,7 @@ class ArticleController extends Controller
 
         $hideReadArticles = $user->settings['hide_read_articles'] ?? false;
         $showAll = $request->boolean('show_all');
-        if ($hideReadArticles && !$showAll) {
+        if ($hideReadArticles && !$showAll && $activeFilter !== 'read_later') {
             $query->where(fn ($q) => $q->whereNull('user_articles.is_read')->orWhere('user_articles.is_read', false));
         }
 
@@ -108,6 +108,8 @@ class ArticleController extends Controller
         // Compute view-specific unread count
         if (!$activeFeedId && !$activeCategoryId && !$activeFilter) {
             $unreadCount = $sidebarData['totalUnread'];
+        } elseif ($activeFilter === 'read_later') {
+            $unreadCount = $sidebarData['readLaterCount'];
         } else {
             $unreadCount = Article::whereIn('feed_id', $feedIds)
                 ->whereDoesntHave('users', function ($query) use ($user) {

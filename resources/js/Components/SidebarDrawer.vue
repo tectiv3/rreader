@@ -66,7 +66,7 @@ function isActiveAll() {
                 aria-label="Navigation sidebar"
             >
                 <!-- Drawer header -->
-                <div class="flex h-14 items-center justify-between border-b border-neutral-200 dark:border-neutral-800 px-4">
+                <div class="flex min-h-14 items-center justify-between border-b border-neutral-200 dark:border-neutral-800 px-4 pt-safe">
                     <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">RReader</h2>
                     <div class="flex items-center gap-1">
                         <Link
@@ -465,6 +465,10 @@ function isActiveAll() {
 </template>
 
 <style scoped>
+.pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+}
+
 .overlay-enter-active,
 .overlay-leave-active {
     transition: opacity 0.25s ease;

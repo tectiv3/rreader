@@ -15,7 +15,10 @@
       "Bash(grep:*)",
       "Bash(npx --yes sharp-cli:*)",
       "Bash(npx --yes png-to-ico:*)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "Bash(git diff:*)",
+      "Bash(GIT_PAGER=cat git diff:*)",
+      "Bash(GIT_PAGER=cat git status:*)"
     ],
     "defaultMode": "acceptEdits"
   }
