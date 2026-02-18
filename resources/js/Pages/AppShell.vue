@@ -1,17 +1,20 @@
 <script setup>
-import router from '@/router.js'
-import { useRouter } from 'vue-router'
-import { onMounted } from 'vue'
+import AppLayout from '@/Views/AppLayout.vue'
+import { useSidebarStore } from '@/Stores/useSidebarStore.js'
 
-defineProps({
+const props = defineProps({
     initialSidebar: { type: Object, default: () => ({}) },
     user: { type: Object, required: true },
 })
 
-// Mount Vue Router into this component
-// The router is used via <router-view> in the template
+const sidebarStore = useSidebarStore()
+
+// Hydrate sidebar from server-provided initial data (avoids an API round-trip on first load)
+if (!sidebarStore.loaded) {
+    sidebarStore.initialize(props.initialSidebar)
+}
 </script>
 
 <template>
-    <router-view />
+    <AppLayout />
 </template>
