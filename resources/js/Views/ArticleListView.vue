@@ -32,22 +32,26 @@ function deriveView() {
 articleStore.fetchArticles(deriveView())
 
 // Watch route changes (skip if navigated away from this view)
-watch(() => route.query, () => {
-    if (route.name === 'articles.index') {
-        closeArticlePanel()
-        articleStore.fetchArticles(deriveView())
-    }
-}, { deep: true })
+watch(
+    () => route.query,
+    () => {
+        if (route.name === 'articles.index') {
+            closeArticlePanel()
+            articleStore.fetchArticles(deriveView())
+        }
+    },
+    { deep: true }
+)
 
 // --- Computed helpers ---
-const activeFeedId = computed(() => route.query.feed_id ? Number(route.query.feed_id) : null)
+const activeFeedId = computed(() => (route.query.feed_id ? Number(route.query.feed_id) : null))
 const activeFilter = computed(() => route.query.filter || null)
 const isReadLaterView = computed(() => activeFilter.value === 'read_later')
 
 const feedCount = computed(() => {
     let count = sidebarStore.uncategorizedFeeds.length
     for (const cat of sidebarStore.categories) {
-        count += (cat.feeds?.length || 0)
+        count += cat.feeds?.length || 0
     }
     return count
 })
@@ -67,7 +71,12 @@ const groupedArticles = computed(() => {
         let label
         if (pubDate.getTime() === today.getTime()) label = 'Today'
         else if (pubDate.getTime() === yesterday.getTime()) label = 'Yesterday'
-        else label = pubDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+        else
+            label = pubDate.toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+            })
 
         if (!groups[label]) groups[label] = []
         groups[label].push(article)
@@ -194,14 +203,18 @@ const showHeroImage = computed(() => {
 const selectedFormattedDate = computed(() => {
     if (!selectedArticle.value) return ''
     return new Date(selectedArticle.value.published_at).toLocaleDateString('en-US', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
     })
 })
 
 const selectedFormattedTime = computed(() => {
     if (!selectedArticle.value) return ''
     return new Date(selectedArticle.value.published_at).toLocaleTimeString('en-US', {
-        hour: 'numeric', minute: '2-digit',
+        hour: 'numeric',
+        minute: '2-digit',
     })
 })
 
@@ -213,7 +226,12 @@ const selectedIndex = computed(() => {
 
 function onKeyDown(e) {
     if (!isDesktop.value) return
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return
+    if (
+        e.target.tagName === 'INPUT' ||
+        e.target.tagName === 'TEXTAREA' ||
+        e.target.isContentEditable
+    )
+        return
     if (route.name !== 'articles.index') return
 
     switch (e.key) {
@@ -246,7 +264,8 @@ function onKeyDown(e) {
                 if (next) {
                     selectedArticleId.value = next.id
                     nextTick(() => {
-                        document.getElementById(`article-row-${next.id}`)
+                        document
+                            .getElementById(`article-row-${next.id}`)
                             ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
                     })
                 }
@@ -272,10 +291,7 @@ function markAllAsRead() {
 
 // --- Refresh ---
 async function refreshFeeds() {
-    await Promise.all([
-        articleStore.forceRefresh(),
-        sidebarStore.fetchSidebar(),
-    ])
+    await Promise.all([articleStore.forceRefresh(), sidebarStore.fetchSidebar()])
 }
 
 // --- Pull-to-refresh ---
@@ -337,7 +353,10 @@ function onTouchMove(articleId, e) {
     const deltaX = e.touches[0].clientX - state.startX
     const deltaY = e.touches[0].clientY - state.startY
 
-    if (!state.directionLocked && (Math.abs(deltaX) > SWIPE_DEAD_ZONE || Math.abs(deltaY) > SWIPE_DEAD_ZONE)) {
+    if (
+        !state.directionLocked &&
+        (Math.abs(deltaX) > SWIPE_DEAD_ZONE || Math.abs(deltaY) > SWIPE_DEAD_ZONE)
+    ) {
         state.directionLocked = true
         if (Math.abs(deltaY) > Math.abs(deltaX)) {
             delete swipeState.value[articleId]
@@ -395,8 +414,16 @@ function getSwipeDirection(articleId) {
                     class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors -ml-2"
                     title="Open sidebar"
                     aria-label="Open sidebar">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    <svg
+                        class="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                     </svg>
                 </button>
                 <h1 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100 truncate">
@@ -418,8 +445,14 @@ function getSwipeDirection(articleId) {
                     <svg
                         class="h-5 w-5 transition-transform"
                         :class="{ 'animate-spin': articleStore.loading }"
-                        fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" />
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" />
                     </svg>
                 </button>
                 <button
@@ -429,8 +462,16 @@ function getSwipeDirection(articleId) {
                     class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer"
                     title="Mark all as read"
                     aria-label="Mark all as read">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                        class="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </button>
             </div>
@@ -438,20 +479,36 @@ function getSwipeDirection(articleId) {
     </header>
 
     <!-- Loading state -->
-    <div v-if="articleStore.loading && articleStore.articles.length === 0" class="flex items-center justify-center py-20">
+    <div
+        v-if="articleStore.loading && articleStore.articles.length === 0"
+        class="flex items-center justify-center py-20">
         <svg class="h-8 w-8 animate-spin text-neutral-400" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4" />
+            <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
         </svg>
     </div>
 
     <!-- Desktop: article list with inline expansion -->
-    <div v-else-if="isDesktop" class="flex" style="height: calc(100vh - 2.75rem - env(safe-area-inset-top, 0px))">
+    <div
+        v-else-if="isDesktop"
+        class="flex"
+        style="height: calc(100vh - 2.75rem - env(safe-area-inset-top, 0px))">
         <div ref="articleListEl" class="flex-1 flex flex-col overflow-y-auto">
             <template v-if="articleStore.articles.length > 0">
                 <template v-for="(articles, dateLabel) in groupedArticles" :key="dateLabel">
-                    <div class="sticky top-0 z-10 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-950/95 px-4 py-2 backdrop-blur">
-                        <h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-500">
+                    <div
+                        class="sticky top-0 z-10 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-950/95 px-4 py-2 backdrop-blur">
+                        <h2
+                            class="text-xs font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-500">
                             {{ dateLabel }}
                         </h2>
                     </div>
@@ -479,9 +536,11 @@ function getSwipeDirection(articleId) {
                                 </span>
                                 <h3
                                     class="min-w-0 flex-1 truncate text-sm"
-                                    :class="article.is_read
-                                        ? 'text-neutral-600 dark:text-neutral-500 font-normal'
-                                        : 'text-neutral-900 dark:text-neutral-100 font-medium'">
+                                    :class="
+                                        article.is_read
+                                            ? 'text-neutral-600 dark:text-neutral-500 font-normal'
+                                            : 'text-neutral-900 dark:text-neutral-100 font-medium'
+                                    ">
                                     {{ article.title }}
                                 </h3>
                                 <span
@@ -489,7 +548,8 @@ function getSwipeDirection(articleId) {
                                     class="hidden xl:block w-64 shrink-0 truncate text-xs text-neutral-500 dark:text-neutral-600">
                                     {{ article.summary }}
                                 </span>
-                                <span class="w-12 shrink-0 text-right text-xs text-neutral-500 dark:text-neutral-600">
+                                <span
+                                    class="w-12 shrink-0 text-right text-xs text-neutral-500 dark:text-neutral-600">
                                     {{ timeAgo(article.published_at) }}
                                 </span>
                             </button>
@@ -500,18 +560,34 @@ function getSwipeDirection(articleId) {
                                 :id="`article-expanded-${article.id}`"
                                 class="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50">
                                 <!-- Loading state -->
-                                <div v-if="loadingArticle && !selectedArticle" class="flex items-center justify-center py-12">
-                                    <svg class="h-8 w-8 animate-spin text-neutral-400" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                <div
+                                    v-if="loadingArticle && !selectedArticle"
+                                    class="flex items-center justify-center py-12">
+                                    <svg
+                                        class="h-8 w-8 animate-spin text-neutral-400"
+                                        fill="none"
+                                        viewBox="0 0 24 24">
+                                        <circle
+                                            class="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            stroke-width="4" />
+                                        <path
+                                            class="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                     </svg>
                                 </div>
 
                                 <!-- Article content -->
                                 <template v-if="selectedArticle">
-                                    <div class="sticky top-0 z-10 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/95 dark:bg-neutral-900/80 backdrop-blur px-4 py-2">
+                                    <div
+                                        class="sticky top-0 z-10 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/95 dark:bg-neutral-900/80 backdrop-blur px-4 py-2">
                                         <div class="flex items-center justify-between gap-3">
-                                            <h2 class="min-w-0 flex-1 truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                                            <h2
+                                                class="min-w-0 flex-1 truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
                                                 <a
                                                     v-if="selectedArticle.url"
                                                     :href="selectedArticle.url"
@@ -520,53 +596,112 @@ function getSwipeDirection(articleId) {
                                                     class="hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
                                                     {{ selectedArticle.title }}
                                                 </a>
-                                                <template v-else>{{ selectedArticle.title }}</template>
+                                                <template v-else>{{
+                                                    selectedArticle.title
+                                                }}</template>
                                             </h2>
                                             <div class="flex shrink-0 items-center gap-0.5">
                                                 <button
                                                     @click.stop="toggleReadLaterInline"
                                                     class="rounded-lg p-1.5 transition-colors cursor-pointer"
-                                                    :class="selectedIsReadLater
-                                                        ? 'text-blue-500 hover:bg-neutral-200 dark:hover:bg-neutral-800'
-                                                        : 'text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300'"
-                                                    :title="selectedIsReadLater ? 'Remove from Read Later' : 'Save to Read Later'">
-                                                    <svg class="h-4 w-4" :fill="selectedIsReadLater ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                                                    :class="
+                                                        selectedIsReadLater
+                                                            ? 'text-blue-500 hover:bg-neutral-200 dark:hover:bg-neutral-800'
+                                                            : 'text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300'
+                                                    "
+                                                    :title="
+                                                        selectedIsReadLater
+                                                            ? 'Remove from Read Later'
+                                                            : 'Save to Read Later'
+                                                    ">
+                                                    <svg
+                                                        class="h-4 w-4"
+                                                        :fill="
+                                                            selectedIsReadLater
+                                                                ? 'currentColor'
+                                                                : 'none'
+                                                        "
+                                                        viewBox="0 0 24 24"
+                                                        stroke-width="1.5"
+                                                        stroke="currentColor">
+                                                        <path
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                            d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
                                                     </svg>
                                                 </button>
                                                 <button
                                                     @click.stop="markAsUnreadInline"
                                                     class="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors cursor-pointer"
                                                     title="Mark as unread">
-                                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V18" />
+                                                    <svg
+                                                        class="h-4 w-4"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke-width="1.5"
+                                                        stroke="currentColor">
+                                                        <path
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                            d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V18" />
                                                     </svg>
                                                 </button>
                                                 <button
                                                     @click.stop="closeArticlePanel"
                                                     class="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors cursor-pointer"
                                                     title="Close article">
-                                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                    <svg
+                                                        class="h-4 w-4"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke-width="1.5"
+                                                        stroke="currentColor">
+                                                        <path
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                            d="M6 18L18 6M6 6l12 12" />
                                                     </svg>
                                                 </button>
                                             </div>
                                         </div>
-                                        <div class="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-neutral-500 dark:text-neutral-500">
+                                        <div
+                                            class="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-neutral-500 dark:text-neutral-500">
                                             <a
-                                                v-if="selectedArticle.feed?.id || selectedArticle.feed_id"
+                                                v-if="
+                                                    selectedArticle.feed?.id ||
+                                                    selectedArticle.feed_id
+                                                "
                                                 href="#"
                                                 class="flex items-center gap-1.5 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
-                                                @click.prevent="navigateToFeed(selectedArticle.feed?.id || selectedArticle.feed_id)">
+                                                @click.prevent="
+                                                    navigateToFeed(
+                                                        selectedArticle.feed?.id ||
+                                                            selectedArticle.feed_id
+                                                    )
+                                                ">
                                                 <img
-                                                    v-if="selectedArticle.feed?.favicon_url || selectedArticle.feed_favicon_url"
-                                                    :src="selectedArticle.feed?.favicon_url || selectedArticle.feed_favicon_url"
+                                                    v-if="
+                                                        selectedArticle.feed?.favicon_url ||
+                                                        selectedArticle.feed_favicon_url
+                                                    "
+                                                    :src="
+                                                        selectedArticle.feed?.favicon_url ||
+                                                        selectedArticle.feed_favicon_url
+                                                    "
                                                     class="h-3.5 w-3.5 rounded-sm"
                                                     alt="" />
-                                                <span>{{ selectedArticle.feed?.title || selectedArticle.feed_title }}</span>
+                                                <span>{{
+                                                    selectedArticle.feed?.title ||
+                                                    selectedArticle.feed_title
+                                                }}</span>
                                             </a>
-                                            <span v-if="selectedArticle.author">&middot; {{ selectedArticle.author }}</span>
-                                            <span>&middot; {{ selectedFormattedDate }} at {{ selectedFormattedTime }}</span>
+                                            <span v-if="selectedArticle.author"
+                                                >&middot; {{ selectedArticle.author }}</span
+                                            >
+                                            <span
+                                                >&middot; {{ selectedFormattedDate }} at
+                                                {{ selectedFormattedTime }}</span
+                                            >
                                         </div>
                                     </div>
 
@@ -580,10 +715,18 @@ function getSwipeDirection(articleId) {
 
                                         <div
                                             class="article-content prose max-w-none dark:prose-invert prose-headings:text-neutral-800 dark:prose-headings:text-neutral-200 prose-p:text-neutral-700 dark:prose-p:text-neutral-300 prose-a:text-blue-500 prose-a:no-underline hover:prose-a:underline prose-strong:text-neutral-800 dark:prose-strong:text-neutral-200 prose-code:text-blue-600 dark:prose-code:text-blue-300 prose-pre:bg-white dark:prose-pre:bg-neutral-900 prose-pre:border prose-pre:border-neutral-200 dark:prose-pre:border-neutral-800 prose-img:rounded-lg prose-blockquote:border-neutral-300 dark:prose-blockquote:border-neutral-700 prose-blockquote:text-neutral-500 dark:prose-blockquote:text-neutral-400"
-                                            v-html="selectedArticle.content || selectedArticle.summary" />
+                                            v-html="
+                                                selectedArticle.content || selectedArticle.summary
+                                            " />
 
-                                        <div v-if="!selectedArticle.content && !selectedArticle.summary" class="py-12 text-center">
-                                            <p class="text-neutral-500 dark:text-neutral-400">No article content available.</p>
+                                        <div
+                                            v-if="
+                                                !selectedArticle.content && !selectedArticle.summary
+                                            "
+                                            class="py-12 text-center">
+                                            <p class="text-neutral-500 dark:text-neutral-400">
+                                                No article content available.
+                                            </p>
                                             <a
                                                 v-if="selectedArticle.url"
                                                 :href="selectedArticle.url"
@@ -595,12 +738,50 @@ function getSwipeDirection(articleId) {
                                         </div>
 
                                         <!-- Keyboard shortcut hints -->
-                                        <div class="mt-8 border-t border-neutral-200 dark:border-neutral-800 pt-4 text-xs text-neutral-400 dark:text-neutral-600">
-                                            <span class="font-medium text-neutral-500">Shortcuts:</span>
-                                            <span class="ml-2"><kbd class="rounded bg-neutral-200 dark:bg-neutral-800 px-1.5 py-0.5">j</kbd>/<kbd class="rounded bg-neutral-200 dark:bg-neutral-800 px-1.5 py-0.5">k</kbd> or <kbd class="rounded bg-neutral-200 dark:bg-neutral-800 px-1.5 py-0.5">&larr;</kbd>/<kbd class="rounded bg-neutral-200 dark:bg-neutral-800 px-1.5 py-0.5">&rarr;</kbd> navigate</span>
-                                            <span class="ml-2"><kbd class="rounded bg-neutral-200 dark:bg-neutral-800 px-1.5 py-0.5">s</kbd> save</span>
-                                            <span class="ml-2"><kbd class="rounded bg-neutral-200 dark:bg-neutral-800 px-1.5 py-0.5">m</kbd> mark unread</span>
-                                            <span class="ml-2"><kbd class="rounded bg-neutral-200 dark:bg-neutral-800 px-1.5 py-0.5">Esc</kbd> close</span>
+                                        <div
+                                            class="mt-8 border-t border-neutral-200 dark:border-neutral-800 pt-4 text-xs text-neutral-400 dark:text-neutral-600">
+                                            <span class="font-medium text-neutral-500"
+                                                >Shortcuts:</span
+                                            >
+                                            <span class="ml-2"
+                                                ><kbd
+                                                    class="rounded bg-neutral-200 dark:bg-neutral-800 px-1.5 py-0.5"
+                                                    >j</kbd
+                                                >/<kbd
+                                                    class="rounded bg-neutral-200 dark:bg-neutral-800 px-1.5 py-0.5"
+                                                    >k</kbd
+                                                >
+                                                or
+                                                <kbd
+                                                    class="rounded bg-neutral-200 dark:bg-neutral-800 px-1.5 py-0.5"
+                                                    >&larr;</kbd
+                                                >/<kbd
+                                                    class="rounded bg-neutral-200 dark:bg-neutral-800 px-1.5 py-0.5"
+                                                    >&rarr;</kbd
+                                                >
+                                                navigate</span
+                                            >
+                                            <span class="ml-2"
+                                                ><kbd
+                                                    class="rounded bg-neutral-200 dark:bg-neutral-800 px-1.5 py-0.5"
+                                                    >s</kbd
+                                                >
+                                                save</span
+                                            >
+                                            <span class="ml-2"
+                                                ><kbd
+                                                    class="rounded bg-neutral-200 dark:bg-neutral-800 px-1.5 py-0.5"
+                                                    >m</kbd
+                                                >
+                                                mark unread</span
+                                            >
+                                            <span class="ml-2"
+                                                ><kbd
+                                                    class="rounded bg-neutral-200 dark:bg-neutral-800 px-1.5 py-0.5"
+                                                    >Esc</kbd
+                                                >
+                                                close</span
+                                            >
                                         </div>
                                     </article>
                                 </template>
@@ -618,29 +799,71 @@ function getSwipeDirection(articleId) {
             <!-- Empty states (desktop) -->
             <div v-else class="flex flex-col items-center justify-center px-4 py-20 text-center">
                 <template v-if="activeFilter === 'read_later'">
-                    <svg class="h-16 w-16 text-neutral-300 dark:text-neutral-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                    <svg
+                        class="h-16 w-16 text-neutral-300 dark:text-neutral-700"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                     </svg>
-                    <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">No saved articles</h3>
-                    <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">Save articles from your feeds to read later.</p>
+                    <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
+                        No saved articles
+                    </h3>
+                    <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
+                        Save articles from your feeds to read later.
+                    </p>
                 </template>
                 <template v-else-if="feedCount === 0">
-                    <svg class="h-16 w-16 text-neutral-300 dark:text-neutral-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                    <svg
+                        class="h-16 w-16 text-neutral-300 dark:text-neutral-700"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                     </svg>
-                    <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">No articles yet</h3>
-                    <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">Subscribe to feeds to start seeing articles here.</p>
-                    <button type="button" @click="openAddFeedModal()" class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
+                    <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
+                        No articles yet
+                    </h3>
+                    <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
+                        Subscribe to feeds to start seeing articles here.
+                    </p>
+                    <button
+                        type="button"
+                        @click="openAddFeedModal()"
+                        class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
                         Add a Feed
                     </button>
                 </template>
                 <template v-else>
-                    <svg class="h-16 w-16 text-neutral-300 dark:text-neutral-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                    <svg
+                        class="h-16 w-16 text-neutral-300 dark:text-neutral-700"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                     </svg>
-                    <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">No articles yet</h3>
-                    <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">Subscribe to feeds to start seeing articles here.</p>
-                    <button type="button" @click="openAddFeedModal()" class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
+                    <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
+                        No articles yet
+                    </h3>
+                    <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
+                        Subscribe to feeds to start seeing articles here.
+                    </p>
+                    <button
+                        type="button"
+                        @click="openAddFeedModal()"
+                        class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
                         Add a Feed
                     </button>
                 </template>
@@ -659,43 +882,112 @@ function getSwipeDirection(articleId) {
                 <svg
                     class="h-5 w-5 text-neutral-500 dark:text-neutral-400 transition-transform duration-200"
                     :class="{ 'animate-spin': isRefreshing }"
-                    :style="!isRefreshing ? { transform: `rotate(${Math.min(pullDistance / PULL_THRESHOLD, 1) * 360}deg)` } : {}"
-                    fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" />
+                    :style="
+                        !isRefreshing
+                            ? {
+                                  transform: `rotate(${
+                                      Math.min(pullDistance / PULL_THRESHOLD, 1) * 360
+                                  }deg)`,
+                              }
+                            : {}
+                    "
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1.5"
+                    stroke="currentColor">
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.182" />
                 </svg>
-                <span v-if="!isRefreshing && pullDistance >= PULL_THRESHOLD" class="text-[10px] text-neutral-600 dark:text-neutral-500">Release to refresh</span>
-                <span v-else-if="isRefreshing" class="text-[10px] text-neutral-600 dark:text-neutral-500">Refreshing...</span>
+                <span
+                    v-if="!isRefreshing && pullDistance >= PULL_THRESHOLD"
+                    class="text-[10px] text-neutral-600 dark:text-neutral-500"
+                    >Release to refresh</span
+                >
+                <span
+                    v-else-if="isRefreshing"
+                    class="text-[10px] text-neutral-600 dark:text-neutral-500"
+                    >Refreshing...</span
+                >
             </div>
         </div>
 
         <!-- Scrollable area with pull-to-refresh touch handlers -->
-        <div @touchstart.passive="onPullStart" @touchmove.passive="onPullMove" @touchend="onPullEnd">
+        <div
+            @touchstart.passive="onPullStart"
+            @touchmove.passive="onPullMove"
+            @touchend="onPullEnd">
             <!-- Empty state -->
-            <div v-if="articleStore.articles.length === 0 && !articleStore.loading" class="flex flex-col items-center justify-center px-4 py-20 text-center">
+            <div
+                v-if="articleStore.articles.length === 0 && !articleStore.loading"
+                class="flex flex-col items-center justify-center px-4 py-20 text-center">
                 <template v-if="activeFilter === 'read_later'">
-                    <svg class="h-16 w-16 text-neutral-300 dark:text-neutral-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                    <svg
+                        class="h-16 w-16 text-neutral-300 dark:text-neutral-700"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                     </svg>
-                    <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">No saved articles</h3>
-                    <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">Save articles from your feeds to read later.</p>
+                    <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
+                        No saved articles
+                    </h3>
+                    <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
+                        Save articles from your feeds to read later.
+                    </p>
                 </template>
                 <template v-else-if="feedCount === 0">
-                    <svg class="h-16 w-16 text-neutral-300 dark:text-neutral-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                    <svg
+                        class="h-16 w-16 text-neutral-300 dark:text-neutral-700"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                     </svg>
-                    <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">No articles yet</h3>
-                    <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">Subscribe to feeds to start seeing articles here.</p>
-                    <button type="button" @click="openAddFeedModal()" class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
+                    <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
+                        No articles yet
+                    </h3>
+                    <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
+                        Subscribe to feeds to start seeing articles here.
+                    </p>
+                    <button
+                        type="button"
+                        @click="openAddFeedModal()"
+                        class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
                         Add a Feed
                     </button>
                 </template>
                 <template v-else>
-                    <svg class="h-16 w-16 text-neutral-300 dark:text-neutral-700" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                    <svg
+                        class="h-16 w-16 text-neutral-300 dark:text-neutral-700"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                     </svg>
-                    <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">No articles yet</h3>
-                    <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">Subscribe to feeds to start seeing articles here.</p>
-                    <button type="button" @click="openAddFeedModal()" class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
+                    <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
+                        No articles yet
+                    </h3>
+                    <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
+                        Subscribe to feeds to start seeing articles here.
+                    </p>
+                    <button
+                        type="button"
+                        @click="openAddFeedModal()"
+                        class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
                         Add a Feed
                     </button>
                 </template>
@@ -704,8 +996,10 @@ function getSwipeDirection(articleId) {
             <!-- Article list (mobile cards) -->
             <div v-else-if="articleStore.articles.length > 0">
                 <template v-for="(articles, dateLabel) in groupedArticles" :key="dateLabel">
-                    <div class="sticky top-11 z-10 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-950/95 px-4 py-2 backdrop-blur">
-                        <h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-500">
+                    <div
+                        class="sticky top-11 z-10 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-950/95 px-4 py-2 backdrop-blur">
+                        <h2
+                            class="text-xs font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-500">
                             {{ dateLabel }}
                         </h2>
                     </div>
@@ -716,23 +1010,47 @@ function getSwipeDirection(articleId) {
                             class="relative overflow-hidden border-b border-neutral-200/50 dark:border-neutral-800/50 bg-neutral-200 dark:bg-neutral-800">
                             <!-- Swipe right reveal: Read Later (left side) -->
                             <div
-                                v-if="isSwipingArticle(article.id) && getSwipeDirection(article.id) === 'right'"
+                                v-if="
+                                    isSwipingArticle(article.id) &&
+                                    getSwipeDirection(article.id) === 'right'
+                                "
                                 class="absolute inset-0 flex items-center bg-neutral-800 px-6">
-                                <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                                <svg
+                                    class="h-5 w-5 text-white"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke-width="1.5"
+                                    stroke="currentColor">
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
                                 </svg>
-                                <span class="ml-2 text-sm font-medium text-white uppercase tracking-wide">
+                                <span
+                                    class="ml-2 text-sm font-medium text-white uppercase tracking-wide">
                                     {{ article.is_read_later ? 'Saved' : 'Read Later' }}
                                 </span>
                             </div>
                             <!-- Swipe left reveal: Mark as Read/Unread (right side) -->
                             <div
-                                v-if="isSwipingArticle(article.id) && getSwipeDirection(article.id) === 'left'"
+                                v-if="
+                                    isSwipingArticle(article.id) &&
+                                    getSwipeDirection(article.id) === 'left'
+                                "
                                 class="absolute inset-0 flex items-center justify-end bg-neutral-800 px-6">
-                                <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                <svg
+                                    class="h-5 w-5 text-white"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke-width="1.5"
+                                    stroke="currentColor">
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M4.5 12.75l6 6 9-13.5" />
                                 </svg>
-                                <span class="ml-2 text-sm font-medium text-white uppercase tracking-wide">
+                                <span
+                                    class="ml-2 text-sm font-medium text-white uppercase tracking-wide">
                                     {{ article.is_read ? 'Mark as Unread' : 'Mark as Read' }}
                                 </span>
                             </div>
@@ -744,26 +1062,35 @@ function getSwipeDirection(articleId) {
                                 class="relative flex w-full gap-3 bg-white dark:bg-neutral-950 px-4 py-3 text-left transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/50 active:bg-neutral-100 dark:active:bg-neutral-800/50"
                                 :style="getSwipeStyle(article.id)">
                                 <div class="min-w-0 flex-1">
-                                    <div class="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-500">
+                                    <div
+                                        class="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-500">
                                         <img
                                             v-if="article.feed_favicon_url"
                                             :src="article.feed_favicon_url"
                                             class="h-3.5 w-3.5 rounded-sm"
                                             alt="" />
-                                        <span class="truncate hover:underline" @click.stop="navigateToFeed(article.feed_id)">
+                                        <span
+                                            class="truncate hover:underline"
+                                            @click.stop="navigateToFeed(article.feed_id)">
                                             {{ article.feed_title }}
                                         </span>
                                         <span>&middot;</span>
-                                        <span class="shrink-0">{{ timeAgo(article.published_at) }}</span>
+                                        <span class="shrink-0">{{
+                                            timeAgo(article.published_at)
+                                        }}</span>
                                     </div>
                                     <h3
                                         class="mt-1 text-sm leading-snug"
-                                        :class="article.is_read
-                                            ? 'text-neutral-600 dark:text-neutral-500 font-normal'
-                                            : 'text-neutral-900 dark:text-neutral-100 font-semibold'">
+                                        :class="
+                                            article.is_read
+                                                ? 'text-neutral-600 dark:text-neutral-500 font-normal'
+                                                : 'text-neutral-900 dark:text-neutral-100 font-semibold'
+                                        ">
                                         {{ article.title }}
                                     </h3>
-                                    <p v-if="article.summary" class="mt-0.5 line-clamp-2 text-xs text-neutral-600 dark:text-neutral-500">
+                                    <p
+                                        v-if="article.summary"
+                                        class="mt-0.5 line-clamp-2 text-xs text-neutral-600 dark:text-neutral-500">
                                         {{ article.summary }}
                                     </p>
                                 </div>

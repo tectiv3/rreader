@@ -189,7 +189,10 @@ onUnmounted(() => {
                     @click="navigateTo({})"
                     class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors"
                     :class="
-                        !activeFilter && !activeFeedId && !activeCategoryId && route.name === 'articles.index'
+                        !activeFilter &&
+                        !activeFeedId &&
+                        !activeCategoryId &&
+                        route.name === 'articles.index'
                             ? 'text-blue-500'
                             : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'
                     "

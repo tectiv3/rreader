@@ -39,12 +39,15 @@ async function loadArticle(id) {
 loadArticle(route.params.id)
 
 // Watch for route param changes (same component, different article)
-watch(() => route.params.id, (newId) => {
-    if (newId && route.name === 'articles.show') {
-        navigating.value = false
-        loadArticle(newId)
+watch(
+    () => route.params.id,
+    newId => {
+        if (newId && route.name === 'articles.show') {
+            navigating.value = false
+            loadArticle(newId)
+        }
     }
-})
+)
 
 // --- Adjacent navigation ---
 const adjacentIds = computed(() => {
@@ -71,14 +74,18 @@ const showHeroImage = computed(() => {
 const formattedDate = computed(() => {
     if (!article.value) return ''
     return new Date(article.value.published_at).toLocaleDateString('en-US', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
     })
 })
 
 const formattedTime = computed(() => {
     if (!article.value) return ''
     return new Date(article.value.published_at).toLocaleTimeString('en-US', {
-        hour: 'numeric', minute: '2-digit',
+        hour: 'numeric',
+        minute: '2-digit',
     })
 })
 
@@ -122,14 +129,19 @@ function openInBrowser() {
 function shareArticle() {
     if (!article.value) return
     if (navigator.share) {
-        navigator.share({
-            title: article.value.title,
-            url: article.value.url,
-        }).catch(() => {})
+        navigator
+            .share({
+                title: article.value.title,
+                url: article.value.url,
+            })
+            .catch(() => {})
     } else if (article.value.url) {
-        navigator.clipboard.writeText(article.value.url).then(() => {
-            success('Link copied to clipboard')
-        }).catch(() => {})
+        navigator.clipboard
+            .writeText(article.value.url)
+            .then(() => {
+                success('Link copied to clipboard')
+            })
+            .catch(() => {})
     }
 }
 
@@ -145,7 +157,12 @@ function closeMenu(e) {
 
 // --- Keyboard navigation ---
 function onKeydown(e) {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return
+    if (
+        e.target.tagName === 'INPUT' ||
+        e.target.tagName === 'TEXTAREA' ||
+        e.target.isContentEditable
+    )
+        return
     if (e.key === 'ArrowRight' || e.key === 'j') navigateToArticle('next')
     else if (e.key === 'ArrowLeft' || e.key === 'k') navigateToArticle('prev')
     else if (e.key === 'Escape') goBack()
@@ -166,10 +183,14 @@ onMounted(() => {
         el.offsetHeight // force reflow
         el.style.transition = 'transform 160ms ease-out'
         el.style.transform = 'translateX(0)'
-        el.addEventListener('transitionend', () => {
-            el.style.transition = ''
-            el.style.transform = ''
-        }, { once: true })
+        el.addEventListener(
+            'transitionend',
+            () => {
+                el.style.transition = ''
+                el.style.transform = ''
+            },
+            { once: true }
+        )
     }
 })
 
@@ -193,7 +214,7 @@ function onSwipeEnd(e) {
     if (navigating.value) return
     const deltaX = e.changedTouches[0].clientX - touchStartX
     const deltaY = e.changedTouches[0].clientY - touchStartY
-    const angle = Math.abs(Math.atan2(deltaY, deltaX) * 180 / Math.PI)
+    const angle = Math.abs((Math.atan2(deltaY, deltaX) * 180) / Math.PI)
 
     if (angle > SWIPE_ANGLE_LIMIT && angle < 180 - SWIPE_ANGLE_LIMIT) return
 
@@ -216,8 +237,16 @@ function navigateToFeed(feedId) {
                     @click="goBack"
                     class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors -ml-2"
                     aria-label="Go back">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                    <svg
+                        class="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
                     </svg>
                 </button>
             </div>
@@ -226,12 +255,22 @@ function navigateToFeed(feedId) {
                     v-if="article"
                     @click="toggleReadLater"
                     class="rounded-lg p-2 transition-colors cursor-pointer"
-                    :class="isReadLater
-                        ? 'text-blue-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'
-                        : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200'"
+                    :class="
+                        isReadLater
+                            ? 'text-blue-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'
+                            : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200'
+                    "
                     :aria-label="isReadLater ? 'Remove from Read Later' : 'Save to Read Later'">
-                    <svg class="h-5 w-5" :fill="isReadLater ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                    <svg
+                        class="h-5 w-5"
+                        :fill="isReadLater ? 'currentColor' : 'none'"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
                     </svg>
                 </button>
 
@@ -240,8 +279,16 @@ function navigateToFeed(feedId) {
                     @click="shareArticle"
                     class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer"
                     aria-label="Share article">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+                    <svg
+                        class="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
                     </svg>
                 </button>
 
@@ -250,8 +297,16 @@ function navigateToFeed(feedId) {
                         @click="toggleMenu"
                         class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer"
                         aria-label="More actions">
-                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                        <svg
+                            class="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="1.5"
+                            stroke="currentColor">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
                         </svg>
                     </button>
 
@@ -261,8 +316,16 @@ function navigateToFeed(feedId) {
                         <button
                             @click="markAsUnread()"
                             class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors cursor-pointer">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V18" />
+                            <svg
+                                class="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V18" />
                             </svg>
                             Mark as unread
                         </button>
@@ -270,8 +333,16 @@ function navigateToFeed(feedId) {
                             v-if="article.url"
                             @click="openInBrowser()"
                             class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors cursor-pointer">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                            <svg
+                                class="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                             </svg>
                             Open in browser
                         </button>
@@ -284,8 +355,17 @@ function navigateToFeed(feedId) {
     <!-- Loading state -->
     <div v-if="loading" class="flex items-center justify-center py-20">
         <svg class="h-8 w-8 animate-spin text-neutral-400" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4" />
+            <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
         </svg>
     </div>
 
@@ -308,7 +388,8 @@ function navigateToFeed(feedId) {
                     </a>
                     <template v-else>{{ article.title }}</template>
                 </h1>
-                <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-neutral-500 dark:text-neutral-400">
+                <div
+                    class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-neutral-500 dark:text-neutral-400">
                     <a
                         v-if="article.feed_id"
                         href="#"
@@ -348,13 +429,22 @@ function navigateToFeed(feedId) {
             </div>
 
             <!-- Navigation arrows -->
-            <div class="mt-8 flex items-center justify-between border-t border-neutral-200 dark:border-neutral-800 pt-4">
+            <div
+                class="mt-8 flex items-center justify-between border-t border-neutral-200 dark:border-neutral-800 pt-4">
                 <button
                     v-if="adjacentIds.prev"
                     @click="navigateToArticle('prev')"
                     class="flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                    <svg
+                        class="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M15.75 19.5L8.25 12l7.5-7.5" />
                     </svg>
                     Previous
                 </button>
@@ -364,8 +454,16 @@ function navigateToFeed(feedId) {
                     @click="navigateToArticle('next')"
                     class="flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer">
                     Next
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    <svg
+                        class="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                     </svg>
                 </button>
                 <div v-else></div>

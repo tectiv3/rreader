@@ -63,7 +63,7 @@ function goToSettings() {
 }
 
 function feedUnreadCount(feedId) {
-    return articleStore.loaded ? (articleStore.unreadByFeed[feedId] || 0) : 0
+    return articleStore.loaded ? articleStore.unreadByFeed[feedId] || 0 : 0
 }
 
 function categoryUnreadCount(category) {
