@@ -6,6 +6,7 @@ import { useOnlineStatus } from '@/Composables/useOnlineStatus.js';
 import { useOfflineQueue } from '@/Composables/useOfflineQueue.js';
 import { useToast } from '@/Composables/useToast.js';
 import { useReadingState } from '@/Composables/useReadingState.js';
+import { useArticleReadState } from '@/Composables/useArticleReadState.js';
 
 const props = defineProps({
     article: Object,
@@ -28,6 +29,7 @@ const { isOnline } = useOnlineStatus();
 const { enqueue } = useOfflineQueue();
 const { success } = useToast();
 const { saveReadingState, clearReadingState } = useReadingState();
+const { markRead } = useArticleReadState();
 
 const isReadLater = ref(props.article.is_read_later ?? false);
 const togglingReadLater = ref(false);
@@ -178,6 +180,9 @@ const SWIPE_ANGLE_LIMIT = 30; // degrees — must be mostly horizontal
 
 // Prefetch adjacent articles and save reading state for PWA restore
 onMounted(() => {
+    // Track in shared state so Index.vue can reconcile on back-navigation
+    markRead(props.article.id, props.article.feed?.id);
+
     // Save reading state so app.js can redirect here after iOS kills the PWA
     saveReadingState({
         url: window.location.pathname + window.location.search,

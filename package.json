@@ -4,7 +4,9 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "lint": "prettier --check .",
+        "format": "prettier --write ./resources/**/*.{js,ts,vue,css,scss}"
     },
     "devDependencies": {
         "@inertiajs/vue3": "^2.0.0",
@@ -20,5 +22,36 @@
         "vite": "^7.0.7",
         "vite-plugin-pwa": "^1.2.0",
         "vue": "^3.4.0"
+    },
+    "prettier": {
+        "printWidth": 95,
+        "tabWidth": 4,
+        "useTabs": false,
+        "semi": false,
+        "singleQuote": true,
+        "trailingComma": "es5",
+        "bracketSpacing": true,
+        "jsxBracketSameLine": true,
+        "bracketSameLine": true,
+        "arrowParens": "avoid",
+        "singleAttributePerLine": false,
+        "proseWrap": "never",
+        "phpVersion": "7.2",
+        "trailingCommaPHP": true,
+        "braceStyle": "psr-2",
+        "overrides": [
+            {
+                "files": "*.php",
+                "options": {
+                    "trailingComma": "all"
+                }
+            },
+            {
+                "files": "*.vue",
+                "options": {
+                    "printWidth": 100
+                }
+            }
+        ]
     }
 }
