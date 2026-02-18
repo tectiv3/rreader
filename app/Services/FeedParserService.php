@@ -153,6 +153,15 @@ class FeedParserService
 
         $articles = [];
         foreach ($feed as $entry) {
+            $imageUrl = $this->extractImageUrl($entry->getContent() ?: $entry->getDescription());
+
+            if (! $imageUrl) {
+                $enclosure = $entry->getEnclosure();
+                if ($enclosure && isset($enclosure->url) && str_starts_with($enclosure->type ?? '', 'image/')) {
+                    $imageUrl = $enclosure->url;
+                }
+            }
+
             $articles[] = [
                 'guid' => $entry->getId() ?: $entry->getLink() ?: md5($entry->getTitle().$entry->getDateCreated()?->format('c')),
                 'title' => $entry->getTitle(),
@@ -160,7 +169,7 @@ class FeedParserService
                 'content' => $entry->getContent(),
                 'summary' => strip_tags($entry->getDescription()),
                 'url' => $entry->getLink(),
-                'image_url' => $this->extractImageUrl($entry->getContent() ?: $entry->getDescription()),
+                'image_url' => $imageUrl,
                 'published_at' => $entry->getDateCreated()?->format('Y-m-d H:i:s')
                     ?? $entry->getDateModified()?->format('Y-m-d H:i:s'),
             ];

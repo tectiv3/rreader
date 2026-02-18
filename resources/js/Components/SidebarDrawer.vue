@@ -36,6 +36,7 @@ function navigateTo(params) {
     }
     router.get(route('articles.index', params), {}, {
         preserveState: false,
+        cacheFor: 300000, // 5 minutes
     });
 }
 

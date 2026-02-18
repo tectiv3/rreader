@@ -11,7 +11,18 @@ const props = defineProps({
     article: Object,
     prevArticleId: Number,
     nextArticleId: Number,
+    context: { type: Object, default: () => ({}) },
 });
+
+// Build article show URL preserving feed/category/filter context
+function articleUrl(articleId) {
+    const params = new URLSearchParams();
+    if (props.context.feed_id) params.set('feed_id', props.context.feed_id);
+    if (props.context.category_id) params.set('category_id', props.context.category_id);
+    if (props.context.filter) params.set('filter', props.context.filter);
+    const qs = params.toString();
+    return route('articles.show', articleId) + (qs ? '?' + qs : '');
+}
 
 const { isOnline } = useOnlineStatus();
 const { enqueue } = useOfflineQueue();
@@ -64,11 +75,13 @@ const formattedTime = computed(() => {
 });
 
 function goBack() {
-    if (window.history.length > 1) {
-        window.history.back();
-    } else {
-        router.visit(route('articles.index'));
-    }
+    // Always use Inertia navigation so onUnmounted fires and clears reading state.
+    // window.history.back() can cause a hard reload that skips cleanup.
+    const params = {};
+    if (props.context.feed_id) params.feed_id = props.context.feed_id;
+    if (props.context.category_id) params.category_id = props.context.category_id;
+    if (props.context.filter) params.filter = props.context.filter;
+    router.get(route('articles.index', params), {}, { cacheFor: 300000 });
 }
 
 function toggleReadLater() {
@@ -157,10 +170,10 @@ onMounted(() => {
     });
 
     if (props.nextArticleId) {
-        router.prefetch(route('articles.show', props.nextArticleId), { method: 'get' });
+        router.prefetch(articleUrl(props.nextArticleId), { method: 'get' });
     }
     if (props.prevArticleId) {
-        router.prefetch(route('articles.show', props.prevArticleId), { method: 'get' });
+        router.prefetch(articleUrl(props.prevArticleId), { method: 'get' });
     }
 
     // Slide-in animation when arriving from a swipe
@@ -208,7 +221,7 @@ function onSwipeEnd(e) {
             articleEl.value.style.transform = 'translateX(-60%)';
             articleEl.value.style.opacity = '0';
         }
-        setTimeout(() => router.visit(route('articles.show', props.nextArticleId)), 250);
+        setTimeout(() => router.visit(articleUrl(props.nextArticleId)), 250);
     } else if (deltaX > SWIPE_THRESHOLD && props.prevArticleId) {
         // Swipe right → previous article (newer): slide out to right
         navigating.value = true;
@@ -218,7 +231,7 @@ function onSwipeEnd(e) {
             articleEl.value.style.transform = 'translateX(60%)';
             articleEl.value.style.opacity = '0';
         }
-        setTimeout(() => router.visit(route('articles.show', props.prevArticleId)), 250);
+        setTimeout(() => router.visit(articleUrl(props.prevArticleId)), 250);
     }
 }
 </script>

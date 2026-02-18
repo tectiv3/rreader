@@ -318,17 +318,49 @@ class ArticleController extends Controller
             ],
         ]);
 
-        // Previous article (newer — published_at > current, ordered ASC, take first)
-        $prevArticle = Article::whereIn('feed_id', $userFeedIds)
-            ->where('published_at', '>', $article->published_at)
-            ->orderBy('published_at', 'asc')
-            ->first(['id']);
+        // Determine scope for prev/next navigation based on context
+        $contextFeedId = $request->query('feed_id');
+        $contextCategoryId = $request->query('category_id');
+        $contextFilter = $request->query('filter');
 
-        // Next article (older — published_at < current, ordered DESC, take first)
-        $nextArticle = Article::whereIn('feed_id', $userFeedIds)
+        $scopeFeedIds = $userFeedIds;
+
+        if ($contextFeedId) {
+            $feed = $user->feeds()->where('feeds.id', $contextFeedId)->first();
+            if ($feed) {
+                $scopeFeedIds = collect([$feed->id]);
+            }
+        } elseif ($contextCategoryId) {
+            $category = $user->categories()->where('id', $contextCategoryId)->first();
+            if ($category) {
+                $catFeedIds = $category->feeds()->pluck('feeds.id');
+                if ($catFeedIds->isNotEmpty()) {
+                    $scopeFeedIds = $catFeedIds;
+                }
+            }
+        }
+
+        $prevQuery = Article::whereIn('feed_id', $scopeFeedIds)
+            ->where('published_at', '>', $article->published_at)
+            ->orderBy('published_at', 'asc');
+
+        $nextQuery = Article::whereIn('feed_id', $scopeFeedIds)
             ->where('published_at', '<', $article->published_at)
-            ->orderBy('published_at', 'desc')
-            ->first(['id']);
+            ->orderBy('published_at', 'desc');
+
+        if ($contextFilter === 'today') {
+            $prevQuery->whereDate('published_at', today());
+            $nextQuery->whereDate('published_at', today());
+        }
+
+        $prevArticle = $prevQuery->first(['id']);
+        $nextArticle = $nextQuery->first(['id']);
+
+        $context = array_filter([
+            'feed_id' => $contextFeedId,
+            'category_id' => $contextCategoryId,
+            'filter' => $contextFilter,
+        ]);
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -342,6 +374,7 @@ class ArticleController extends Controller
             'article' => $article,
             'prevArticleId' => $prevArticle?->id,
             'nextArticleId' => $nextArticle?->id,
+            'context' => $context,
         ]);
     }
 

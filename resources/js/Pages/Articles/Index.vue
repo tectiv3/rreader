@@ -254,8 +254,13 @@ function openArticle(article) {
         selectedArticleId.value = article.id;
         loadArticleInline(article.id);
     } else {
-        // Mobile: navigate to Show page
-        router.visit(route('articles.show', article.id));
+        // Mobile: navigate to Show page with feed context
+        const ctx = {};
+        if (props.activeFeedId) ctx.feed_id = props.activeFeedId;
+        if (props.activeCategoryId) ctx.category_id = props.activeCategoryId;
+        if (props.activeFilter) ctx.filter = props.activeFilter;
+        const qs = new URLSearchParams(ctx).toString();
+        router.visit(route('articles.show', article.id) + (qs ? '?' + qs : ''));
     }
 }
 
@@ -844,7 +849,7 @@ function formatLastUpdated(date) {
                                     class="h-4 w-4 shrink-0 rounded-sm"
                                     alt=""
                                 />
-                                <span class="w-32 shrink-0 truncate text-xs text-neutral-600 dark:text-neutral-500">{{ article.feed?.title }}</span>
+                                <span class="w-32 shrink-0 truncate text-xs text-neutral-600 dark:text-neutral-500 hover:underline cursor-pointer" @click.stop="router.get(route('articles.index', { feed_id: article.feed?.id }))">{{ article.feed?.title }}</span>
                                 <h3
                                     class="min-w-0 flex-1 truncate text-sm"
                                     :class="article.is_read ? 'text-neutral-600 dark:text-neutral-500 font-normal' : 'text-neutral-900 dark:text-neutral-100 font-medium'"
@@ -1221,7 +1226,7 @@ function formatLastUpdated(date) {
                                                 class="h-3.5 w-3.5 rounded-sm"
                                                 alt=""
                                             />
-                                            <span class="truncate">{{ article.feed?.title }}</span>
+                                            <span class="truncate hover:underline" @click.stop="router.get(route('articles.index', { feed_id: article.feed?.id }))">{{ article.feed?.title }}</span>
                                             <span>&middot;</span>
                                             <span class="shrink-0">{{ timeAgo(article.published_at) }}</span>
                                         </div>
