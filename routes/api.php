@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\ArticleApiController;
 use App\Http\Controllers\Api\CategoryApiController;
 use App\Http\Controllers\Api\FeedApiController;
+use App\Http\Controllers\Api\OpmlApiController;
+use App\Http\Controllers\Api\SettingsApiController;
 use App\Http\Controllers\Api\SidebarApiController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,4 +31,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/categories/{category}', [CategoryApiController::class, 'update']);
     Route::delete('/categories/{category}', [CategoryApiController::class, 'destroy']);
     Route::post('/categories/reorder', [CategoryApiController::class, 'reorder']);
+
+    // Settings
+    Route::get('/settings', [SettingsApiController::class, 'index']);
+    Route::patch('/settings', [SettingsApiController::class, 'update']);
+    Route::patch('/settings/account', [SettingsApiController::class, 'updateAccount']);
+    Route::patch('/settings/password', [SettingsApiController::class, 'updatePassword']);
+
+    // OPML
+    Route::post('/opml/preview', [OpmlApiController::class, 'preview']);
+    Route::post('/opml/import', [OpmlApiController::class, 'import']);
 });
