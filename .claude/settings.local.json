@@ -20,7 +20,14 @@
       "Bash(GIT_PAGER=cat git diff:*)",
       "Bash(GIT_PAGER=cat git status:*)",
       "Bash(GIT_PAGER=cat git log:*)",
-      "Bash(npm run format:*)"
+      "Bash(npm run format:*)",
+      "Bash(npm install:*)",
+      "Bash(composer install:*)",
+      "Bash(composer show:*)",
+      "Bash(git checkout:*)",
+      "Bash(yarn format:*)",
+      "Bash(curl:*)",
+      "Bash(php artisan route:list:*)"
     ],
     "defaultMode": "acceptEdits"
   }

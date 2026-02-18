@@ -88,6 +88,13 @@ class ArticleApiController extends Controller
             if ($filter === 'today') {
                 $query->whereDate('articles.published_at', today());
             }
+
+            // Respect user's hide_read_articles setting
+            $hideRead = $user->settings['hide_read_articles'] ?? false;
+            if ($hideRead) {
+                $query->where(fn ($q) => $q->whereNull('user_articles.is_read')
+                                            ->orWhere('user_articles.is_read', false));
+            }
         }
 
         // For non-recently_read views, order by published_at desc

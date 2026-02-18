@@ -6,6 +6,7 @@ import { useOnlineStatus } from '@/Composables/useOnlineStatus.js'
 import { useToast } from '@/Composables/useToast.js'
 import { useAddFeedModal } from '@/Composables/useAddFeedModal.js'
 import { useRouter, useRoute } from 'vue-router'
+import { setTitle } from '@/router.js'
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 
 defineOptions({ name: 'ArticleListView' })
@@ -30,6 +31,13 @@ function deriveView() {
 
 // Fetch on mount
 articleStore.fetchArticles(deriveView())
+
+// Keep document title in sync with the current filter
+watch(
+    () => articleStore.filterTitle,
+    t => setTitle(t),
+    { immediate: true }
+)
 
 // Watch route changes (skip if navigated away from this view)
 watch(

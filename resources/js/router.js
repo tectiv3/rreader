@@ -1,5 +1,18 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+const appName = import.meta.env.VITE_APP_NAME || 'RReader'
+
+const routeTitles = {
+    'articles.index': null, // set dynamically from filterTitle
+    'articles.search': 'Search',
+    'articles.show': null, // set dynamically from article title
+    'feeds.manage': 'Manage Feeds',
+    'feeds.create': 'Add Feed',
+    'feeds.edit': 'Edit Feed',
+    settings: 'Settings',
+    'opml.import': 'Import OPML',
+}
+
 const routes = [
     {
         path: '/articles',
@@ -50,7 +63,24 @@ const routes = [
     },
 ]
 
-export default createRouter({
+const router = createRouter({
     history: createWebHistory(),
     routes,
 })
+
+router.afterEach(to => {
+    const title = routeTitles[to.name]
+    if (title) {
+        document.title = `${title} - ${appName}`
+    }
+})
+
+export default router
+
+/**
+ * Set the document title from views that have dynamic titles
+ * (e.g. ArticleListView uses filterTitle, ArticleDetailView uses article title)
+ */
+export function setTitle(title) {
+    document.title = title ? `${title} - ${appName}` : appName
+}

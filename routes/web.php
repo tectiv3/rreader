@@ -18,6 +18,9 @@ Route::get('/dashboard', function () {
     return redirect('/articles');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+// Auth routes MUST be registered before the SPA catch-all
+require __DIR__.'/auth.php';
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -26,7 +29,7 @@ Route::middleware('auth')->group(function () {
     // OPML export (direct file download, not JSON API)
     Route::get('/opml/export', [OpmlController::class, 'export'])->name('opml.export');
 
-    // SPA catch-all — must be last in the auth group
+    // SPA catch-all — must be last
     Route::get('/{any}', function (Request $request) {
         $user = $request->user();
         $sidebarData = SidebarApiController::buildSidebarData($user);
@@ -37,5 +40,3 @@ Route::middleware('auth')->group(function () {
         ]);
     })->where('any', '^(?!api/).*$')->name('spa');
 });
-
-require __DIR__.'/auth.php';
