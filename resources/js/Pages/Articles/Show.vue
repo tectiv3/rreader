@@ -84,16 +84,6 @@ const formattedTime = computed(() => {
 })
 
 function goBack() {
-    // Use browser history when possible for instant back navigation.
-    // Inertia v2 handles popstate by restoring the page from history state
-    // without a network request, and Vue lifecycle hooks (onUnmounted) still
-    // fire normally because Inertia swaps the component.
-    if (window.history.length > 1) {
-        window.history.back()
-        return
-    }
-
-    // Fallback for direct URL access (no history entry to go back to)
     const params = {}
     if (props.context.feed_id) params.feed_id = props.context.feed_id
     if (props.context.category_id) params.category_id = props.context.category_id
@@ -147,7 +137,7 @@ function markAsUnread() {
 
 function openInBrowser() {
     if (props.article.url) {
-        showMenu = false
+        showMenu.value = false
         try {
             const url = new URL(props.article.url)
             if (url.protocol === 'http:' || url.protocol === 'https:') {

@@ -14,13 +14,17 @@ const page = usePage()
 const toggleSidebar = inject('toggleSidebar', null)
 const { isAddFeedModalOpen, openAddFeedModal, closeAddFeedModal } = useAddFeedModal()
 
-// Navigation loading state for skeleton screens
+// Navigation loading state for skeleton screens (article list only)
 const isNavigating = ref(false)
 let removeStartListener = null
 let removeFinishListener = null
 
 onMounted(() => {
-    removeStartListener = router.on('start', () => {
+    removeStartListener = router.on('start', event => {
+        // Skip skeleton for article-to-article swipe navigation
+        if (sessionStorage.getItem('article-swipe-direction')) {
+            return
+        }
         isNavigating.value = true
     })
     removeFinishListener = router.on('finish', () => {
