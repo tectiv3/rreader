@@ -6,6 +6,7 @@ import { ref, computed, onMounted, onUnmounted, watch, provide, nextTick } from 
 import { useOnlineStatus } from '@/Composables/useOnlineStatus.js';
 import { useOfflineQueue } from '@/Composables/useOfflineQueue.js';
 import { useToast } from '@/Composables/useToast.js';
+import { useReadingState } from '@/Composables/useReadingState.js';
 
 const props = defineProps({
     articles: Object,
@@ -24,11 +25,13 @@ const isReadLaterView = computed(() => props.activeFilter === 'read_later');
 const { isOnline } = useOnlineStatus();
 const { enqueue } = useOfflineQueue();
 const { success } = useToast();
+const { saveReadingState, clearReadingState, loadReadingState } = useReadingState();
 
 // Track when data was last fetched
 const lastUpdatedAt = ref(new Date());
 watch(() => props.articles, () => {
     lastUpdatedAt.value = new Date();
+    clearReadingState();
 });
 
 // Provide sidebar toggle for bottom nav in AppLayout
@@ -53,17 +56,35 @@ const markingUnread = ref(false);
 const articleListEl = ref(null);
 
 // Initialize sidebar collapsed state from localStorage
-onMounted(() => {
+onMounted(async () => {
     const saved = localStorage.getItem('rreader-sidebar-collapsed');
     if (saved !== null) {
         sidebarCollapsed.value = saved === 'true';
     }
     checkDesktop();
     window.addEventListener('resize', checkDesktop);
+    articleListEl.value?.addEventListener('scroll', onArticleListScroll, { passive: true });
+
+    // Restore reading state (e.g. after iOS memory eviction)
+    const readingState = await loadReadingState();
+    if (readingState && readingState.selectedArticleId && !selectedArticleId.value) {
+        const exists = allArticles.value.some(a => a.id === readingState.selectedArticleId);
+        if (exists) {
+            selectedArticleId.value = readingState.selectedArticleId;
+            await loadArticleInline(readingState.selectedArticleId);
+            await nextTick();
+            if (articleListEl.value && readingState.listScrollTop) {
+                articleListEl.value.scrollTop = readingState.listScrollTop;
+            }
+        } else {
+            clearReadingState();
+        }
+    }
 });
 
 onUnmounted(() => {
     window.removeEventListener('resize', checkDesktop);
+    articleListEl.value?.removeEventListener('scroll', onArticleListScroll);
 });
 
 function checkDesktop() {
@@ -227,6 +248,7 @@ async function loadArticleInline(articleId) {
         await nextTick();
         const expandedEl = document.getElementById(`article-expanded-${articleId}`);
         if (expandedEl) expandedEl.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        saveReadingState(buildReadingStateSnapshot());
     } catch (err) {
         console.error('Failed to load article:', err);
         // Fallback: navigate to show page
@@ -239,6 +261,24 @@ async function loadArticleInline(articleId) {
 function closeArticlePanel() {
     selectedArticle.value = null;
     selectedArticleId.value = null;
+    clearReadingState();
+}
+
+function buildReadingStateSnapshot() {
+    return {
+        url: window.location.pathname + window.location.search,
+        selectedArticleId: selectedArticleId.value,
+        listScrollTop: articleListEl.value?.scrollTop ?? 0,
+    };
+}
+
+let scrollSaveTimeout = null;
+function onArticleListScroll() {
+    if (!selectedArticleId.value) return;
+    clearTimeout(scrollSaveTimeout);
+    scrollSaveTimeout = setTimeout(() => {
+        saveReadingState(buildReadingStateSnapshot());
+    }, 500);
 }
 
 // Article reader actions (desktop inline)
