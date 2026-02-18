@@ -239,9 +239,6 @@ function onSwipeEnd(e) {
             </button>
         </template>
 
-        <template #title>
-        </template>
-
         <template #header-right>
             <!-- Save to Read Later -->
             <button

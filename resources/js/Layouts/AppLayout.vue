@@ -66,24 +66,23 @@ onUnmounted(() => {
     <div class="min-h-screen bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
         <!-- Header -->
         <header class="sticky top-0 z-40 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 pt-safe">
-            <div class="flex h-14 items-center justify-between px-4">
-                <div class="flex items-center gap-3">
-                    <slot name="header-left" />
-                    <h1 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                        <slot name="title">RReader</slot>
-                    </h1>
-                </div>
-
+            <div class="flex h-11 items-center justify-between px-4">
+                <slot name="header-left" />
                 <div class="flex items-center gap-2">
                     <slot name="header-right" />
                 </div>
+            </div>
+            <div v-if="$slots.title" class="px-4 pb-2">
+                <h1 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+                    <slot name="title" />
+                </h1>
             </div>
         </header>
 
         <!-- Offline indicator banner -->
         <div
             v-if="!isOnline"
-            class="sticky top-14 z-30 flex items-center justify-center gap-2 bg-amber-600 px-4 py-1.5 text-xs font-medium text-white"
+            class="flex items-center justify-center gap-2 bg-amber-600 px-4 py-1.5 text-xs font-medium text-white"
         >
             <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
