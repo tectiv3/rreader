@@ -11,6 +11,18 @@ const appName = import.meta.env.VITE_APP_NAME || 'RReader';
 
 registerSW({ immediate: true });
 
+// Restore reading state: if the SW has a saved reading URL, redirect before rendering
+if (navigator.serviceWorker?.controller) {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = (event) => {
+        const state = event.data;
+        if (state?.url && state.url !== (window.location.pathname + window.location.search)) {
+            window.location.replace(state.url);
+        }
+    };
+    navigator.serviceWorker.controller.postMessage({ type: 'get-reading-state' }, [channel.port2]);
+}
+
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
     resolve: (name) =>
