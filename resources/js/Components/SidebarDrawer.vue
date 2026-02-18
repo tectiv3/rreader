@@ -176,6 +176,29 @@ function categoryUnreadCount(category) {
                                 >{{ sidebar.readLaterCount }}</span
                             >
                         </button>
+
+                        <!-- Recently Read -->
+                        <button
+                            @click="navigateTo({ filter: 'recently_read' })"
+                            class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors cursor-pointer"
+                            :class="
+                                activeFilter === 'recently_read'
+                                    ? 'bg-neutral-200 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100'
+                                    : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50'
+                            ">
+                            <svg
+                                class="h-5 w-5 text-green-500"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="flex-1 text-left">Recently Read</span>
+                        </button>
                     </div>
 
                     <div class="mx-3 border-t border-neutral-200 dark:border-neutral-800" />
