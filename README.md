@@ -1,12 +1,31 @@
 # RReader
 
-Self-hosted RSS reader PWA with a clean, Feedly-style interface.
+Self-hosted RSS reader with a clean, minimal interface. Installable as a PWA on mobile and desktop.
+
+<p align="center">
+  <img src="docs/screenshots/desktop.png" alt="Desktop interface" width="800" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/mobile.png" alt="Mobile interface" width="280" />
+</p>
+
+## Features
+
+- **Feed management** — subscribe, organize into categories, rename, reorder, OPML import/export
+- **Reading modes** — all feeds, per-feed, per-category, today, read later, recently read
+- **Mobile-first** — swipe to bookmark/dismiss, pull-to-refresh, pull-to-dismiss articles, bottom navigation
+- **Desktop layout** — collapsible sidebar, keyboard shortcuts, three-column density
+- **PWA** — installable, offline article viewing, reading position persistence across sessions
+- **Background updates** — feeds refresh automatically every 30 minutes via queue worker
+- **Dark mode** — follows system preference with manual override
+- **Search** — full-text search across all articles
 
 ## Tech Stack
 
 - **Backend** — Laravel 12, PHP 8.2+, SQLite
 - **Frontend** — Vue 3, Inertia.js v2, Tailwind CSS v4, Vite 7
-- **PWA** — vite-plugin-pwa
+- **PWA** — vite-plugin-pwa with service worker for offline support
 
 ## Quick Setup
 
@@ -22,7 +41,7 @@ This runs `composer install`, copies `.env.example`, generates the app key, runs
 composer dev
 ```
 
-This starts the Laravel dev server, queue worker, log tail, and Vite dev server.
+Starts the Laravel dev server, queue worker, log tail, and Vite dev server concurrently.
 
 ## Production Deployment
 
