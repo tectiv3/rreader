@@ -208,7 +208,7 @@ async function loadArticleInline(articleId) {
     const cached = articleStore.getContent(articleId)
     if (cached) {
         selectedArticle.value = cached
-        selectedIsReadLater.value = cached.is_read_later ?? false
+        selectedIsReadLater.value = cached.is_read_later || false
         loadingArticle.value = false
         await nextTick()
         scrollExpandedIntoView(articleId)
@@ -220,7 +220,7 @@ async function loadArticleInline(articleId) {
     try {
         const content = await articleStore.fetchContent(articleId)
         selectedArticle.value = content
-        selectedIsReadLater.value = content.is_read_later ?? false
+        selectedIsReadLater.value = content.is_read_later || false
         await nextTick()
         scrollExpandedIntoView(articleId)
         articleStore.prefetchAdjacent(articleId)
@@ -471,7 +471,7 @@ function getSwipeStyle(articleId) {
 }
 
 function isSwipingArticle(articleId) {
-    return swipeState.value[articleId]?.swiping ?? false
+    return swipeState.value[articleId]?.swiping || false
 }
 
 function getSwipeDirection(articleId) {

@@ -38,7 +38,7 @@ export const useArticleStore = defineStore('articles', () => {
     })
 
     function getContent(id) {
-        return contentCache.value.get(id) ?? null
+        return contentCache.value.get(id) || null
     }
 
     function adjacentIds(id) {
@@ -63,6 +63,7 @@ export const useArticleStore = defineStore('articles', () => {
         }
 
         loading.value = true
+        articles.value = []
         activeView.value = view
         nextCursor.value = null
         hasMore.value = false
@@ -230,8 +231,8 @@ export const useArticleStore = defineStore('articles', () => {
 
         axios
             .post('/api/articles/mark-all-read', {
-                feed_id: activeView.value.feedId ?? null,
-                category_id: activeView.value.categoryId ?? null,
+                feed_id: activeView.value.feedId || null,
+                category_id: activeView.value.categoryId || null,
                 filter: ['today', 'read_later'].includes(activeView.value.type)
                     ? activeView.value.type
                     : null,

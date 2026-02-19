@@ -64,7 +64,7 @@ async function loadArticle(id) {
     try {
         const content = await articleStore.fetchContent(Number(id))
         article.value = content
-        isReadLater.value = content.is_read_later ?? false
+        isReadLater.value = content.is_read_later || false
         setTitle(content.title)
         articleStore.markRead(Number(id))
         articleStore.prefetchAdjacent(Number(id))

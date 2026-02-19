@@ -31,7 +31,7 @@ function toggleCategory(categoryId) {
 }
 
 function isCategoryExpanded(categoryId) {
-    return expandedCategories.value[categoryId] ?? false
+    return expandedCategories.value[categoryId] || false
 }
 
 function navigateTo(params) {

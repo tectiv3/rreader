@@ -49,8 +49,8 @@ onMounted(async () => {
         prefsForm.article_view = settings.article_view || 'full'
         prefsForm.font_size = settings.font_size || 'medium'
         prefsForm.refresh_interval = settings.refresh_interval || 30
-        prefsForm.mark_read_on_scroll = settings.mark_read_on_scroll ?? true
-        prefsForm.hide_read_articles = settings.hide_read_articles ?? false
+        prefsForm.mark_read_on_scroll = settings.mark_read_on_scroll || true
+        prefsForm.hide_read_articles = settings.hide_read_articles || false
 
         accountForm.name = user.name || ''
         accountForm.email = user.email || ''
@@ -137,7 +137,6 @@ async function savePassword() {
     }
 }
 
-// --- OPML ---
 function goToImport() {
     router.push({ name: 'opml.import' })
 }
@@ -162,7 +161,6 @@ function goBack() {
 </script>
 
 <template>
-    <!-- Sticky header -->
     <header
         class="sticky top-0 z-30 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 pt-safe">
         <div class="flex h-11 items-center justify-between px-4">
@@ -243,37 +241,12 @@ function goBack() {
                 </div>
             </div>
 
-            <!-- Reading -->
-            <div class="rounded-xl bg-neutral-50 dark:bg-neutral-900 p-5 mb-5">
+            <!--div class="rounded-xl bg-neutral-50 dark:bg-neutral-900 p-5 mb-5">
                 <h2 class="text-base font-medium text-neutral-800 dark:text-neutral-200 mb-4">
                     Reading
                 </h2>
 
                 <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm text-neutral-700 dark:text-neutral-300 mb-2"
-                            >Default article view</label
-                        >
-                        <div class="grid grid-cols-2 gap-2">
-                            <button
-                                v-for="opt in [
-                                    { value: 'full', label: 'Full content' },
-                                    { value: 'summary', label: 'Summary' },
-                                ]"
-                                :key="opt.value"
-                                type="button"
-                                @click="prefsForm.article_view = opt.value"
-                                class="rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
-                                :class="
-                                    prefsForm.article_view === opt.value
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700'
-                                ">
-                                {{ opt.label }}
-                            </button>
-                        </div>
-                    </div>
-
                     <div>
                         <label class="block text-sm text-neutral-700 dark:text-neutral-300 mb-2"
                             >Font size</label
@@ -299,7 +272,7 @@ function goBack() {
                         </div>
                     </div>
                 </div>
-            </div>
+            </div!-->
 
             <!-- Feeds -->
             <div class="rounded-xl bg-neutral-50 dark:bg-neutral-900 p-5 mb-5">
@@ -564,7 +537,7 @@ function goBack() {
                 <div class="flex justify-between">
                     <span>Source code</span>
                     <a
-                        href="https://github.com/rreader/rreader"
+                        href="https://github.com/tectiv3/rreader"
                         target="_blank"
                         rel="noopener noreferrer"
                         class="text-blue-400 hover:text-blue-300">
