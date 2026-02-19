@@ -132,11 +132,16 @@ const formattedTime = computed(() => {
 
 // --- Actions ---
 function goBack() {
-    if (window.history.length > 1) {
-        router.back()
-    } else {
-        router.push({ name: 'articles.index' })
-    }
+    clearReadingState()
+    const currentPath = route.fullPath
+    router.back()
+    // If router.back() had no effect (e.g. PWA with no history after reading-state restore),
+    // fall back to navigating to the article list
+    setTimeout(() => {
+        if (route.fullPath === currentPath) {
+            router.push({ name: 'articles.index' })
+        }
+    }, 100)
 }
 
 function toggleReadLater() {
