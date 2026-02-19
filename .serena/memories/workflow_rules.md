@@ -1,7 +1,8 @@
 # Workflow Rules
 
-## Before Handing Over Work
-Always run these steps before completing/handing over work:
+## Git Worktrees
+Never use git worktrees in this project. Always work directly in the main repo.
 
-1. **Format code**: Run `./vendor/bin/pint` for PHP and `yarn format` for frontend files or `prettier --write` 
 2. **Build**: Run `yarn build` to ensure production build succeeds
+
+so the best way to 

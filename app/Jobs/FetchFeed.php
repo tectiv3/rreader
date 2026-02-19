@@ -22,7 +22,7 @@ class FetchFeed implements ShouldQueue
 
         try {
             $data = $parser->discoverAndParse($this->feed->feed_url);
-        } catch (\RuntimeException $e) {
+        } catch (\RuntimeException | \Illuminate\Http\Client\ConnectionException $e) {
             $this->feed->recordFailure($e->getMessage());
 
             return;
