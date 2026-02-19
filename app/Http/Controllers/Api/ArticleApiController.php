@@ -288,7 +288,8 @@ class ArticleApiController extends Controller
         $query = Article::whereIn('feed_id', $feedIds)
             ->where(function ($query) use ($q) {
                 $query->where('title', 'like', "%{$q}%")
-                      ->orWhere('summary', 'like', "%{$q}%");
+                      ->orWhere('summary', 'like', "%{$q}%")
+                      ->orWhere('content', 'like', "%{$q}%");
             })
             ->leftJoin('user_articles', function ($join) use ($user) {
                 $join->on('articles.id', '=', 'user_articles.article_id')
