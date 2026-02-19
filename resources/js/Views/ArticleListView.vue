@@ -542,6 +542,7 @@ function getSwipeDirection(articleId) {
                     </svg>
                 </button>
                 <button
+                    v-show="articleStore.articles.length > 0 || !articleStore.loading"
                     @click="refreshFeeds"
                     :disabled="refreshing"
                     class="rounded-lg p-2 transition-colors cursor-pointer"
