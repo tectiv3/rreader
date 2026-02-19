@@ -21,7 +21,7 @@ export default defineConfig({
         tailwindcss(),
         VitePWA({
             registerType: false,
-            includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon.png', 'robots.txt'],
+            includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon.png', 'icons/apple-touch-icon-dark.png', 'robots.txt'],
             manifest: {
                 name: 'RReader',
                 short_name: 'RReader',
@@ -48,6 +48,11 @@ export default defineConfig({
                         sizes: '512x512',
                         type: 'image/png',
                         purpose: 'any maskable',
+                    },
+                    {
+                        src: '/favicon.svg',
+                        sizes: 'any',
+                        type: 'image/svg+xml',
                     },
                 ],
             },
