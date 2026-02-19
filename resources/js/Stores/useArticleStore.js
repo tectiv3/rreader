@@ -121,6 +121,31 @@ export const useArticleStore = defineStore('articles', () => {
         }
     }
 
+    async function showAllFeedArticles() {
+        const view = activeView.value
+        if (!view.feedId) return
+
+        loading.value = true
+        articles.value = []
+        nextCursor.value = null
+        hasMore.value = false
+
+        const params = new URLSearchParams()
+        params.set('feed_id', view.feedId)
+        params.set('show_all', '1')
+
+        try {
+            const response = await axios.get('/api/articles?' + params.toString())
+            articles.value = response.data.articles
+            filterTitle.value = response.data.filter_title
+            hasMore.value = response.data.has_more
+            nextCursor.value = response.data.next_cursor
+            loaded.value = true
+        } finally {
+            loading.value = false
+        }
+    }
+
     async function loadMore() {
         if (!hasMore.value || loadingMore.value || !nextCursor.value) return
         loadingMore.value = true
@@ -328,6 +353,7 @@ export const useArticleStore = defineStore('articles', () => {
         adjacentIds,
         // actions
         fetchArticles,
+        showAllFeedArticles,
         loadMore,
         fetchContent,
         prefetchAdjacent,

@@ -598,7 +598,8 @@ function getSwipeDirection(articleId) {
     <!-- Feed info panel (single feed view) -->
     <div
         v-if="showFeedInfo && activeFeedInfo"
-        class="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 px-4 py-3">
+        class="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 px-4 py-3"
+        :style="!isDesktop ? 'margin-top: calc(2.75rem + env(safe-area-inset-top, 0px))' : ''">
         <div class="flex items-start gap-3">
             <img
                 v-if="activeFeedInfo.favicon_url"
@@ -1030,6 +1031,31 @@ function getSwipeDirection(articleId) {
                         Add a Feed
                     </button>
                 </template>
+                <template v-else-if="isSingleFeedView">
+                    <svg
+                        class="h-16 w-16 text-neutral-300 dark:text-neutral-700"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
+                        All caught up
+                    </h3>
+                    <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
+                        No unread articles in this feed.
+                    </p>
+                    <button
+                        type="button"
+                        @click="articleStore.showAllFeedArticles()"
+                        class="mt-4 rounded-lg bg-neutral-200 dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors cursor-pointer">
+                        Show all articles
+                    </button>
+                </template>
                 <template v-else>
                     <svg
                         class="h-16 w-16 text-neutral-300 dark:text-neutral-700"
@@ -1155,6 +1181,31 @@ function getSwipeDirection(articleId) {
                         @click="openAddFeedModal()"
                         class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
                         Add a Feed
+                    </button>
+                </template>
+                <template v-else-if="isSingleFeedView">
+                    <svg
+                        class="h-16 w-16 text-neutral-300 dark:text-neutral-700"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
+                        All caught up
+                    </h3>
+                    <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
+                        No unread articles in this feed.
+                    </p>
+                    <button
+                        type="button"
+                        @click="articleStore.showAllFeedArticles()"
+                        class="mt-4 rounded-lg bg-neutral-200 dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors cursor-pointer">
+                        Show all articles
                     </button>
                 </template>
                 <template v-else>

@@ -114,7 +114,8 @@ class ArticleApiController extends Controller
             }
 
             $hideRead = $user->settings['hide_read_articles'] ?? false;
-            if ($hideRead) {
+            $showAll = $feedId && $request->boolean('show_all');
+            if ($hideRead && !$showAll) {
                 $query->where(fn ($q) => $q->whereNull('user_articles.is_read')
                                             ->orWhere('user_articles.is_read', false));
             }
