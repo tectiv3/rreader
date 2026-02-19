@@ -55,6 +55,8 @@ onUnmounted(() => clearReadingState())
 async function loadArticle(id) {
     loading.value = true
     article.value = null
+    if (isMobile.value && scrollContainer.value) scrollContainer.value.scrollTop = 0
+    else window.scrollTo(0, 0)
 
     const url = `/articles/${id}`
     saveReadingState(url)
