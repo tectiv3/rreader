@@ -88,32 +88,13 @@ function navigateTo(params) {
     }
 }
 
-// Scroll-direction hide/show for bottom nav
-const navHidden = ref(false)
-let lastScrollY = 0
-const SCROLL_THRESHOLD = 10
-
-function onScroll() {
-    const currentY = window.scrollY
-    if (currentY < SCROLL_THRESHOLD) {
-        navHidden.value = false
-    } else if (currentY > lastScrollY + SCROLL_THRESHOLD) {
-        navHidden.value = true
-    } else if (currentY < lastScrollY - SCROLL_THRESHOLD) {
-        navHidden.value = false
-    }
-    lastScrollY = currentY
-}
-
 onMounted(() => {
-    window.addEventListener('scroll', onScroll, { passive: true })
     if (desktopQuery) {
         desktopQuery.addEventListener('change', onMediaChange)
     }
 })
 
 onUnmounted(() => {
-    window.removeEventListener('scroll', onScroll)
     if (desktopQuery) {
         desktopQuery.removeEventListener('change', onMediaChange)
     }
@@ -182,8 +163,7 @@ onUnmounted(() => {
         <!-- Bottom navigation bar (mobile only) -->
         <nav
             v-if="!isDesktop"
-            class="fixed bottom-0 inset-x-0 z-40 border-t border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 pb-safe transition-transform duration-300"
-            :class="navHidden ? 'translate-y-full' : 'translate-y-0'"
+            class="fixed bottom-0 inset-x-0 z-40 border-t border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 pb-safe"
             aria-label="Bottom navigation">
             <div class="flex h-14 items-center justify-around px-2">
                 <!-- Sidebar toggle (hamburger) -->

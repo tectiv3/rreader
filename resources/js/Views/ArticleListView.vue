@@ -482,9 +482,13 @@ function getSwipeDirection(articleId) {
 </script>
 
 <template>
-    <!-- Sticky header -->
+    <!-- Header: fixed on mobile, sticky on desktop -->
     <header
-        class="sticky top-0 z-30 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 pt-safe">
+        :class="
+            isDesktop
+                ? 'sticky top-0 z-30 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 pt-safe'
+                : 'fixed top-0 inset-x-0 z-30 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 pt-safe'
+        ">
         <div class="flex h-11 items-center justify-between px-4">
             <div class="flex items-center gap-2 min-w-0">
                 <button
@@ -635,7 +639,8 @@ function getSwipeDirection(articleId) {
     <!-- Loading state -->
     <div
         v-if="articleStore.loading && articleStore.articles.length === 0"
-        class="flex items-center justify-center py-20">
+        class="flex items-center justify-center py-20"
+        :style="!isDesktop ? 'margin-top: calc(2.75rem + env(safe-area-inset-top, 0px))' : ''">
         <svg class="h-8 w-8 animate-spin text-neutral-400" fill="none" viewBox="0 0 24 24">
             <circle
                 class="opacity-25"
@@ -1055,6 +1060,9 @@ function getSwipeDirection(articleId) {
 
     <!-- Mobile layout -->
     <template v-else>
+        <!-- Spacer for fixed header (h-11 + safe-area-inset-top) -->
+        <div style="height: calc(2.75rem + env(safe-area-inset-top, 0px))"></div>
+
         <!-- Pull-to-refresh indicator -->
         <div
             class="flex items-center justify-center overflow-hidden transition-all duration-200"
@@ -1179,7 +1187,8 @@ function getSwipeDirection(articleId) {
             <div v-else-if="articleStore.articles.length > 0">
                 <template v-for="(articles, dateLabel) in groupedArticles" :key="dateLabel">
                     <div
-                        class="sticky top-11 z-10 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-950/95 px-4 py-2 backdrop-blur">
+                        class="sticky z-10 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-950/95 px-4 py-2 backdrop-blur"
+                        style="top: calc(2.75rem + env(safe-area-inset-top, 0px))">
                         <h2
                             class="text-xs font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-500">
                             {{ dateLabel }}
