@@ -15,6 +15,7 @@ export const useArticleStore = defineStore('articles', () => {
     const hasMore = ref(false)
     const nextCursor = ref(null)
     const loadingMore = ref(false)
+    const viewCache = new Map() // per-view article list cache
 
     const CONTENT_CACHE_MAX = 20
 
@@ -51,6 +52,23 @@ export const useArticleStore = defineStore('articles', () => {
     }
 
     // --- Actions ---
+    function viewKey(view) {
+        if (view.feedId) return `feed:${view.feedId}`
+        if (view.categoryId) return `category:${view.categoryId}`
+        return view.type
+    }
+
+    function saveViewToCache() {
+        if (!loaded.value || articles.value.length === 0) return
+        const key = viewKey(activeView.value)
+        viewCache.set(key, {
+            articles: articles.value,
+            filterTitle: filterTitle.value,
+            hasMore: hasMore.value,
+            nextCursor: nextCursor.value,
+        })
+    }
+
     async function fetchArticles(view) {
         // Don't refetch if same view is already loaded
         if (
@@ -59,6 +77,22 @@ export const useArticleStore = defineStore('articles', () => {
             activeView.value.feedId === view.feedId &&
             activeView.value.categoryId === view.categoryId
         ) {
+            return
+        }
+
+        // Save current view before switching
+        saveViewToCache()
+
+        // Restore from cache if available
+        const key = viewKey(view)
+        const cached = viewCache.get(key)
+        if (cached) {
+            articles.value = cached.articles
+            filterTitle.value = cached.filterTitle
+            hasMore.value = cached.hasMore
+            nextCursor.value = cached.nextCursor
+            activeView.value = view
+            loaded.value = true
             return
         }
 
@@ -268,6 +302,7 @@ export const useArticleStore = defineStore('articles', () => {
     }
 
     function forceRefresh() {
+        viewCache.clear()
         loaded.value = false
         nextCursor.value = null
         hasMore.value = false
