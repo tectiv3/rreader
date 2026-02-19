@@ -668,16 +668,16 @@ function getSwipeDirection(articleId) {
                     </div>
                     <div>
                         <template v-for="article in articles" :key="article.id">
-                            <!-- Article row -->
-                            <button
+                            <!-- Article row (becomes sticky header when expanded) -->
+                            <div
                                 :id="`article-row-${article.id}`"
-                                @click="openArticle(article)"
-                                class="group/row flex w-full items-center gap-3 border-b border-neutral-200/50 dark:border-neutral-800/50 px-4 py-2.5 text-left transition-colors cursor-pointer"
+                                class="flex w-full items-center gap-3 border-b border-neutral-200/50 dark:border-neutral-800/50 px-4 py-2.5 text-left transition-colors"
                                 :class="[
                                     selectedArticleId === article.id
-                                        ? 'bg-blue-50 dark:bg-neutral-900 border-l-2 border-l-blue-500'
-                                        : 'hover:bg-neutral-50 dark:hover:bg-neutral-900/50',
-                                ]">
+                                        ? 'sticky top-0 z-10 bg-white/95 dark:bg-neutral-950/95 backdrop-blur border-b-neutral-200 dark:border-b-neutral-800'
+                                        : 'group/row cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900/50',
+                                ]"
+                                @click="selectedArticleId !== article.id && openArticle(article)">
                                 <template v-if="!isSingleFeedView">
                                     <img
                                         v-if="article.feed_favicon_url"
@@ -699,34 +699,123 @@ function getSwipeDirection(articleId) {
                                     ">
                                     {{ article.title }}
                                 </h3>
-                                <span
-                                    v-if="article.summary && selectedArticleId !== article.id"
-                                    class="hidden xl:block w-64 shrink-0 truncate text-xs text-neutral-500 dark:text-neutral-600">
-                                    {{ article.summary }}
-                                </span>
-                                <span
-                                    class="w-12 shrink-0 text-right text-xs text-neutral-500 dark:text-neutral-600">
-                                    {{ timeAgo(article.published_at) }}
-                                </span>
-                                <span
-                                    @click.stop="articleStore.dismissArticle(article.id)"
-                                    class="w-6 shrink-0 flex items-center justify-center opacity-0 group-hover/row:opacity-100 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-opacity cursor-pointer"
-                                    title="Dismiss — mark read & hide">
-                                    <svg
-                                        class="h-3.5 w-3.5"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke-width="2"
-                                        stroke="currentColor">
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </span>
-                            </button>
 
-                            <!-- Inline expanded article (Feedly-style) -->
+                                <!-- Collapsed: summary + time + dismiss -->
+                                <template v-if="selectedArticleId !== article.id">
+                                    <span
+                                        v-if="article.summary"
+                                        class="hidden xl:block w-64 shrink-0 truncate text-xs text-neutral-500 dark:text-neutral-600">
+                                        {{ article.summary }}
+                                    </span>
+                                    <span
+                                        class="w-12 shrink-0 text-right text-xs text-neutral-500 dark:text-neutral-600">
+                                        {{ timeAgo(article.published_at) }}
+                                    </span>
+                                    <span
+                                        @click.stop="articleStore.dismissArticle(article.id)"
+                                        class="w-6 shrink-0 flex items-center justify-center opacity-0 group-hover/row:opacity-100 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-opacity cursor-pointer"
+                                        title="Dismiss — mark read & hide">
+                                        <svg
+                                            class="h-3.5 w-3.5"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke-width="2"
+                                            stroke="currentColor">
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </span>
+                                </template>
+
+                                <!-- Expanded: action buttons -->
+                                <template v-else>
+                                    <div class="flex shrink-0 items-center gap-0.5">
+                                        <button
+                                            @click.stop="toggleReadLaterInline"
+                                            class="rounded-lg p-1.5 transition-colors cursor-pointer"
+                                            :class="
+                                                selectedIsReadLater
+                                                    ? 'text-blue-500 hover:bg-neutral-200 dark:hover:bg-neutral-800'
+                                                    : 'text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300'
+                                            "
+                                            :title="
+                                                selectedIsReadLater
+                                                    ? 'Remove from Read Later'
+                                                    : 'Save to Read Later'
+                                            ">
+                                            <svg
+                                                class="h-4 w-4"
+                                                :fill="
+                                                    selectedIsReadLater ? 'currentColor' : 'none'
+                                                "
+                                                viewBox="0 0 24 24"
+                                                stroke-width="1.5"
+                                                stroke="currentColor">
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                                            </svg>
+                                        </button>
+                                        <button
+                                            @click.stop="markAsUnreadInline"
+                                            class="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors cursor-pointer"
+                                            title="Mark as unread">
+                                            <svg
+                                                class="h-4 w-4"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke-width="1.5"
+                                                stroke="currentColor">
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V18" />
+                                            </svg>
+                                        </button>
+                                        <a
+                                            v-if="selectedArticle?.url"
+                                            :href="selectedArticle.url"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            @click.stop
+                                            class="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
+                                            title="Open original">
+                                            <svg
+                                                class="h-4 w-4"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke-width="1.5"
+                                                stroke="currentColor">
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                                            </svg>
+                                        </a>
+                                        <button
+                                            @click.stop="closeArticlePanel"
+                                            class="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors cursor-pointer"
+                                            title="Collapse (Esc)">
+                                            <svg
+                                                class="h-4 w-4"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke-width="1.5"
+                                                stroke="currentColor">
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Inline expanded article content -->
                             <div
                                 v-if="selectedArticleId === article.id"
                                 :id="`article-expanded-${article.id}`"
@@ -755,129 +844,20 @@ function getSwipeDirection(articleId) {
 
                                 <!-- Article content -->
                                 <template v-if="selectedArticle">
-                                    <div
-                                        class="sticky top-0 z-10 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/95 dark:bg-neutral-900/80 backdrop-blur px-4 py-2">
-                                        <div class="flex items-center justify-between gap-3">
-                                            <h2
-                                                class="min-w-0 flex-1 truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                                                <a
-                                                    v-if="selectedArticle.url"
-                                                    :href="selectedArticle.url"
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    class="hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
-                                                    {{ selectedArticle.title }}
-                                                </a>
-                                                <template v-else>{{
-                                                    selectedArticle.title
-                                                }}</template>
-                                            </h2>
-                                            <div class="flex shrink-0 items-center gap-0.5">
-                                                <button
-                                                    @click.stop="toggleReadLaterInline"
-                                                    class="rounded-lg p-1.5 transition-colors cursor-pointer"
-                                                    :class="
-                                                        selectedIsReadLater
-                                                            ? 'text-blue-500 hover:bg-neutral-200 dark:hover:bg-neutral-800'
-                                                            : 'text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300'
-                                                    "
-                                                    :title="
-                                                        selectedIsReadLater
-                                                            ? 'Remove from Read Later'
-                                                            : 'Save to Read Later'
-                                                    ">
-                                                    <svg
-                                                        class="h-4 w-4"
-                                                        :fill="
-                                                            selectedIsReadLater
-                                                                ? 'currentColor'
-                                                                : 'none'
-                                                        "
-                                                        viewBox="0 0 24 24"
-                                                        stroke-width="1.5"
-                                                        stroke="currentColor">
-                                                        <path
-                                                            stroke-linecap="round"
-                                                            stroke-linejoin="round"
-                                                            d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
-                                                    </svg>
-                                                </button>
-                                                <button
-                                                    @click.stop="markAsUnreadInline"
-                                                    class="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors cursor-pointer"
-                                                    title="Mark as unread">
-                                                    <svg
-                                                        class="h-4 w-4"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke-width="1.5"
-                                                        stroke="currentColor">
-                                                        <path
-                                                            stroke-linecap="round"
-                                                            stroke-linejoin="round"
-                                                            d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V18" />
-                                                    </svg>
-                                                </button>
-                                                <button
-                                                    @click.stop="closeArticlePanel"
-                                                    class="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors cursor-pointer"
-                                                    title="Close article">
-                                                    <svg
-                                                        class="h-4 w-4"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke-width="1.5"
-                                                        stroke="currentColor">
-                                                        <path
-                                                            stroke-linecap="round"
-                                                            stroke-linejoin="round"
-                                                            d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </div>
+                                    <article class="mx-auto max-w-3xl px-6 pt-5 pb-6">
+                                        <!-- Article meta -->
                                         <div
-                                            class="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-neutral-500 dark:text-neutral-500">
-                                            <a
-                                                v-if="
-                                                    selectedArticle.feed?.id ||
-                                                    selectedArticle.feed_id
-                                                "
-                                                href="#"
-                                                class="flex items-center gap-1.5 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
-                                                @click.prevent="
-                                                    navigateToFeed(
-                                                        selectedArticle.feed?.id ||
-                                                            selectedArticle.feed_id
-                                                    )
-                                                ">
-                                                <img
-                                                    v-if="
-                                                        selectedArticle.feed?.favicon_url ||
-                                                        selectedArticle.feed_favicon_url
-                                                    "
-                                                    :src="
-                                                        selectedArticle.feed?.favicon_url ||
-                                                        selectedArticle.feed_favicon_url
-                                                    "
-                                                    class="h-3.5 w-3.5 rounded-sm"
-                                                    alt="" />
-                                                <span>{{
-                                                    selectedArticle.feed?.title ||
-                                                    selectedArticle.feed_title
-                                                }}</span>
-                                            </a>
-                                            <span v-if="selectedArticle.author"
-                                                >&middot; {{ selectedArticle.author }}</span
-                                            >
+                                            class="flex flex-wrap items-center gap-x-2 text-xs text-neutral-500 dark:text-neutral-500 mb-4">
+                                            <span v-if="selectedArticle.author">{{
+                                                selectedArticle.author
+                                            }}</span>
+                                            <span v-if="selectedArticle.author">&middot;</span>
                                             <span
-                                                >&middot; {{ selectedFormattedDate }} at
+                                                >{{ selectedFormattedDate }} at
                                                 {{ selectedFormattedTime }}</span
                                             >
                                         </div>
-                                    </div>
 
-                                    <article class="mx-auto max-w-3xl px-6 pt-6 pb-6">
                                         <img
                                             v-if="showHeroImage"
                                             :src="selectedArticle.image_url"
