@@ -3,7 +3,7 @@ import { useArticleStore } from '@/Stores/useArticleStore.js'
 import { useToast } from '@/Composables/useToast.js'
 import { useRouter, useRoute } from 'vue-router'
 import { setTitle } from '@/router.js'
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 
 const articleStore = useArticleStore()
 const router = useRouter()
@@ -82,10 +82,12 @@ loadArticle(route.params.id)
 // Watch for route param changes (same component, different article)
 watch(
     () => route.params.id,
-    newId => {
+    async newId => {
         if (newId && route.name === 'articles.show') {
             navigating.value = false
-            loadArticle(newId)
+            await loadArticle(newId)
+            await nextTick()
+            applySlideInAnimation()
         }
     }
 )
@@ -214,11 +216,7 @@ function onKeydown(e) {
     else if (e.key === 'Escape') goBack()
 }
 
-onMounted(() => {
-    document.addEventListener('click', closeMenu)
-    document.addEventListener('keydown', onKeydown)
-
-    // Slide-in animation from swipe navigation
+function applySlideInAnimation() {
     const direction = sessionStorage.getItem('article-swipe-direction')
     if (direction && articleEl.value) {
         sessionStorage.removeItem('article-swipe-direction')
@@ -238,6 +236,13 @@ onMounted(() => {
             { once: true }
         )
     }
+}
+
+onMounted(() => {
+    document.addEventListener('click', closeMenu)
+    document.addEventListener('keydown', onKeydown)
+
+    applySlideInAnimation()
 })
 
 onUnmounted(() => {
@@ -249,25 +254,37 @@ onUnmounted(() => {
 
 // --- Pull-to-dismiss + horizontal swipe navigation ---
 const DISMISS_THRESHOLD = 150
-const DIRECTION_LOCK_DISTANCE = 10
-const HORIZONTAL_SWIPE_THRESHOLD = 80
-const VELOCITY_THRESHOLD = 1.5 // px/ms
+const DIRECTION_LOCK_DISTANCE = 15
+const HORIZONTAL_SWIPE_THRESHOLD = 100
+const VELOCITY_THRESHOLD = 0.5 // px/ms for velocity-based commit
+const HORIZONTAL_DAMPING = 0.45
 
 const scrimEl = ref(null)
+const swipeIndicatorEl = ref(null)
 let touchStartX = 0
 let touchStartY = 0
 let touchStartTime = 0
 let touchState = 'idle' // idle | tracking | dismissing | horizontal | animating
 let startedAtScrollTop = false
+let horizontalDampedX = 0
+
+function isContentZoomed() {
+    if (window.visualViewport) {
+        return window.visualViewport.scale > 1.05
+    }
+    return false
+}
 
 function onTouchStart(e) {
     if (touchState === 'animating') return
     if (!isMobile.value) return
     if (navigating.value) return
+    if (isContentZoomed()) return
 
     touchStartX = e.touches[0].clientX
     touchStartY = e.touches[0].clientY
     touchStartTime = Date.now()
+    horizontalDampedX = 0
 
     // Only track for dismiss if at scroll top
     const container = scrollContainer.value
@@ -291,10 +308,14 @@ function onTouchMove(e) {
 
         if (absDY > absDX && deltaY > 0 && startedAtScrollTop) {
             touchState = 'dismissing'
-            // Prevent scroll while dismissing
+            e.preventDefault()
+        } else if (absDX > absDY * 1.2) {
+            // Only lock horizontal if clearly more horizontal than vertical
+            touchState = 'horizontal'
             e.preventDefault()
         } else {
-            touchState = 'horizontal'
+            // Ambiguous or vertical scroll — bail out
+            touchState = 'idle'
             return
         }
     }
@@ -304,6 +325,11 @@ function onTouchMove(e) {
         const rawDelta = Math.max(0, e.touches[0].clientY - touchStartY)
         applyDismissTransform(rawDelta)
     }
+
+    if (touchState === 'horizontal') {
+        e.preventDefault()
+        applyHorizontalSwipeTransform(deltaX)
+    }
 }
 
 function onTouchEnd(e) {
@@ -312,25 +338,32 @@ function onTouchEnd(e) {
     const deltaY = e.changedTouches[0].clientY - touchStartY
 
     if (prevState === 'horizontal') {
-        // Delegate to existing horizontal swipe logic
-        touchState = 'idle'
-        if (navigating.value) return
-        if (deltaX < -HORIZONTAL_SWIPE_THRESHOLD) navigateToArticle('next')
-        else if (deltaX > HORIZONTAL_SWIPE_THRESHOLD) navigateToArticle('prev')
+        const elapsed = Date.now() - touchStartTime
+        const velocity = Math.abs(deltaX) / Math.max(elapsed, 1)
+        const committed =
+            Math.abs(horizontalDampedX) > HORIZONTAL_SWIPE_THRESHOLD ||
+            velocity > VELOCITY_THRESHOLD
+
+        if (committed && !navigating.value) {
+            const direction = horizontalDampedX < 0 ? 'next' : 'prev'
+            const targetId = direction === 'next' ? adjacentIds.value.next : adjacentIds.value.prev
+            if (targetId) {
+                animateHorizontalCommit(direction)
+                return
+            }
+        }
+        // Snap back
+        animateHorizontalSnapBack()
         return
     }
 
     if (prevState === 'dismissing') {
         const elapsed = Date.now() - touchStartTime
-        const velocity = deltaY / elapsed // px/ms
+        const velocity = deltaY / Math.max(elapsed, 1)
         const viewportThreshold = window.innerHeight * 0.3
         const dampedDelta = Math.max(0, deltaY) * 0.6
 
-        if (
-            dampedDelta > DISMISS_THRESHOLD ||
-            dampedDelta > viewportThreshold ||
-            velocity > VELOCITY_THRESHOLD
-        ) {
+        if (dampedDelta > DISMISS_THRESHOLD || dampedDelta > viewportThreshold || velocity > 1.5) {
             animateDismiss()
         } else {
             animateSnapBack()
@@ -339,6 +372,123 @@ function onTouchEnd(e) {
     }
 
     touchState = 'idle'
+}
+
+// --- Horizontal swipe visual tracking ---
+function applyHorizontalSwipeTransform(rawDeltaX) {
+    const articleContent = articleEl.value
+    const indicator = swipeIndicatorEl.value
+    if (!articleContent) return
+
+    // Determine if there's an article in this direction
+    const direction = rawDeltaX < 0 ? 'next' : 'prev'
+    const hasTarget = direction === 'next' ? adjacentIds.value.next : adjacentIds.value.prev
+
+    // Apply damping — stronger if no target in that direction
+    const damping = hasTarget ? HORIZONTAL_DAMPING : 0.15
+    horizontalDampedX = rawDeltaX * damping
+
+    // Translate the article content
+    articleContent.style.transition = 'none'
+    articleContent.style.transform = `translateX(${horizontalDampedX}px)`
+    articleContent.style.willChange = 'transform'
+
+    // Update swipe indicator
+    if (indicator) {
+        const progress = Math.min(Math.abs(horizontalDampedX) / HORIZONTAL_SWIPE_THRESHOLD, 1)
+        const isLeft = rawDeltaX < 0
+        indicator.style.transition = 'none'
+        indicator.style.opacity = String(hasTarget ? progress * 0.9 : progress * 0.3)
+        indicator.className =
+            'swipe-indicator ' + (isLeft ? 'swipe-indicator-right' : 'swipe-indicator-left')
+        // Scale the chevron based on progress
+        const chevron = indicator.querySelector('.swipe-chevron')
+        if (chevron) {
+            const scale = 0.6 + 0.4 * progress
+            const flipX = isLeft ? ' scaleX(-1)' : ''
+            chevron.style.transform = `scale(${scale})${flipX}`
+            chevron.style.opacity = String(hasTarget ? 1 : 0.4)
+        }
+        const label = indicator.querySelector('.swipe-label')
+        if (label) {
+            label.style.opacity = String(progress > 0.6 ? (progress - 0.6) / 0.4 : 0)
+            label.textContent = hasTarget ? (isLeft ? 'Next' : 'Previous') : ''
+        }
+    }
+}
+
+function animateHorizontalCommit(direction) {
+    touchState = 'animating'
+    const articleContent = articleEl.value
+    const indicator = swipeIndicatorEl.value
+    if (!articleContent) return
+
+    const targetX = direction === 'next' ? -window.innerWidth : window.innerWidth
+
+    articleContent.style.transition = 'transform 200ms ease-in'
+    articleContent.style.transform = `translateX(${targetX}px)`
+
+    if (indicator) {
+        indicator.style.transition = 'opacity 200ms ease-in'
+        indicator.style.opacity = '0'
+    }
+
+    let done = false
+    const cleanup = () => {
+        if (done) return
+        done = true
+        clearTimeout(timeout)
+        resetHorizontalSwipe()
+        navigateToArticle(direction)
+    }
+
+    const timeout = setTimeout(cleanup, 300)
+    articleContent.addEventListener('transitionend', cleanup, { once: true })
+}
+
+function animateHorizontalSnapBack() {
+    touchState = 'animating'
+    const articleContent = articleEl.value
+    const indicator = swipeIndicatorEl.value
+    if (!articleContent) {
+        touchState = 'idle'
+        return
+    }
+
+    articleContent.style.transition = 'transform 250ms cubic-bezier(0.2, 0.9, 0.3, 1.0)'
+    articleContent.style.transform = 'translateX(0)'
+
+    if (indicator) {
+        indicator.style.transition = 'opacity 250ms ease-out'
+        indicator.style.opacity = '0'
+    }
+
+    let done = false
+    const cleanup = () => {
+        if (done) return
+        done = true
+        clearTimeout(timeout)
+        resetHorizontalSwipe()
+    }
+
+    const timeout = setTimeout(cleanup, 350)
+    articleContent.addEventListener('transitionend', cleanup, { once: true })
+}
+
+function resetHorizontalSwipe() {
+    touchState = 'idle'
+    horizontalDampedX = 0
+    const articleContent = articleEl.value
+    const indicator = swipeIndicatorEl.value
+    if (articleContent) {
+        articleContent.style.transition = ''
+        articleContent.style.transform = ''
+        articleContent.style.willChange = ''
+    }
+    if (indicator) {
+        indicator.style.transition = ''
+        indicator.style.opacity = '0'
+    }
 }
 
 function applyDismissTransform(rawDelta) {
@@ -448,6 +598,24 @@ function navigateToFeed(feedId) {
             ref="scrimEl"
             class="fixed inset-0 z-40 bg-black pointer-events-none"
             style="opacity: 0" />
+
+        <!-- Horizontal swipe indicator (mobile only) -->
+        <div v-show="isMobile" ref="swipeIndicatorEl" class="swipe-indicator" style="opacity: 0">
+            <div class="swipe-chevron">
+                <svg
+                    class="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="2"
+                    stroke="currentColor">
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M15.75 19.5L8.25 12l7.5-7.5" />
+                </svg>
+            </div>
+            <span class="swipe-label"></span>
+        </div>
 
         <!-- Article container: fixed overlay on mobile, normal flow on desktop -->
         <div
@@ -731,5 +899,52 @@ function navigateToFeed(feedId) {
 <style scoped>
 .pt-safe {
     padding-top: env(safe-area-inset-top, 0px);
+}
+
+.swipe-indicator {
+    position: fixed;
+    top: 50%;
+    z-index: 60;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    pointer-events: none;
+    color: rgb(163 163 163); /* neutral-400 */
+}
+
+.swipe-indicator-left {
+    left: 12px;
+}
+
+.swipe-indicator-right {
+    right: 12px;
+}
+
+.swipe-chevron {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgb(38 38 38 / 0.7); /* neutral-800/70 */
+    backdrop-filter: blur(4px);
+    transition: transform 60ms ease-out;
+}
+
+@media (prefers-color-scheme: dark) {
+    .swipe-chevron {
+        background: rgb(64 64 64 / 0.7); /* neutral-700/70 */
+    }
+}
+
+.swipe-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
 }
 </style>
