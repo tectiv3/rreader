@@ -28,7 +28,8 @@
       "Bash(yarn format:*)",
       "Bash(curl:*)",
       "Bash(php artisan route:list:*)",
-      "Bash(prettier --write:*)"
+      "Bash(prettier --write:*)",
+      "Bash(sqlite3:*)"
     ],
     "defaultMode": "acceptEdits"
   }

@@ -6,6 +6,8 @@ use App\Models\Feed;
 use App\Services\FeedParserService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
+
 class FetchFeed implements ShouldQueue
 {
     use Queueable;
@@ -22,7 +24,7 @@ class FetchFeed implements ShouldQueue
 
         try {
             $data = $parser->discoverAndParse($this->feed->feed_url);
-        } catch (\RuntimeException | \Illuminate\Http\Client\ConnectionException $e) {
+        } catch (\RuntimeException|\Illuminate\Http\Client\ConnectionException $e) {
             $this->feed->recordFailure($e->getMessage());
 
             return;
@@ -37,9 +39,6 @@ class FetchFeed implements ShouldQueue
             $metadataUpdates['favicon_url'] = $data['favicon_url'];
         }
 
-        // Insert new articles, skip existing by guid
-        $existingGuids = $this->feed->articles()->pluck('guid')->toArray();
-
         $articles = $data['articles'];
 
         // On first fetch (new subscription), limit to 10 most recent articles
@@ -47,11 +46,23 @@ class FetchFeed implements ShouldQueue
             $articles = array_slice($articles, 0, 10);
         }
 
+        $existingArticles = $this->feed->articles()->pluck('id', 'guid');
+
         foreach ($articles as $articleData) {
-            if (in_array($articleData['guid'], $existingGuids)) {
-                continue;
+            $existingId = $existingArticles->get($articleData['guid']);
+
+            if ($existingId) {
+                $this->feed->articles()->where('id', $existingId)->update([
+                    'title' => $articleData['title'],
+                    'author' => $articleData['author'],
+                    'content' => $articleData['content'],
+                    'summary' => $articleData['summary'],
+                    'url' => $articleData['url'],
+                    'image_url' => $articleData['image_url'],
+                ]);
+            } else {
+                $this->feed->articles()->create($articleData);
             }
-            $this->feed->articles()->create($articleData);
         }
 
         // Update last_fetched_at and any metadata changes

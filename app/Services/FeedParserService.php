@@ -162,6 +162,10 @@ class FeedParserService
                 }
             }
 
+            if (! $imageUrl) {
+                $imageUrl = $this->extractMediaContent($entry->getElement());
+            }
+
             $articles[] = [
                 'guid' => $entry->getId() ?: $entry->getLink() ?: md5($entry->getTitle().$entry->getDateCreated()?->format('c')),
                 'title' => $entry->getTitle(),
@@ -183,6 +187,32 @@ class FeedParserService
             'favicon_url' => $faviconUrl,
             'articles' => $articles,
         ];
+    }
+
+    private function extractMediaContent(\DOMElement $element): ?string
+    {
+        $mediaNs = 'http://search.yahoo.com/mrss/';
+
+        $mediaContents = $element->getElementsByTagNameNS($mediaNs, 'content');
+        foreach ($mediaContents as $media) {
+            $medium = $media->getAttribute('medium');
+            $type = $media->getAttribute('type');
+            $url = $media->getAttribute('url');
+
+            if ($url && ($medium === 'image' || str_starts_with($type, 'image/'))) {
+                return $url;
+            }
+        }
+
+        $thumbnails = $element->getElementsByTagNameNS($mediaNs, 'thumbnail');
+        foreach ($thumbnails as $thumb) {
+            $url = $thumb->getAttribute('url');
+            if ($url) {
+                return $url;
+            }
+        }
+
+        return null;
     }
 
     private function extractImageUrl(?string $html): ?string
