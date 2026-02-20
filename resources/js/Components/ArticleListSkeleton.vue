@@ -12,7 +12,11 @@
             :key="i"
             class="flex gap-3 border-b border-neutral-200/50 dark:border-neutral-800/50 px-4 py-3">
             <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2">
+                <div
+                    class="h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800"></div>
+                <div
+                    class="mt-1.5 h-4 w-3/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800"></div>
+                <div class="mt-2 flex items-center gap-2">
                     <div
                         class="h-3.5 w-3.5 animate-pulse rounded-sm bg-neutral-200 dark:bg-neutral-800"></div>
                     <div
@@ -20,12 +24,6 @@
                     <div
                         class="h-3 w-8 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800"></div>
                 </div>
-                <div
-                    class="mt-2 h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800"></div>
-                <div
-                    class="mt-1.5 h-4 w-3/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800"></div>
-                <div
-                    class="mt-1.5 h-3 w-full animate-pulse rounded bg-neutral-200/60 dark:bg-neutral-800/60"></div>
             </div>
             <div
                 class="h-16 w-16 shrink-0 animate-pulse rounded-lg bg-neutral-200 dark:bg-neutral-800"
@@ -49,8 +47,6 @@
                 class="h-3 w-28 shrink-0 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800"></div>
             <div
                 class="h-3.5 flex-1 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800"></div>
-            <div
-                class="hidden xl:block h-3 w-48 shrink-0 animate-pulse rounded bg-neutral-200/60 dark:bg-neutral-800/60"></div>
             <div
                 class="h-3 w-10 shrink-0 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800"></div>
         </div>

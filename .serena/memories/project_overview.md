@@ -11,7 +11,7 @@ Self-hosted Feedly-style RSS reader PWA with Laravel backend and Vue/Inertia fro
 - **Routing**: Ziggy for named routes in JS
 
 ## Key Patterns
-- Dark mode default, class strategy (`neutral-950` bg, `neutral-900` cards, `blue-500` accent)
+- Dark mode default, macOS-aligned palette (`neutral-950` bg, `neutral-900` cards, system blue for buttons/interactive elements)
 - Tailwind v4 with `@tailwindcss/vite` plugin (CSS-based config, no tailwind.config.js)
 - Mobile-first responsive design
 - `AppLayout.vue` is the main layout; `AuthenticatedLayout.vue` for Breeze pages

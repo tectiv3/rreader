@@ -486,10 +486,11 @@ function getSwipeDirection(articleId) {
     <header
         :class="
             isDesktop
-                ? 'sticky top-0 z-30 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 pt-safe'
-                : 'fixed top-0 inset-x-0 z-30 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 pt-safe'
+                ? 'sticky top-0 z-30 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 pt-safe'
+                : 'fixed top-0 inset-x-0 z-30 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 pt-safe'
         ">
-        <div class="flex h-11 items-center justify-between px-4">
+        <div
+            class="flex h-11 items-center justify-between border-b border-neutral-200 dark:border-neutral-800 px-4">
             <div class="flex items-center gap-2 min-w-0">
                 <button
                     @click="toggleSidebar()"
@@ -724,13 +725,8 @@ function getSwipeDirection(articleId) {
                                     {{ article.title }}
                                 </h3>
 
-                                <!-- Collapsed: summary + time + dismiss -->
+                                <!-- Collapsed: time + dismiss -->
                                 <template v-if="selectedArticleId !== article.id">
-                                    <span
-                                        v-if="article.summary"
-                                        class="hidden xl:block w-64 shrink-0 truncate text-xs text-neutral-500 dark:text-neutral-600">
-                                        {{ article.summary }}
-                                    </span>
                                     <span
                                         class="w-12 shrink-0 text-right text-xs text-neutral-500 dark:text-neutral-600">
                                         {{ timeAgo(article.published_at) }}
@@ -1322,8 +1318,17 @@ function getSwipeDirection(articleId) {
                                 class="relative flex w-full gap-3 bg-white dark:bg-neutral-950 px-4 py-3 text-left transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/50 active:bg-neutral-100 dark:active:bg-neutral-800/50"
                                 :style="getSwipeStyle(article.id)">
                                 <div class="min-w-0 flex-1">
+                                    <h3
+                                        class="text-sm leading-snug"
+                                        :class="
+                                            article.is_read
+                                                ? 'text-neutral-600 dark:text-neutral-500 font-normal'
+                                                : 'text-neutral-900 dark:text-neutral-100 font-semibold'
+                                        ">
+                                        {{ article.title }}
+                                    </h3>
                                     <div
-                                        class="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-500">
+                                        class="mt-1 flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-500">
                                         <template v-if="!isSingleFeedView">
                                             <img
                                                 v-if="article.feed_favicon_url"
@@ -1341,20 +1346,6 @@ function getSwipeDirection(articleId) {
                                             timeAgo(article.published_at)
                                         }}</span>
                                     </div>
-                                    <h3
-                                        class="mt-1 text-sm leading-snug"
-                                        :class="
-                                            article.is_read
-                                                ? 'text-neutral-600 dark:text-neutral-500 font-normal'
-                                                : 'text-neutral-900 dark:text-neutral-100 font-semibold'
-                                        ">
-                                        {{ article.title }}
-                                    </h3>
-                                    <p
-                                        v-if="article.summary"
-                                        class="mt-0.5 line-clamp-2 text-xs text-neutral-600 dark:text-neutral-500">
-                                        {{ article.summary }}
-                                    </p>
                                 </div>
                                 <img
                                     v-if="article.image_url"
