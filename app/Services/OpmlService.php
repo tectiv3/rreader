@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\ResolveFavicon;
 use App\Models\Feed;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -138,7 +139,7 @@ class OpmlService
                         continue;
                     }
 
-                    $user->feeds()->create([
+                    $feed = $user->feeds()->create([
                         'category_id' => $category->id,
                         'title' => $feedData['title'],
                         'feed_url' => $feedData['feed_url'],
@@ -146,6 +147,7 @@ class OpmlService
                         'description' => $feedData['description'],
                         'favicon_url' => $feedData['favicon_url'],
                     ]);
+                    ResolveFavicon::dispatch($feed);
                     $existingFeedUrls[] = $feedData['feed_url'];
                     $imported++;
                 }
@@ -162,13 +164,14 @@ class OpmlService
                     continue;
                 }
 
-                $user->feeds()->create([
+                $feed = $user->feeds()->create([
                     'title' => $feedData['title'],
                     'feed_url' => $feedData['feed_url'],
                     'site_url' => $feedData['site_url'],
                     'description' => $feedData['description'],
                     'favicon_url' => $feedData['favicon_url'],
                 ]);
+                ResolveFavicon::dispatch($feed);
                 $existingFeedUrls[] = $feedData['feed_url'];
                 $imported++;
             }

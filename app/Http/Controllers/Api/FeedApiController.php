@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\FetchFeed;
+use App\Jobs\ResolveFavicon;
 use App\Models\Feed;
 use App\Services\FeedParserService;
 use Illuminate\Http\JsonResponse;
@@ -107,6 +108,7 @@ final class FeedApiController extends Controller
         $request->session()->forget('feed_preview');
 
         FetchFeed::dispatch($feed);
+        ResolveFavicon::dispatch($feed);
 
         return response()->json(['id' => $feed->id], 201);
     }
