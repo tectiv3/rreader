@@ -533,7 +533,6 @@ function animateDismiss() {
         done = true
         clearTimeout(timeout)
         touchState = 'idle'
-        resetTransform()
         goBack()
     }
 
