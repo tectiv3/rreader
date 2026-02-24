@@ -113,6 +113,49 @@ final class FeedApiController extends Controller
         return response()->json(['id' => $feed->id], 201);
     }
 
+    public function manage(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $categories = $user->categories()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->with(['feeds' => fn ($q) => $q->orderBy('title')])
+            ->get()
+            ->map(fn ($category) => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'feeds' => $category->feeds->map(fn ($feed) => [
+                    'id' => $feed->id,
+                    'title' => $feed->title,
+                    'favicon_url' => $feed->favicon_url,
+                    'feed_url' => $feed->feed_url,
+                    'site_url' => $feed->site_url,
+                    'disabled_at' => $feed->disabled_at,
+                    'last_error' => $feed->last_error,
+                ]),
+            ]);
+
+        $uncategorizedFeeds = $user->feeds()
+            ->whereNull('category_id')
+            ->orderBy('title')
+            ->get()
+            ->map(fn ($feed) => [
+                'id' => $feed->id,
+                'title' => $feed->title,
+                'favicon_url' => $feed->favicon_url,
+                'feed_url' => $feed->feed_url,
+                'site_url' => $feed->site_url,
+                'disabled_at' => $feed->disabled_at,
+                'last_error' => $feed->last_error,
+            ]);
+
+        return response()->json([
+            'categories' => $categories,
+            'uncategorizedFeeds' => $uncategorizedFeeds,
+        ]);
+    }
+
     public function update(Request $request, Feed $feed): Response
     {
         if ($feed->user_id !== $request->user()->id) {
@@ -121,6 +164,7 @@ final class FeedApiController extends Controller
 
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
+            'feed_url' => ['sometimes', 'url', 'max:2048'],
             'category_id' => ['nullable', 'integer'],
         ]);
 
@@ -131,10 +175,22 @@ final class FeedApiController extends Controller
             }
         }
 
-        $feed->update([
+        $data = [
             'title' => $validated['title'],
             'category_id' => $validated['category_id'] ?? null,
-        ]);
+        ];
+
+        $urlChanged = isset($validated['feed_url']) && $validated['feed_url'] !== $feed->feed_url;
+
+        if (isset($validated['feed_url'])) {
+            $data['feed_url'] = $validated['feed_url'];
+        }
+
+        $feed->update($data);
+
+        if ($urlChanged) {
+            ResolveFavicon::dispatch($feed);
+        }
 
         return response()->noContent();
     }

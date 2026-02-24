@@ -1,11 +1,9 @@
 <script setup>
-import { useSidebarStore } from '@/Stores/useSidebarStore.js'
 import { useToast } from '@/Composables/useToast.js'
 import { useRouter } from 'vue-router'
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 
-const sidebarStore = useSidebarStore()
 const router = useRouter()
 const { success, error: showError } = useToast()
 
@@ -17,11 +15,15 @@ const localUncategorizedFeeds = ref([])
 const allCategories = computed(() => localCategories.value)
 
 // --- Load data ---
+async function fetchManageData() {
+    const { data } = await axios.get('/api/feeds/manage')
+    localCategories.value = data.categories
+    localUncategorizedFeeds.value = data.uncategorizedFeeds
+}
+
 async function loadData() {
     try {
-        await sidebarStore.fetchSidebar()
-        localCategories.value = JSON.parse(JSON.stringify(sidebarStore.categories))
-        localUncategorizedFeeds.value = JSON.parse(JSON.stringify(sidebarStore.uncategorizedFeeds))
+        await fetchManageData()
     } catch {
         showError('Failed to load feed data')
     } finally {
@@ -31,9 +33,7 @@ async function loadData() {
 
 async function refetchData() {
     try {
-        await sidebarStore.fetchSidebar()
-        localCategories.value = JSON.parse(JSON.stringify(sidebarStore.categories))
-        localUncategorizedFeeds.value = JSON.parse(JSON.stringify(sidebarStore.uncategorizedFeeds))
+        await fetchManageData()
     } catch {
         showError('Failed to refresh feed data')
     }
@@ -139,23 +139,27 @@ async function saveOrder(cats) {
 // --- Rename Feed ---
 const editingFeedId = ref(null)
 const editingFeedTitle = ref('')
+const editingFeedUrl = ref('')
 
 function startEditFeed(feed) {
     editingFeedId.value = feed.id
     editingFeedTitle.value = feed.title
+    editingFeedUrl.value = feed.feed_url
 }
 
 async function saveFeed(feed, currentCategoryId) {
     if (!editingFeedTitle.value.trim()) return
+    if (!editingFeedUrl.value.trim()) return
     try {
         await axios.put(`/api/feeds/${feed.id}`, {
             title: editingFeedTitle.value.trim(),
+            feed_url: editingFeedUrl.value.trim(),
             category_id: currentCategoryId,
         })
         editingFeedId.value = null
         await refetchData()
     } catch (e) {
-        showError(e.response?.data?.message || 'Failed to rename feed')
+        showError(e.response?.data?.message || 'Failed to update feed')
     }
 }
 
@@ -465,23 +469,34 @@ async function reenableFeed(feed) {
                             class="h-5 w-5 shrink-0 rounded-sm bg-neutral-300 dark:bg-neutral-700" />
 
                         <div v-if="editingFeedId === feed.id" class="flex-1 min-w-0">
-                            <form @submit.prevent="saveFeed(feed, category.id)" class="flex gap-2">
+                            <form
+                                @submit.prevent="saveFeed(feed, category.id)"
+                                class="flex flex-col gap-2">
                                 <input
                                     v-model="editingFeedTitle"
                                     type="text"
-                                    class="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-base text-neutral-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
+                                    placeholder="Feed title"
+                                    class="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-base text-neutral-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
                                     @keydown.escape="cancelEditFeed" />
-                                <button
-                                    type="submit"
-                                    class="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors">
-                                    Save
-                                </button>
-                                <button
-                                    type="button"
-                                    @click="cancelEditFeed"
-                                    class="rounded-lg px-3 py-1.5 text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors">
-                                    Cancel
-                                </button>
+                                <input
+                                    v-model="editingFeedUrl"
+                                    type="url"
+                                    placeholder="Feed URL"
+                                    class="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
+                                    @keydown.escape="cancelEditFeed" />
+                                <div class="flex gap-2">
+                                    <button
+                                        type="submit"
+                                        class="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors">
+                                        Save
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="cancelEditFeed"
+                                        class="rounded-lg px-3 py-1.5 text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors">
+                                        Cancel
+                                    </button>
+                                </div>
                             </form>
                         </div>
                         <div v-else-if="movingFeedId === feed.id" class="flex-1 min-w-0">
@@ -655,23 +670,34 @@ async function reenableFeed(feed) {
                             class="h-5 w-5 shrink-0 rounded-sm bg-neutral-300 dark:bg-neutral-700" />
 
                         <div v-if="editingFeedId === feed.id" class="flex-1 min-w-0">
-                            <form @submit.prevent="saveFeed(feed, null)" class="flex gap-2">
+                            <form
+                                @submit.prevent="saveFeed(feed, null)"
+                                class="flex flex-col gap-2">
                                 <input
                                     v-model="editingFeedTitle"
                                     type="text"
-                                    class="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-base text-neutral-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
+                                    placeholder="Feed title"
+                                    class="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-base text-neutral-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
                                     @keydown.escape="cancelEditFeed" />
-                                <button
-                                    type="submit"
-                                    class="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors">
-                                    Save
-                                </button>
-                                <button
-                                    type="button"
-                                    @click="cancelEditFeed"
-                                    class="rounded-lg px-3 py-1.5 text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors">
-                                    Cancel
-                                </button>
+                                <input
+                                    v-model="editingFeedUrl"
+                                    type="url"
+                                    placeholder="Feed URL"
+                                    class="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
+                                    @keydown.escape="cancelEditFeed" />
+                                <div class="flex gap-2">
+                                    <button
+                                        type="submit"
+                                        class="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors">
+                                        Save
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="cancelEditFeed"
+                                        class="rounded-lg px-3 py-1.5 text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors">
+                                        Cancel
+                                    </button>
+                                </div>
                             </form>
                         </div>
                         <div v-else-if="movingFeedId === feed.id" class="flex-1 min-w-0">

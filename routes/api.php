@@ -22,6 +22,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/sidebar', [SidebarApiController::class, 'index']);
 
     // Feeds
+    Route::get('/feeds/manage', [FeedApiController::class, 'manage']);
     Route::post('/feeds/preview', [FeedApiController::class, 'preview']);
     Route::post('/feeds', [FeedApiController::class, 'store']);
     Route::put('/feeds/{feed}', [FeedApiController::class, 'update']);
