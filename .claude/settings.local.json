@@ -30,7 +30,10 @@
       "Bash(php artisan route:list:*)",
       "Bash(prettier --write:*)",
       "Bash(sqlite3:*)",
-      "Bash(./vendor/bin/phpstan analyse:*)"
+      "Bash(./vendor/bin/phpstan analyse:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:packagist.org)"
     ],
     "defaultMode": "acceptEdits"
   }
