@@ -1,0 +1,4 @@
+exclude = "{$exclude,nova,storage,phpstan.baseline,_ide_helper.php,nova-assets,*.min.css,*.min.js,*.svg,yarn.lock,*.mp3,composer.lock,widgets-app.js,public/skins,resources/docs,public/docs,dist/*,dist/js,public/js,vendor,public/vendor,node_modules,web/dist,assets/*.js,dist/*.js,bootstrap/cache,build,ios/Pods,assets/*.bundle,*.jsbundle,Podfile.lock,package-lock.json}"
+
+TM_ENABLE_IS = false
+TM_ENABLE_FMT = true

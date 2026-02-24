@@ -1,9 +1,23 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-        <meta name="theme-color" content="#1e293b">
+        <meta name="theme-color" content="#171717" id="theme-color-meta">
+        <script>
+            (function() {
+                var t = localStorage.getItem('rreader-theme');
+                if (!t || !['dark','light','system'].includes(t)) {
+                    var old = localStorage.getItem('rreader-dark-mode');
+                    t = old !== null ? (old === 'true' ? 'dark' : 'light') : 'dark';
+                }
+                var dark = t === 'system'
+                    ? window.matchMedia('(prefers-color-scheme: dark)').matches
+                    : t === 'dark';
+                if (dark) document.documentElement.classList.add('dark');
+                document.getElementById('theme-color-meta').content = dark ? '#171717' : '#ffffff';
+            })();
+        </script>
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="apple-mobile-web-app-title" content="RReader">
@@ -24,7 +38,7 @@
         @vite(['resources/js/app.js', "resources/js/Pages/{$page['component']}.vue"])
         @inertiaHead
     </head>
-    <body class="font-sans antialiased bg-slate-950 text-slate-100">
+    <body class="font-sans antialiased bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
         @inertia
     </body>
 </html>

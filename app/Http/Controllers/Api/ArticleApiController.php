@@ -23,13 +23,19 @@ class ArticleApiController extends Controller
         $filterTitle = 'All Feeds';
 
         if ($feedId) {
-            $feed = $user->feeds()->where('feeds.id', $feedId)->first();
+            $feed = $user
+                ->feeds()
+                ->where('feeds.id', $feedId)
+                ->first();
             if ($feed) {
                 $feedIds = collect([$feed->id]);
                 $filterTitle = $feed->title;
             }
         } elseif ($categoryId) {
-            $category = $user->categories()->where('id', $categoryId)->first();
+            $category = $user
+                ->categories()
+                ->where('id', $categoryId)
+                ->first();
             if ($category) {
                 $catFeedIds = $category->feeds()->pluck('feeds.id');
                 $feedIds = $catFeedIds->isNotEmpty() ? $catFeedIds : collect([]);
@@ -46,40 +52,54 @@ class ArticleApiController extends Controller
         if ($filter === 'read_later') {
             $query = Article::whereIn('feed_id', $allFeedIds)
                 ->join('user_articles', function ($join) use ($user) {
-                    $join->on('articles.id', '=', 'user_articles.article_id')
+                    $join
+                        ->on('articles.id', '=', 'user_articles.article_id')
                         ->where('user_articles.user_id', '=', $user->id)
                         ->where('user_articles.is_read_later', '=', true);
                 })
                 ->select([
-                    'articles.id', 'articles.title',
-                    'articles.feed_id', 'articles.image_url',
-                    'articles.published_at', 'articles.url',
-                    'user_articles.is_read', 'user_articles.is_read_later',
+                    'articles.id',
+                    'articles.title',
+                    'articles.feed_id',
+                    'articles.image_url',
+                    'articles.published_at',
+                    'articles.url',
+                    'user_articles.is_read',
+                    'user_articles.is_read_later',
                     'user_articles.read_at',
                 ]);
 
             if ($cursor) {
                 [$cursorDate, $cursorId] = explode(',', $cursor, 2);
                 $query->where(function ($q) use ($cursorDate, $cursorId) {
-                    $q->where('articles.published_at', '<', $cursorDate)
-                        ->orWhere(function ($q2) use ($cursorDate, $cursorId) {
-                            $q2->where('articles.published_at', '=', $cursorDate)
-                                ->where('articles.id', '<', $cursorId);
-                        });
+                    $q->where('articles.published_at', '<', $cursorDate)->orWhere(function (
+                        $q2
+                    ) use ($cursorDate, $cursorId) {
+                        $q2->where('articles.published_at', '=', $cursorDate)->where(
+                            'articles.id',
+                            '<',
+                            $cursorId
+                        );
+                    });
                 });
             }
         } elseif ($filter === 'recently_read') {
             $query = Article::whereIn('feed_id', $allFeedIds)
                 ->join('user_articles', function ($join) use ($user) {
-                    $join->on('articles.id', '=', 'user_articles.article_id')
+                    $join
+                        ->on('articles.id', '=', 'user_articles.article_id')
                         ->where('user_articles.user_id', '=', $user->id)
                         ->where('user_articles.is_read', '=', true);
                 })
                 ->select([
-                    'articles.id', 'articles.title',
-                    'articles.feed_id', 'articles.image_url',
-                    'articles.published_at', 'articles.url',
-                    'user_articles.is_read', 'user_articles.is_read_later',
+                    'articles.id',
+                    'articles.title',
+                    'articles.feed_id',
+                    'articles.image_url',
+                    'articles.published_at',
+                    'articles.url',
+                    'user_articles.is_read',
+                    'user_articles.is_read_later',
                     'user_articles.read_at',
                 ])
                 ->orderByDesc('user_articles.read_at');
@@ -87,23 +107,31 @@ class ArticleApiController extends Controller
             if ($cursor) {
                 [$cursorReadAt, $cursorId] = explode(',', $cursor, 2);
                 $query->where(function ($q) use ($cursorReadAt, $cursorId) {
-                    $q->where('user_articles.read_at', '<', $cursorReadAt)
-                        ->orWhere(function ($q2) use ($cursorReadAt, $cursorId) {
-                            $q2->where('user_articles.read_at', '=', $cursorReadAt)
-                                ->where('articles.id', '<', $cursorId);
-                        });
+                    $q->where('user_articles.read_at', '<', $cursorReadAt)->orWhere(function (
+                        $q2
+                    ) use ($cursorReadAt, $cursorId) {
+                        $q2->where('user_articles.read_at', '=', $cursorReadAt)->where(
+                            'articles.id',
+                            '<',
+                            $cursorId
+                        );
+                    });
                 });
             }
         } else {
             $query = Article::whereIn('feed_id', $feedIds)
                 ->leftJoin('user_articles', function ($join) use ($user) {
-                    $join->on('articles.id', '=', 'user_articles.article_id')
+                    $join
+                        ->on('articles.id', '=', 'user_articles.article_id')
                         ->where('user_articles.user_id', '=', $user->id);
                 })
                 ->select([
-                    'articles.id', 'articles.title',
-                    'articles.feed_id', 'articles.image_url',
-                    'articles.published_at', 'articles.url',
+                    'articles.id',
+                    'articles.title',
+                    'articles.feed_id',
+                    'articles.image_url',
+                    'articles.published_at',
+                    'articles.url',
                     DB::raw('COALESCE(user_articles.is_read, 0) as is_read'),
                     DB::raw('COALESCE(user_articles.is_read_later, 0) as is_read_later'),
                     'user_articles.read_at',
@@ -115,26 +143,32 @@ class ArticleApiController extends Controller
 
             $hideRead = $user->settings['hide_read_articles'] ?? false;
             $showAll = $feedId && $request->boolean('show_all');
-            if ($hideRead && ! $showAll) {
-                $query->where(fn ($q) => $q->whereNull('user_articles.is_read')
-                    ->orWhere('user_articles.is_read', false));
+            if ($hideRead && !$showAll) {
+                $query->where(
+                    fn($q) => $q
+                        ->whereNull('user_articles.is_read')
+                        ->orWhere('user_articles.is_read', false)
+                );
             }
 
             if ($cursor) {
                 [$cursorDate, $cursorId] = explode(',', $cursor, 2);
                 $query->where(function ($q) use ($cursorDate, $cursorId) {
-                    $q->where('articles.published_at', '<', $cursorDate)
-                        ->orWhere(function ($q2) use ($cursorDate, $cursorId) {
-                            $q2->where('articles.published_at', '=', $cursorDate)
-                                ->where('articles.id', '<', $cursorId);
-                        });
+                    $q->where('articles.published_at', '<', $cursorDate)->orWhere(function (
+                        $q2
+                    ) use ($cursorDate, $cursorId) {
+                        $q2->where('articles.published_at', '=', $cursorDate)->where(
+                            'articles.id',
+                            '<',
+                            $cursorId
+                        );
+                    });
                 });
             }
         }
 
         if ($filter !== 'recently_read') {
-            $query->orderByDesc('articles.published_at')
-                ->orderByDesc('articles.id');
+            $query->orderByDesc('articles.published_at')->orderByDesc('articles.id');
         }
 
         $articles = $query->limit($perPage + 1)->get();
@@ -147,13 +181,14 @@ class ArticleApiController extends Controller
         $nextCursor = null;
         if ($hasMore && $lastArticle) {
             if ($filter === 'recently_read') {
-                $nextCursor = $lastArticle->read_at.','.$lastArticle->id;
+                $nextCursor = $lastArticle->read_at . ',' . $lastArticle->id;
             } else {
-                $nextCursor = $lastArticle->published_at.','.$lastArticle->id;
+                $nextCursor = $lastArticle->published_at . ',' . $lastArticle->id;
             }
         }
 
-        $feedMap = $user->feeds()
+        $feedMap = $user
+            ->feeds()
             ->select('feeds.id', 'feeds.title', 'feeds.favicon_url')
             ->get()
             ->keyBy('id');
@@ -179,14 +214,17 @@ class ArticleApiController extends Controller
         $user = $request->user();
         $userFeedIds = $user->feeds()->pluck('feeds.id');
 
-        if (! $userFeedIds->contains($article->feed_id)) {
+        if (!$userFeedIds->contains($article->feed_id)) {
             abort(404);
         }
 
         $feed = $article->feed;
 
         // Check user read state
-        $userArticle = $user->articles()->where('article_id', $article->id)->first();
+        $userArticle = $user
+            ->articles()
+            ->where('article_id', $article->id)
+            ->first();
 
         return response()->json([
             'id' => $article->id,
@@ -209,7 +247,7 @@ class ArticleApiController extends Controller
         $user = $request->user();
         $userFeedIds = $user->feeds()->pluck('feeds.id');
 
-        if (! $userFeedIds->contains($article->feed_id)) {
+        if (!$userFeedIds->contains($article->feed_id)) {
             abort(404);
         }
 
@@ -249,20 +287,27 @@ class ArticleApiController extends Controller
         if ($feedId) {
             $feedIds = collect([$feedId])->intersect($allFeedIds);
         } elseif ($categoryId) {
-            $category = $user->categories()->where('id', $categoryId)->first();
+            $category = $user
+                ->categories()
+                ->where('id', $categoryId)
+                ->first();
             if ($category) {
                 $feedIds = $category->feeds()->pluck('feeds.id');
             }
         }
 
         $articleIds = Article::whereIn('feed_id', $feedIds)
-            ->when($filter === 'today', fn ($q) => $q->whereDate('published_at', today()))
+            ->when($filter === 'today', fn($q) => $q->whereDate('published_at', today()))
             ->pluck('id');
 
         // Upsert read state for all articles
-        $records = $articleIds->mapWithKeys(fn ($id) => [
-            $id => ['is_read' => true, 'read_at' => now()],
-        ])->all();
+        $records = $articleIds
+            ->mapWithKeys(
+                fn($id) => [
+                    $id => ['is_read' => true, 'read_at' => now()],
+                ]
+            )
+            ->all();
 
         $user->articles()->syncWithoutDetaching($records);
 
@@ -288,18 +333,23 @@ class ArticleApiController extends Controller
 
         $query = Article::whereIn('feed_id', $feedIds)
             ->where(function ($query) use ($q) {
-                $query->where('title', 'like', "%{$q}%")
+                $query
+                    ->where('title', 'like', "%{$q}%")
                     ->orWhere('summary', 'like', "%{$q}%")
                     ->orWhere('content', 'like', "%{$q}%");
             })
             ->leftJoin('user_articles', function ($join) use ($user) {
-                $join->on('articles.id', '=', 'user_articles.article_id')
+                $join
+                    ->on('articles.id', '=', 'user_articles.article_id')
                     ->where('user_articles.user_id', '=', $user->id);
             })
             ->select([
-                'articles.id', 'articles.title',
-                'articles.feed_id', 'articles.image_url',
-                'articles.published_at', 'articles.url',
+                'articles.id',
+                'articles.title',
+                'articles.feed_id',
+                'articles.image_url',
+                'articles.published_at',
+                'articles.url',
                 DB::raw('COALESCE(user_articles.is_read, 0) as is_read'),
                 DB::raw('COALESCE(user_articles.is_read_later, 0) as is_read_later'),
             ])
@@ -309,11 +359,15 @@ class ArticleApiController extends Controller
         if ($cursor) {
             [$cursorDate, $cursorId] = explode(',', $cursor, 2);
             $query->where(function ($q) use ($cursorDate, $cursorId) {
-                $q->where('articles.published_at', '<', $cursorDate)
-                    ->orWhere(function ($q2) use ($cursorDate, $cursorId) {
-                        $q2->where('articles.published_at', '=', $cursorDate)
-                            ->where('articles.id', '<', $cursorId);
-                    });
+                $q->where('articles.published_at', '<', $cursorDate)->orWhere(function (
+                    $q2
+                ) use ($cursorDate, $cursorId) {
+                    $q2->where('articles.published_at', '=', $cursorDate)->where(
+                        'articles.id',
+                        '<',
+                        $cursorId
+                    );
+                });
             });
         }
 
@@ -326,10 +380,11 @@ class ArticleApiController extends Controller
         $lastArticle = $articles->last();
         $nextCursor = null;
         if ($hasMore && $lastArticle) {
-            $nextCursor = $lastArticle->published_at.','.$lastArticle->id;
+            $nextCursor = $lastArticle->published_at . ',' . $lastArticle->id;
         }
 
-        $feedMap = $user->feeds()
+        $feedMap = $user
+            ->feeds()
             ->select('feeds.id', 'feeds.title', 'feeds.favicon_url')
             ->get()
             ->keyBy('id');

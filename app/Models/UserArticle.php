@@ -9,18 +9,13 @@ class UserArticle extends Model
 {
     protected $table = 'user_articles';
 
-    protected $fillable = [
-        'user_id',
-        'article_id',
-        'is_read',
-        'is_read_later',
-        'read_at',
-    ];
+    protected $fillable = ['user_id', 'article_id', 'is_read_later', 'read_at'];
+
+    protected $appends = ['is_read'];
 
     protected function casts(): array
     {
         return [
-            'is_read' => 'boolean',
             'is_read_later' => 'boolean',
             'read_at' => 'datetime',
         ];
@@ -34,5 +29,10 @@ class UserArticle extends Model
     public function article(): BelongsTo
     {
         return $this->belongsTo(Article::class);
+    }
+
+    public function getIsReadAttribute(): bool
+    {
+        return $this->read_at !== null;
     }
 }

@@ -28,11 +28,14 @@ function resolveIsDark() {
 // Apply immediately at module load to prevent flash
 function applyTheme() {
     if (typeof document === 'undefined') return;
-    if (resolveIsDark()) {
+    const dark = resolveIsDark();
+    if (dark) {
         document.documentElement.classList.add('dark');
     } else {
         document.documentElement.classList.remove('dark');
     }
+    const meta = document.getElementById('theme-color-meta');
+    if (meta) meta.content = dark ? '#171717' : '#ffffff';
 }
 applyTheme();
 

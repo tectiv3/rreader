@@ -65,13 +65,13 @@ class Feed extends Model
         }
 
         if ($failures <= 7) {
-            return $this->last_failed_at !== null
-                && $this->last_failed_at->gt(now()->subHours(6));
+            return $this->last_failed_at !== null &&
+                $this->last_failed_at->gt(now()->subHours(6));
         }
 
         if ($failures <= 10) {
-            return $this->last_failed_at !== null
-                && $this->last_failed_at->gt(now()->subHours(24));
+            return $this->last_failed_at !== null &&
+                $this->last_failed_at->gt(now()->subHours(24));
         }
 
         return true;

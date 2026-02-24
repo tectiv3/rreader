@@ -2,6 +2,7 @@
 import { useOnlineStatus } from '@/Composables/useOnlineStatus.js'
 import { useOfflineQueue } from '@/Composables/useOfflineQueue.js'
 import { useAddFeedModal } from '@/Composables/useAddFeedModal.js'
+import { useDarkMode } from '@/Composables/useDarkMode.js'
 import AddFeedModal from '@/Components/AddFeedModal.vue'
 import ToastContainer from '@/Components/ToastContainer.vue'
 import SidebarDrawer from '@/Components/SidebarDrawer.vue'
@@ -13,6 +14,7 @@ import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
 
 const { isOnline } = useOnlineStatus()
 useOfflineQueue()
+useDarkMode()
 
 const articleStore = useArticleStore()
 const sidebarStore = useSidebarStore()
