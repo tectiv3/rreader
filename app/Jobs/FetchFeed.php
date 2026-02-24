@@ -35,8 +35,10 @@ class FetchFeed implements ShouldQueue
         if ($data['title'] && $data['title'] !== $this->feed->title) {
             $metadataUpdates['title'] = $data['title'];
         }
-        if ($data['favicon_url'] && $data['favicon_url'] !== $this->feed->favicon_url) {
-            $metadataUpdates['favicon_url'] = $data['favicon_url'];
+
+        // Resolve favicon if not already locally cached
+        if (! str_starts_with($this->feed->favicon_url ?? '', '/storage/')) {
+            ResolveFavicon::dispatch($this->feed);
         }
 
         $articles = $data['articles'];
