@@ -117,9 +117,8 @@ export const useArticleStore = defineStore('articles', () => {
         }
     }
 
-    async function showAllFeedArticles() {
+    async function showAllArticles() {
         const view = activeView.value
-        if (!view.feedId) return
 
         loading.value = true
         articles.value = []
@@ -127,7 +126,9 @@ export const useArticleStore = defineStore('articles', () => {
         hasMore.value = false
 
         const params = new URLSearchParams()
-        params.set('feed_id', view.feedId)
+        if (view.feedId) params.set('feed_id', view.feedId)
+        if (view.categoryId) params.set('category_id', view.categoryId)
+        if (view.type === 'today') params.set('filter', 'today')
         params.set('show_all', '1')
 
         try {
@@ -353,7 +354,7 @@ export const useArticleStore = defineStore('articles', () => {
         adjacentIds,
         // actions
         fetchArticles,
-        showAllFeedArticles,
+        showAllArticles,
         loadMore,
         fetchContent,
         prefetchAdjacent,

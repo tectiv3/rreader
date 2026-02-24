@@ -1064,7 +1064,7 @@ function getSwipeDirection(articleId) {
                     </p>
                     <button
                         type="button"
-                        @click="articleStore.showAllFeedArticles()"
+                        @click="articleStore.showAllArticles()"
                         class="mt-4 rounded-lg bg-neutral-200 dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors cursor-pointer">
                         Show all articles
                     </button>
@@ -1079,19 +1079,19 @@ function getSwipeDirection(articleId) {
                         <path
                             stroke-linecap="round"
                             stroke-linejoin="round"
-                            d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                            d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
-                        No articles yet
+                        All caught up
                     </h3>
                     <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
-                        Subscribe to feeds to start seeing articles here.
+                        No unread articles.
                     </p>
                     <button
                         type="button"
-                        @click="openAddFeedModal()"
-                        class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
-                        Add a Feed
+                        @click="articleStore.showAllArticles()"
+                        class="mt-4 rounded-lg bg-neutral-200 dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors cursor-pointer">
+                        Show all articles
                     </button>
                 </template>
             </div>
@@ -1216,7 +1216,7 @@ function getSwipeDirection(articleId) {
                     </p>
                     <button
                         type="button"
-                        @click="articleStore.showAllFeedArticles()"
+                        @click="articleStore.showAllArticles()"
                         class="mt-4 rounded-lg bg-neutral-200 dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors cursor-pointer">
                         Show all articles
                     </button>
@@ -1231,19 +1231,19 @@ function getSwipeDirection(articleId) {
                         <path
                             stroke-linecap="round"
                             stroke-linejoin="round"
-                            d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                            d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <h3 class="mt-4 text-lg font-medium text-neutral-700 dark:text-neutral-300">
-                        No articles yet
+                        All caught up
                     </h3>
                     <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-500">
-                        Subscribe to feeds to start seeing articles here.
+                        No unread articles.
                     </p>
                     <button
                         type="button"
-                        @click="openAddFeedModal()"
-                        class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
-                        Add a Feed
+                        @click="articleStore.showAllArticles()"
+                        class="mt-4 rounded-lg bg-neutral-200 dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors cursor-pointer">
+                        Show all articles
                     </button>
                 </template>
             </div>
