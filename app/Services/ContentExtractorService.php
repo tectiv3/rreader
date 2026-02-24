@@ -106,7 +106,7 @@ class ContentExtractorService
                 'content' => $content,
                 'excerpt' => $readability->getExcerpt(),
             ];
-        } catch (ParseException) {
+        } catch (ParseException|\TypeError) {
             return null;
         }
     }
