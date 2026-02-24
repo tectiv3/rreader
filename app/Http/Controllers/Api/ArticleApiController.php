@@ -64,7 +64,9 @@ class ArticleApiController extends Controller
                     'articles.image_url',
                     'articles.published_at',
                     'articles.url',
-                    'user_articles.is_read',
+                    DB::raw(
+                        'CASE WHEN user_articles.read_at IS NOT NULL THEN 1 ELSE 0 END as is_read'
+                    ),
                     'user_articles.is_read_later',
                     'user_articles.read_at',
                 ]);
@@ -89,7 +91,7 @@ class ArticleApiController extends Controller
                     $join
                         ->on('articles.id', '=', 'user_articles.article_id')
                         ->where('user_articles.user_id', '=', $user->id)
-                        ->where('user_articles.is_read', '=', true);
+                        ->whereNotNull('user_articles.read_at');
                 })
                 ->select([
                     'articles.id',
@@ -98,7 +100,9 @@ class ArticleApiController extends Controller
                     'articles.image_url',
                     'articles.published_at',
                     'articles.url',
-                    'user_articles.is_read',
+                    DB::raw(
+                        'CASE WHEN user_articles.read_at IS NOT NULL THEN 1 ELSE 0 END as is_read'
+                    ),
                     'user_articles.is_read_later',
                     'user_articles.read_at',
                 ])
@@ -132,7 +136,9 @@ class ArticleApiController extends Controller
                     'articles.image_url',
                     'articles.published_at',
                     'articles.url',
-                    DB::raw('COALESCE(user_articles.is_read, 0) as is_read'),
+                    DB::raw(
+                        'CASE WHEN user_articles.read_at IS NOT NULL THEN 1 ELSE 0 END as is_read'
+                    ),
                     DB::raw('COALESCE(user_articles.is_read_later, 0) as is_read_later'),
                     'user_articles.read_at',
                 ]);
@@ -144,11 +150,7 @@ class ArticleApiController extends Controller
             $hideRead = $user->settings['hide_read_articles'] ?? false;
             $showAll = $feedId && $request->boolean('show_all');
             if ($hideRead && !$showAll) {
-                $query->where(
-                    fn($q) => $q
-                        ->whereNull('user_articles.is_read')
-                        ->orWhere('user_articles.is_read', false)
-                );
+                $query->whereNull('user_articles.read_at');
             }
 
             if ($cursor) {
@@ -258,18 +260,13 @@ class ArticleApiController extends Controller
 
         $pivot = [];
         if (array_key_exists('is_read', $data)) {
-            $pivot['is_read'] = $data['is_read'];
-            if ($data['is_read']) {
-                $pivot['read_at'] = now();
-            }
+            $pivot['read_at'] = $data['is_read'] ? now() : null;
         }
         if (array_key_exists('is_read_later', $data)) {
             $pivot['is_read_later'] = $data['is_read_later'];
         }
 
-        $user->articles()->syncWithoutDetaching([
-            $article->id => $pivot,
-        ]);
+        $user->articles()->syncWithoutDetaching([$article->id => $pivot]);
 
         return response()->noContent();
     }
@@ -304,7 +301,7 @@ class ArticleApiController extends Controller
         $records = $articleIds
             ->mapWithKeys(
                 fn($id) => [
-                    $id => ['is_read' => true, 'read_at' => now()],
+                    $id => ['read_at' => now()],
                 ]
             )
             ->all();
@@ -350,7 +347,9 @@ class ArticleApiController extends Controller
                 'articles.image_url',
                 'articles.published_at',
                 'articles.url',
-                DB::raw('COALESCE(user_articles.is_read, 0) as is_read'),
+                DB::raw(
+                    'CASE WHEN user_articles.read_at IS NOT NULL THEN 1 ELSE 0 END as is_read'
+                ),
                 DB::raw('COALESCE(user_articles.is_read_later, 0) as is_read_later'),
             ])
             ->orderByDesc('articles.published_at')

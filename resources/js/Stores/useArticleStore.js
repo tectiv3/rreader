@@ -20,13 +20,9 @@ export const useArticleStore = defineStore('articles', () => {
     const CONTENT_CACHE_MAX = 20
 
     // --- Getters ---
-    const unreadCount = computed(() =>
-        articles.value.filter(a => !a.is_read).length
-    )
+    const unreadCount = computed(() => articles.value.filter(a => !a.is_read).length)
 
-    const readLaterCount = computed(() =>
-        articles.value.filter(a => a.is_read_later).length
-    )
+    const readLaterCount = computed(() => articles.value.filter(a => a.is_read_later).length)
 
     const unreadByFeed = computed(() => {
         const counts = {}
@@ -152,10 +148,12 @@ export const useArticleStore = defineStore('articles', () => {
         try {
             const params = new URLSearchParams()
             if (activeView.value.feedId) params.set('feed_id', activeView.value.feedId)
-            if (activeView.value.categoryId) params.set('category_id', activeView.value.categoryId)
+            if (activeView.value.categoryId)
+                params.set('category_id', activeView.value.categoryId)
             if (activeView.value.type === 'today') params.set('filter', 'today')
             if (activeView.value.type === 'read_later') params.set('filter', 'read_later')
-            if (activeView.value.type === 'recently_read') params.set('filter', 'recently_read')
+            if (activeView.value.type === 'recently_read')
+                params.set('filter', 'recently_read')
             params.set('cursor', nextCursor.value)
 
             const response = await axios.get('/api/articles?' + params.toString())
@@ -216,9 +214,11 @@ export const useArticleStore = defineStore('articles', () => {
     function _isToday(dateString) {
         const d = new Date(dateString)
         const now = new Date()
-        return d.getFullYear() === now.getFullYear()
-            && d.getMonth() === now.getMonth()
-            && d.getDate() === now.getDate()
+        return (
+            d.getFullYear() === now.getFullYear() &&
+            d.getMonth() === now.getMonth() &&
+            d.getDate() === now.getDate()
+        )
     }
 
     function markRead(id) {

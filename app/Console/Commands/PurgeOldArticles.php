@@ -16,28 +16,26 @@ class PurgeOldArticles extends Command
     {
         User::chunk(50, function ($users) {
             foreach ($users as $user) {
-                // $user->articles()->
-                $userArticles = Article::whereHas(
+                $oldArticleIds = Article::whereHas(
                     'feed',
-                    fn($q) => $q->where('user_id', $user->id)
-                );
-
-                $unread = $userArticles->whereDoesntHave(
-                    'users',
-                    fn($q) => $q->where('user_id', $user->id)->where('is_read', true)
-                );
-
-                // Articles older than 1 year
-                $oldIds = $unread()
+                    fn ($q) => $q->where('user_id', $user->id)
+                )
                     ->where('published_at', '<', now()->subYear())
+                    ->whereDoesntHave(
+                        'users',
+                        fn ($q) => $q->where('user_id', $user->id)->whereNotNull('read_at')
+                    )
                     ->pluck('id');
 
-                if ($toMark->isNotEmpty()) {
-                    $records = $toMark
-                        ->mapWithKeys(fn($id) => [$id => ['read_at' => now()]])
-                        ->all();
-                    $user->articles()->syncWithoutDetaching($records);
+                if ($oldArticleIds->isEmpty()) {
+                    continue;
                 }
+
+                $pivotData = $oldArticleIds->mapWithKeys(fn ($id) => [
+                    $id => ['read_at' => now()],
+                ])->all();
+
+                $user->articles()->syncWithoutDetaching($pivotData);
             }
         });
 

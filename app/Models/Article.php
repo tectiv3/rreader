@@ -38,7 +38,7 @@ class Article extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'user_articles')
-            ->withPivot('is_read', 'is_read_later', 'read_at')
+            ->withPivot('is_read_later', 'read_at')
             ->withTimestamps();
     }
 }

@@ -24,7 +24,7 @@ class SidebarApiController extends Controller
         $totalUnread = Article::whereIn('feed_id', $allFeedIds)
             ->whereDoesntHave('users', function ($query) use ($user) {
                 $query->where('user_id', $user->id)
-                    ->where('is_read', true);
+                    ->whereNotNull('read_at');
             })
             ->count();
 
@@ -36,14 +36,14 @@ class SidebarApiController extends Controller
             ->whereDate('published_at', today())
             ->whereDoesntHave('users', function ($query) use ($user) {
                 $query->where('user_id', $user->id)
-                    ->where('is_read', true);
+                    ->whereNotNull('read_at');
             })
             ->count();
 
         $feedUnreadCounts = Article::whereIn('feed_id', $allFeedIds)
             ->whereDoesntHave('users', function ($query) use ($user) {
                 $query->where('user_id', $user->id)
-                    ->where('is_read', true);
+                    ->whereNotNull('read_at');
             })
             ->selectRaw('feed_id, count(*) as unread_count')
             ->groupBy('feed_id')
