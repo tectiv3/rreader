@@ -14,6 +14,7 @@ class FeedParserService
      * @return array{feed_url: string, site_url: string|null, title: string|null, description: string|null, favicon_url: string|null, articles: array}
      *
      * @throws \RuntimeException
+     * @throws \Illuminate\Http\Client\ConnectionException
      */
     public function discoverAndParse(string $url): array
     {
@@ -27,7 +28,7 @@ class FeedParserService
             throw new \RuntimeException('Could not fetch the URL. Please check the address and try again.');
         }
 
-        $contentType = $response->header('Content-Type') ?? '';
+        $contentType = (string) $response->header('Content-Type');
         $body = $response->body();
 
         // Check if the response is directly a feed

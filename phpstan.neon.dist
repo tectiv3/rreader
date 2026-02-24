@@ -1,0 +1,27 @@
+includes:
+    - ./vendor/larastan/larastan/extension.neon
+parameters:
+    parallel:
+      maximumNumberOfProcesses: 4
+    editorUrl: 'txmt://open?url=file://%%file%%&line=%%line%%'
+    level: 5
+    checkOctaneCompatibility: true
+    reportUnmatchedIgnoredErrors: false
+    paths:
+        - app
+    ignoreErrors:
+        # - '#Call to an undefined method App\\Services\\AWS\\AwsS3Service::#'
+        # - '#callback of method Illuminate\\Database\\Eloquent\\Relations\\HasMany#'
+        - '#callback of method Illuminate#'
+        - '#Access to an undefined property Stripe\\StripeObject#'
+        - '#but returns Illuminate\\Database\\Eloquent\\Model#'
+        - '#runSoftDelete#'
+        - '#Access to an undefined property Illuminate\\Database\\Eloquent#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent#'
+        - '#Illuminate\\Database\\Eloquent\\Model\|null given#'
+        - '#Illuminate\\Database\\Eloquent\\Model given#'
+        - '#does not accept Illuminate\\Database\\Eloquent\\Model#'
+        - '#in PHPDoc tag @return does not specify all template types of class Illuminate#'
+        - '#Use -> instead#'
+        - '#Call to an undefined method Illuminate\\Http\\Resources\\Json\\AnonymousResourceCollection#'
+        - '#but returns Illuminate\\Database\\Eloquent\\Collection#'

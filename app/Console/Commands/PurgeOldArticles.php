@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Article;
 use App\Models\User;
 use Illuminate\Console\Command;
 
@@ -16,16 +15,10 @@ class PurgeOldArticles extends Command
     {
         User::chunk(50, function ($users) {
             foreach ($users as $user) {
-                $oldArticleIds = Article::whereHas(
-                    'feed',
-                    fn ($q) => $q->where('user_id', $user->id)
-                )
-                    ->where('published_at', '<', now()->subYear())
-                    ->whereDoesntHave(
-                        'users',
-                        fn ($q) => $q->where('user_id', $user->id)->whereNotNull('read_at')
-                    )
-                    ->pluck('id');
+                $oldArticleIds = $user->feedArticles()
+                    ->where('articles.published_at', '<', now()->subYear())
+                    ->unreadForUser($user->id)
+                    ->pluck('articles.id');
 
                 if ($oldArticleIds->isEmpty()) {
                     continue;

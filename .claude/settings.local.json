@@ -29,7 +29,8 @@
       "Bash(curl:*)",
       "Bash(php artisan route:list:*)",
       "Bash(prettier --write:*)",
-      "Bash(sqlite3:*)"
+      "Bash(sqlite3:*)",
+      "Bash(./vendor/bin/phpstan analyse:*)"
     ],
     "defaultMode": "acceptEdits"
   }

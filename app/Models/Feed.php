@@ -7,6 +7,21 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property int $id
+ * @property int $user_id
+ * @property int|null $category_id
+ * @property string $title
+ * @property string $feed_url
+ * @property string|null $site_url
+ * @property string|null $description
+ * @property string|null $favicon_url
+ * @property \Illuminate\Support\Carbon|null $last_fetched_at
+ * @property int $consecutive_failures
+ * @property string|null $last_error
+ * @property \Illuminate\Support\Carbon|null $last_failed_at
+ * @property \Illuminate\Support\Carbon|null $disabled_at
+ */
 class Feed extends Model
 {
     use HasFactory;

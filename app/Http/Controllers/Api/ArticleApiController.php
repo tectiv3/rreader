@@ -3,169 +3,80 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ArticleResource;
 use App\Models\Article;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ArticleApiController extends Controller
 {
+    private const DEFAULT_PER_PAGE = 30;
+
+    private const MAX_PER_PAGE = 100;
+
     public function index(Request $request)
     {
         $user = $request->user();
-        $allFeedIds = $user->feeds()->pluck('feeds.id');
-        $feedId = $request->query('feed_id');
-        $categoryId = $request->query('category_id');
         $filter = $request->query('filter');
         $cursor = $request->query('cursor');
-        $perPage = 30;
+        $perPage = $this->perPage($request);
 
-        $feedIds = $allFeedIds;
-        $filterTitle = 'All Feeds';
+        [$feedIds, $filterTitle] = $this->resolveFilter(
+            $user,
+            $request->query('feed_id'),
+            $request->query('category_id')
+        );
 
-        if ($feedId) {
-            $feed = $user
-                ->feeds()
-                ->where('feeds.id', $feedId)
-                ->first();
-            if ($feed) {
-                $feedIds = collect([$feed->id]);
-                $filterTitle = $feed->title;
-            }
-        } elseif ($categoryId) {
-            $category = $user
-                ->categories()
-                ->where('id', $categoryId)
-                ->first();
-            if ($category) {
-                $catFeedIds = $category->feeds()->pluck('feeds.id');
-                $feedIds = $catFeedIds->isNotEmpty() ? $catFeedIds : collect([]);
-                $filterTitle = $category->name;
-            }
-        } elseif ($filter === 'today') {
-            $filterTitle = 'Today';
-        } elseif ($filter === 'read_later') {
-            $filterTitle = 'Read Later';
-        } elseif ($filter === 'recently_read') {
-            $filterTitle = 'Recently Read';
-        }
+        $filterTitle = match ($filter) {
+            'today' => 'Today',
+            'read_later' => 'Read Later',
+            'recently_read' => 'Recently Read',
+            default => $filterTitle,
+        };
 
         if ($filter === 'read_later') {
-            $query = Article::whereIn('feed_id', $allFeedIds)
-                ->join('user_articles', function ($join) use ($user) {
-                    $join
-                        ->on('articles.id', '=', 'user_articles.article_id')
-                        ->where('user_articles.user_id', '=', $user->id)
-                        ->where('user_articles.is_read_later', '=', true);
-                })
-                ->select([
-                    'articles.id',
-                    'articles.title',
-                    'articles.feed_id',
-                    'articles.image_url',
-                    'articles.published_at',
-                    'articles.url',
-                    DB::raw(
-                        'CASE WHEN user_articles.read_at IS NOT NULL THEN 1 ELSE 0 END as is_read'
-                    ),
-                    'user_articles.is_read_later',
-                    'user_articles.read_at',
-                ]);
+            $query = $user
+                ->feedArticles()
+                ->withRequiredUserState($user->id)
+                ->readLater()
+                ->select($this->listSelect());
 
             if ($cursor) {
                 [$cursorDate, $cursorId] = explode(',', $cursor, 2);
-                $query->where(function ($q) use ($cursorDate, $cursorId) {
-                    $q->where('articles.published_at', '<', $cursorDate)->orWhere(function (
-                        $q2
-                    ) use ($cursorDate, $cursorId) {
-                        $q2->where('articles.published_at', '=', $cursorDate)->where(
-                            'articles.id',
-                            '<',
-                            $cursorId
-                        );
-                    });
-                });
+                $query->publishedAtCursor($cursorDate, $cursorId);
             }
         } elseif ($filter === 'recently_read') {
-            $query = Article::whereIn('feed_id', $allFeedIds)
-                ->join('user_articles', function ($join) use ($user) {
-                    $join
-                        ->on('articles.id', '=', 'user_articles.article_id')
-                        ->where('user_articles.user_id', '=', $user->id)
-                        ->whereNotNull('user_articles.read_at');
-                })
-                ->select([
-                    'articles.id',
-                    'articles.title',
-                    'articles.feed_id',
-                    'articles.image_url',
-                    'articles.published_at',
-                    'articles.url',
-                    DB::raw(
-                        'CASE WHEN user_articles.read_at IS NOT NULL THEN 1 ELSE 0 END as is_read'
-                    ),
-                    'user_articles.is_read_later',
-                    'user_articles.read_at',
-                ])
+            $query = $user
+                ->feedArticles()
+                ->withRequiredUserState($user->id)
+                ->recentlyRead()
+                ->select($this->listSelect())
                 ->orderByDesc('user_articles.read_at');
 
             if ($cursor) {
                 [$cursorReadAt, $cursorId] = explode(',', $cursor, 2);
-                $query->where(function ($q) use ($cursorReadAt, $cursorId) {
-                    $q->where('user_articles.read_at', '<', $cursorReadAt)->orWhere(function (
-                        $q2
-                    ) use ($cursorReadAt, $cursorId) {
-                        $q2->where('user_articles.read_at', '=', $cursorReadAt)->where(
-                            'articles.id',
-                            '<',
-                            $cursorId
-                        );
-                    });
-                });
+                $query->readAtCursor($cursorReadAt, $cursorId);
             }
         } else {
-            $query = Article::whereIn('feed_id', $feedIds)
-                ->leftJoin('user_articles', function ($join) use ($user) {
-                    $join
-                        ->on('articles.id', '=', 'user_articles.article_id')
-                        ->where('user_articles.user_id', '=', $user->id);
-                })
-                ->select([
-                    'articles.id',
-                    'articles.title',
-                    'articles.feed_id',
-                    'articles.image_url',
-                    'articles.published_at',
-                    'articles.url',
-                    DB::raw(
-                        'CASE WHEN user_articles.read_at IS NOT NULL THEN 1 ELSE 0 END as is_read'
-                    ),
-                    DB::raw('COALESCE(user_articles.is_read_later, 0) as is_read_later'),
-                    'user_articles.read_at',
-                ]);
+            $query = $user
+                ->feedArticles()
+                ->when($feedIds !== null, fn($q) => $q->whereIn('articles.feed_id', $feedIds))
+                ->withUserState($user->id)
+                ->select($this->listSelect());
 
             if ($filter === 'today') {
                 $query->whereDate('articles.published_at', today());
             }
 
             $hideRead = $user->settings['hide_read_articles'] ?? false;
-            $showAll = $feedId && $request->boolean('show_all');
+            $showAll = $request->query('feed_id') && $request->boolean('show_all');
             if ($hideRead && !$showAll) {
                 $query->whereNull('user_articles.read_at');
             }
 
             if ($cursor) {
                 [$cursorDate, $cursorId] = explode(',', $cursor, 2);
-                $query->where(function ($q) use ($cursorDate, $cursorId) {
-                    $q->where('articles.published_at', '<', $cursorDate)->orWhere(function (
-                        $q2
-                    ) use ($cursorDate, $cursorId) {
-                        $q2->where('articles.published_at', '=', $cursorDate)->where(
-                            'articles.id',
-                            '<',
-                            $cursorId
-                        );
-                    });
-                });
+                $query->publishedAtCursor($cursorDate, $cursorId);
             }
         }
 
@@ -173,38 +84,16 @@ class ArticleApiController extends Controller
             $query->orderByDesc('articles.published_at')->orderByDesc('articles.id');
         }
 
-        $articles = $query->limit($perPage + 1)->get();
-        $hasMore = $articles->count() > $perPage;
-        if ($hasMore) {
-            $articles->pop();
-        }
-
-        $lastArticle = $articles->last();
-        $nextCursor = null;
-        if ($hasMore && $lastArticle) {
-            if ($filter === 'recently_read') {
-                $nextCursor = $lastArticle->read_at . ',' . $lastArticle->id;
-            } else {
-                $nextCursor = $lastArticle->published_at . ',' . $lastArticle->id;
-            }
-        }
-
-        $feedMap = $user
-            ->feeds()
-            ->select('feeds.id', 'feeds.title', 'feeds.favicon_url')
-            ->get()
-            ->keyBy('id');
-
-        $articles->transform(function ($article) use ($feedMap) {
-            $feed = $feedMap[$article->feed_id] ?? null;
-            $article->feed_title = $feed?->title;
-            $article->feed_favicon_url = $feed?->favicon_url;
-
-            return $article;
-        });
+        $cursorField = $filter === 'recently_read' ? 'read_at' : 'published_at';
+        [$articles, $hasMore, $nextCursor] = $this->paginateWithCursor(
+            $query,
+            $perPage,
+            $cursorField
+        );
+        $this->attachFeedMeta($articles, $user);
 
         return response()->json([
-            'articles' => $articles,
+            'articles' => ArticleResource::collection($articles),
             'filter_title' => $filterTitle,
             'has_more' => $hasMore,
             'next_cursor' => $nextCursor,
@@ -214,44 +103,20 @@ class ArticleApiController extends Controller
     public function show(Request $request, Article $article)
     {
         $user = $request->user();
-        $userFeedIds = $user->feeds()->pluck('feeds.id');
+        $article->load('feed');
 
-        if (!$userFeedIds->contains($article->feed_id)) {
-            abort(404);
-        }
-
-        $feed = $article->feed;
-
-        // Check user read state
         $userArticle = $user
             ->articles()
             ->where('article_id', $article->id)
             ->first();
+        $article->is_read_later = (bool) $userArticle?->pivot?->is_read_later;
 
-        return response()->json([
-            'id' => $article->id,
-            'title' => $article->title,
-            'content' => $article->content,
-            'summary' => $article->summary,
-            'author' => $article->author,
-            'url' => $article->url,
-            'image_url' => $article->image_url,
-            'published_at' => $article->published_at,
-            'feed_id' => $article->feed_id,
-            'feed_title' => $feed?->title,
-            'feed_favicon_url' => $feed?->favicon_url,
-            'is_read_later' => (bool) $userArticle?->pivot?->is_read_later,
-        ]);
+        return response()->json((new ArticleResource($article))->asDetail());
     }
 
     public function update(Request $request, Article $article)
     {
         $user = $request->user();
-        $userFeedIds = $user->feeds()->pluck('feeds.id');
-
-        if (!$userFeedIds->contains($article->feed_id)) {
-            abort(404);
-        }
 
         $data = $request->validate([
             'is_read' => 'sometimes|boolean',
@@ -274,37 +139,24 @@ class ArticleApiController extends Controller
     public function markAllRead(Request $request)
     {
         $user = $request->user();
-        $feedId = $request->input('feed_id');
-        $categoryId = $request->input('category_id');
         $filter = $request->input('filter');
 
-        $allFeedIds = $user->feeds()->pluck('feeds.id');
-        $feedIds = $allFeedIds;
+        [$feedIds] = $this->resolveFilter(
+            $user,
+            $request->input('feed_id'),
+            $request->input('category_id')
+        );
 
-        if ($feedId) {
-            $feedIds = collect([$feedId])->intersect($allFeedIds);
-        } elseif ($categoryId) {
-            $category = $user
-                ->categories()
-                ->where('id', $categoryId)
-                ->first();
-            if ($category) {
-                $feedIds = $category->feeds()->pluck('feeds.id');
-            }
-        }
-
-        $articleIds = Article::whereIn('feed_id', $feedIds)
-            ->when($filter === 'today', fn($q) => $q->whereDate('published_at', today()))
-            ->pluck('id');
-
-        // Upsert read state for all articles
-        $records = $articleIds
-            ->mapWithKeys(
-                fn($id) => [
-                    $id => ['read_at' => now()],
-                ]
+        $articleIds = $user
+            ->feedArticles()
+            ->when($feedIds !== null, fn($q) => $q->whereIn('articles.feed_id', $feedIds))
+            ->when(
+                $filter === 'today',
+                fn($q) => $q->whereDate('articles.published_at', today())
             )
-            ->all();
+            ->pluck('articles.id');
+
+        $records = $articleIds->mapWithKeys(fn($id) => [$id => ['read_at' => now()]])->all();
 
         $user->articles()->syncWithoutDetaching($records);
 
@@ -316,7 +168,7 @@ class ArticleApiController extends Controller
         $user = $request->user();
         $q = $request->query('q', '');
         $cursor = $request->query('cursor');
-        $perPage = 30;
+        $perPage = $this->perPage($request);
 
         if (strlen($q) < 2) {
             return response()->json([
@@ -326,62 +178,86 @@ class ArticleApiController extends Controller
             ]);
         }
 
-        $feedIds = $user->feeds()->pluck('feeds.id');
-
-        $query = Article::whereIn('feed_id', $feedIds)
-            ->where(function ($query) use ($q) {
-                $query
-                    ->where('title', 'like', "%{$q}%")
-                    ->orWhere('summary', 'like', "%{$q}%")
-                    ->orWhere('content', 'like', "%{$q}%");
-            })
-            ->leftJoin('user_articles', function ($join) use ($user) {
-                $join
-                    ->on('articles.id', '=', 'user_articles.article_id')
-                    ->where('user_articles.user_id', '=', $user->id);
-            })
-            ->select([
-                'articles.id',
-                'articles.title',
-                'articles.feed_id',
-                'articles.image_url',
-                'articles.published_at',
-                'articles.url',
-                DB::raw(
-                    'CASE WHEN user_articles.read_at IS NOT NULL THEN 1 ELSE 0 END as is_read'
-                ),
-                DB::raw('COALESCE(user_articles.is_read_later, 0) as is_read_later'),
-            ])
+        $query = $user
+            ->feedArticles()
+            ->search($q)
+            ->withUserState($user->id)
+            ->select($this->listSelect())
             ->orderByDesc('articles.published_at')
             ->orderByDesc('articles.id');
 
         if ($cursor) {
             [$cursorDate, $cursorId] = explode(',', $cursor, 2);
-            $query->where(function ($q) use ($cursorDate, $cursorId) {
-                $q->where('articles.published_at', '<', $cursorDate)->orWhere(function (
-                    $q2
-                ) use ($cursorDate, $cursorId) {
-                    $q2->where('articles.published_at', '=', $cursorDate)->where(
-                        'articles.id',
-                        '<',
-                        $cursorId
-                    );
-                });
-            });
+            $query->publishedAtCursor($cursorDate, $cursorId);
         }
 
-        $articles = $query->limit($perPage + 1)->get();
-        $hasMore = $articles->count() > $perPage;
-        if ($hasMore) {
-            $articles->pop();
+        [$articles, $hasMore, $nextCursor] = $this->paginateWithCursor(
+            $query,
+            $perPage,
+            'published_at'
+        );
+        $this->attachFeedMeta($articles, $user);
+
+        return response()->json([
+            'articles' => ArticleResource::collection($articles),
+            'has_more' => $hasMore,
+            'next_cursor' => $nextCursor,
+        ]);
+    }
+
+    // Private helpers
+
+    private function listSelect(): array
+    {
+        return [
+            'articles.id',
+            'articles.title',
+            'articles.feed_id',
+            'articles.image_url',
+            'articles.published_at',
+            'articles.url',
+            DB::raw(
+                'CASE WHEN user_articles.read_at IS NOT NULL THEN 1 ELSE 0 END as is_read'
+            ),
+            DB::raw('COALESCE(user_articles.is_read_later, 0) as is_read_later'),
+            'user_articles.read_at',
+        ];
+    }
+
+    private function resolveFilter($user, ?string $feedId, ?string $categoryId): array
+    {
+        $feedIds = null;
+        $filterTitle = 'All Feeds';
+
+        if ($feedId) {
+            $feed = $user
+                ->feeds()
+                ->where('feeds.id', $feedId)
+                ->first();
+            if ($feed) {
+                $feedIds = [$feed->id];
+                $filterTitle = $feed->title;
+            }
+        } elseif ($categoryId) {
+            $category = $user
+                ->categories()
+                ->where('id', $categoryId)
+                ->first();
+            if ($category) {
+                $catFeedIds = $category
+                    ->feeds()
+                    ->pluck('feeds.id')
+                    ->all();
+                $feedIds = !empty($catFeedIds) ? $catFeedIds : [];
+                $filterTitle = $category->name;
+            }
         }
 
-        $lastArticle = $articles->last();
-        $nextCursor = null;
-        if ($hasMore && $lastArticle) {
-            $nextCursor = $lastArticle->published_at . ',' . $lastArticle->id;
-        }
+        return [$feedIds, $filterTitle];
+    }
 
+    private function attachFeedMeta($articles, $user): void
+    {
         $feedMap = $user
             ->feeds()
             ->select('feeds.id', 'feeds.title', 'feeds.favicon_url')
@@ -395,11 +271,27 @@ class ArticleApiController extends Controller
 
             return $article;
         });
+    }
 
-        return response()->json([
-            'articles' => $articles,
-            'has_more' => $hasMore,
-            'next_cursor' => $nextCursor,
-        ]);
+    private function paginateWithCursor($query, int $perPage, string $cursorField): array
+    {
+        $articles = $query->limit($perPage + 1)->get();
+        $hasMore = $articles->count() > $perPage;
+        if ($hasMore) {
+            $articles->pop();
+        }
+
+        $lastArticle = $articles->last();
+        $nextCursor = null;
+        if ($hasMore && $lastArticle) {
+            $nextCursor = $lastArticle->$cursorField . ',' . $lastArticle->id;
+        }
+
+        return [$articles, $hasMore, $nextCursor];
+    }
+
+    private function perPage(Request $request): int
+    {
+        return min($request->integer('per_page', self::DEFAULT_PER_PAGE), self::MAX_PER_PAGE);
     }
 }

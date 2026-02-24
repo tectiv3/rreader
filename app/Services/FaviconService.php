@@ -16,7 +16,7 @@ class FaviconService
     public function resolveAndStore(string $siteUrl, int $feedId): ?string
     {
         $parsed = parse_url($siteUrl);
-        if (! isset($parsed['host'])) {
+        if (!isset($parsed['host'])) {
             return null;
         }
 
@@ -26,12 +26,12 @@ class FaviconService
         $iconUrl = $this->resolveFromHtml($baseUrl);
 
         // Step 2: Try /favicon.ico
-        if (! $iconUrl) {
+        if (!$iconUrl) {
             $iconUrl = $this->resolveFromFaviconIco($baseUrl);
         }
 
         // Step 3: Try Google Favicon API
-        if (! $iconUrl) {
+        if (!$iconUrl) {
             $iconUrl = $this->resolveFromGoogle($parsed['host'], $feedId);
             if ($iconUrl) {
                 return $iconUrl; // Already stored by resolveFromGoogle
@@ -51,7 +51,7 @@ class FaviconService
                 ->withUserAgent('RReader/1.0')
                 ->get($baseUrl);
 
-            if (! $response->successful()) {
+            if (!$response->successful()) {
                 return null;
             }
 
@@ -68,7 +68,7 @@ class FaviconService
     private function extractIconFromHtml(string $html, string $baseUrl): ?string
     {
         // Suppress DOM warnings for malformed HTML
-        $doc = new \DOMDocument;
+        $doc = new \DOMDocument();
         @$doc->loadHTML($html, LIBXML_NOERROR);
 
         $links = $doc->getElementsByTagName('link');
@@ -79,17 +79,17 @@ class FaviconService
             $href = trim($link->getAttribute('href'));
             $type = strtolower(trim($link->getAttribute('type')));
 
-            if (! $href) {
+            if (!$href) {
                 continue;
             }
 
             if ($rel === 'icon' && $type === 'image/svg+xml') {
                 $candidates[0] = $href; // Highest priority
-            } elseif ($rel === 'icon' && ! isset($candidates[1])) {
+            } elseif ($rel === 'icon' && !isset($candidates[1])) {
                 $candidates[1] = $href;
-            } elseif ($rel === 'shortcut icon' && ! isset($candidates[2])) {
+            } elseif ($rel === 'shortcut icon' && !isset($candidates[2])) {
                 $candidates[2] = $href;
-            } elseif ($rel === 'apple-touch-icon' && ! isset($candidates[3])) {
+            } elseif ($rel === 'apple-touch-icon' && !isset($candidates[3])) {
                 $candidates[3] = $href;
             }
         }
@@ -149,7 +149,7 @@ class FaviconService
             $url = 'https://www.google.com/s2/favicons?domain=' . urlencode($host) . '&sz=64';
             $response = Http::timeout(5)->get($url);
 
-            if (! $response->successful()) {
+            if (!$response->successful()) {
                 return null;
             }
 
@@ -178,11 +178,11 @@ class FaviconService
                 ->withUserAgent('RReader/1.0')
                 ->get($iconUrl);
 
-            if (! $response->successful()) {
+            if (!$response->successful()) {
                 return null;
             }
 
-            $contentType = $response->header('Content-Type') ?? '';
+            $contentType = (string) $response->header('Content-Type');
             $ext = $this->extensionFromContentType($contentType, $iconUrl);
 
             $storagePath = 'favicons/' . $feedId . '.' . $ext;
@@ -206,8 +206,10 @@ class FaviconService
             str_contains($contentType, 'gif') => 'gif',
             str_contains($contentType, 'jpeg'), str_contains($contentType, 'jpg') => 'jpg',
             str_contains($contentType, 'webp') => 'webp',
-            str_contains($contentType, 'icon') || str_contains($contentType, 'x-icon') => 'ico',
-            default => pathinfo(parse_url($url, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION) ?: 'ico',
+            str_contains($contentType, 'icon') || str_contains($contentType, 'x-icon')
+                => 'ico',
+            default => pathinfo(parse_url($url, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION) ?:
+            'ico',
         };
     }
 }

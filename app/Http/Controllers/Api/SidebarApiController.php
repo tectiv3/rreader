@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Article;
 use Illuminate\Http\Request;
 
 class SidebarApiController extends Controller
@@ -13,38 +12,21 @@ class SidebarApiController extends Controller
         return response()->json(self::buildSidebarData($request->user()));
     }
 
-    /**
-     * Build full sidebar data including counts. Used by the API endpoint
-     * and the SPA catch-all route for initial hydration.
-     */
     public static function buildSidebarData($user): array
     {
-        $allFeedIds = $user->feeds()->pluck('feeds.id');
-
-        $totalUnread = Article::whereIn('feed_id', $allFeedIds)
-            ->whereDoesntHave('users', function ($query) use ($user) {
-                $query->where('user_id', $user->id)
-                    ->whereNotNull('read_at');
-            })
-            ->count();
+        $totalUnread = $user->feedArticles()->unreadForUser($user->id)->count();
 
         $readLaterCount = $user->articles()
             ->wherePivot('is_read_later', true)
             ->count();
 
-        $todayCount = Article::whereIn('feed_id', $allFeedIds)
+        $todayCount = $user->feedArticles()
             ->whereDate('published_at', today())
-            ->whereDoesntHave('users', function ($query) use ($user) {
-                $query->where('user_id', $user->id)
-                    ->whereNotNull('read_at');
-            })
+            ->unreadForUser($user->id)
             ->count();
 
-        $feedUnreadCounts = Article::whereIn('feed_id', $allFeedIds)
-            ->whereDoesntHave('users', function ($query) use ($user) {
-                $query->where('user_id', $user->id)
-                    ->whereNotNull('read_at');
-            })
+        $feedUnreadCounts = $user->feedArticles()
+            ->unreadForUser($user->id)
             ->selectRaw('feed_id, count(*) as unread_count')
             ->groupBy('feed_id')
             ->pluck('unread_count', 'feed_id');

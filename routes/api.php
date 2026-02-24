@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\SettingsApiController;
 use App\Http\Controllers\Api\SidebarApiController;
 use Illuminate\Support\Facades\Route;
 
+Route::bind('article', fn ($value) => auth()->user()->feedArticles()->findOrFail($value));
+
 Route::middleware('auth:sanctum')->group(function () {
     // Articles
     Route::get('/articles', [ArticleApiController::class, 'index']);
