@@ -20,20 +20,14 @@ async function swCacheGet(articleId) {
 async function swCachePut(articleId, content) {
     const sw = await window.__swReady
     if (!sw) return
-    sw.postMessage({ type: 'article-cache-put', articleId, content })
-}
-
-async function swCacheList() {
-    const sw = await window.__swReady
-    if (!sw) return []
     return new Promise(resolve => {
         const channel = new MessageChannel()
-        const timer = setTimeout(() => resolve([]), 3000)
-        channel.port1.onmessage = e => {
+        const timer = setTimeout(() => resolve(false), 5000)
+        channel.port1.onmessage = () => {
             clearTimeout(timer)
-            resolve(e.data || [])
+            resolve(true)
         }
-        sw.postMessage({ type: 'article-cache-list' }, [channel.port2])
+        sw.postMessage({ type: 'article-cache-put', articleId, content }, [channel.port2])
     })
 }
 
@@ -267,29 +261,20 @@ export const useArticleStore = defineStore('articles', () => {
     // Warm SW cache without polluting in-memory cache
     async function warmCache() {
         const gen = ++warmGeneration
-        const articleIds = articles.value.filter(a => !a.is_read).map(a => a.id)
-        if (articleIds.length === 0) return
-
-        const cachedIds = new Set(await swCacheList())
-        if (gen !== warmGeneration) return
-
-        const missing = articleIds
-            .filter(id => !cachedIds.has(id) && !contentCache.value.has(id))
+        const toWarm = articles.value
+            .filter(a => !a.is_read && !contentCache.value.has(a.id))
+            .map(a => a.id)
             .slice(0, 50)
+        if (toWarm.length === 0) return
 
-        for (let i = 0; i < missing.length; i += 3) {
+        for (const id of toWarm) {
             if (gen !== warmGeneration) return
-            const batch = missing.slice(i, i + 3)
-            await Promise.allSettled(
-                batch.map(async id => {
-                    try {
-                        const res = await axios.get(`/api/articles/${id}`)
-                        swCachePut(id, res.data)
-                    } catch {
-                        // Network error — stop warming
-                    }
-                })
-            )
+            try {
+                const res = await axios.get(`/api/articles/${id}`)
+                await swCachePut(id, res.data)
+            } catch {
+                return // network error — stop warming
+            }
         }
     }
 

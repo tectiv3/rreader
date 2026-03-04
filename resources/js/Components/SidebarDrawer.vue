@@ -63,7 +63,7 @@ function goToSettings() {
 
 function goToHighlights() {
     if (!props.persistent) emit('close')
-    router.push({ name: 'highlights' })
+    router.push({ name: 'articles.highlights' })
 }
 
 function feedUnreadCount(feedId) {
@@ -214,7 +214,7 @@ function categoryUnreadCount(category) {
                             @click="goToHighlights()"
                             class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors cursor-pointer"
                             :class="
-                                route.name === 'highlights'
+                                route.name === 'articles.highlights'
                                     ? 'bg-neutral-200 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100'
                                     : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50'
                             ">
@@ -565,7 +565,7 @@ function categoryUnreadCount(category) {
                         @click="goToHighlights()"
                         class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors cursor-pointer"
                         :class="
-                            route.name === 'highlights'
+                            route.name === 'articles.highlights'
                                 ? 'bg-neutral-200 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100'
                                 : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50'
                         "

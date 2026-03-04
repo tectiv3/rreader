@@ -203,10 +203,10 @@ function navigateTo(params) {
 
                 <!-- Highlights (quotes) -->
                 <button
-                    @click="router.push({ name: 'highlights' })"
+                    @click="router.push({ name: 'articles.highlights' })"
                     class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors"
                     :class="
-                        route.name === 'highlights'
+                        route.name === 'articles.highlights'
                             ? 'text-blue-500'
                             : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'
                     "

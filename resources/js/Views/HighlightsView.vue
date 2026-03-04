@@ -104,11 +104,7 @@ function formatDate(dateString) {
 }
 
 function goBack() {
-    if (window.history.length > 1) {
-        router.back()
-    } else {
-        router.push({ name: 'articles.index' })
-    }
+    router.push({ name: 'articles.index' })
 }
 
 function openArticle(articleId) {

@@ -36,30 +36,11 @@ self.addEventListener('message', async event => {
                 headers: { 'Content-Type': 'application/json' },
             })
             await cache.put(ARTICLE_CACHE_PREFIX + articleId, response)
-
-            // Evict oldest entries if over max
-            const keys = await cache.keys()
-            if (keys.length > ARTICLE_MAX_ENTRIES) {
-                const entries = []
-                for (const req of keys) {
-                    const res = await cache.match(req)
-                    if (res) {
-                        try {
-                            const w = await res.json()
-                            entries.push({ url: req.url, ts: w.ts || 0 })
-                        } catch {
-                            await cache.delete(req)
-                        }
-                    }
-                }
-                entries.sort((a, b) => a.ts - b.ts)
-                const toRemove = entries.slice(0, entries.length - ARTICLE_MAX_ENTRIES)
-                for (const e of toRemove) {
-                    await cache.delete(e.url)
-                }
-            }
         } catch {
             // Storage full or other error — ignore
+        }
+        if (event.ports && event.ports[0]) {
+            event.ports[0].postMessage('ok')
         }
     }
 
@@ -100,6 +81,7 @@ self.addEventListener('message', async event => {
             const cache = await caches.open(ARTICLE_CACHE_NAME)
             const keys = await cache.keys()
             const now = Date.now()
+            const entries = []
             for (const req of keys) {
                 const res = await cache.match(req)
                 if (res) {
@@ -107,10 +89,20 @@ self.addEventListener('message', async event => {
                         const wrapper = await res.json()
                         if (now - wrapper.ts >= ARTICLE_TTL_MS) {
                             await cache.delete(req)
+                        } else {
+                            entries.push({ url: req.url, ts: wrapper.ts })
                         }
                     } catch {
                         await cache.delete(req)
                     }
+                }
+            }
+            // Evict oldest if over max
+            if (entries.length > ARTICLE_MAX_ENTRIES) {
+                entries.sort((a, b) => a.ts - b.ts)
+                const toRemove = entries.slice(0, entries.length - ARTICLE_MAX_ENTRIES)
+                for (const e of toRemove) {
+                    await cache.delete(e.url)
                 }
             }
         } catch {
