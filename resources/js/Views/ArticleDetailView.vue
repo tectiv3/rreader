@@ -595,10 +595,8 @@ function resetTransform() {
     }
 }
 
-// --- Quote selection popup ---
-const showQuotePopup = ref(false)
-const quotePopupPos = ref({ top: 0, left: 0 })
-const selectedText = ref('')
+// --- Quote selection tracking ---
+const hasSelection = ref(false)
 let selectionTimer = null
 
 function onSelectionChange() {
@@ -606,34 +604,27 @@ function onSelectionChange() {
     selectionTimer = setTimeout(() => {
         const selection = window.getSelection()
         if (!selection || selection.isCollapsed || !selection.toString().trim()) {
-            showQuotePopup.value = false
+            hasSelection.value = false
             return
         }
-
         const contentEl = document.querySelector('.article-content')
-        if (!contentEl) return
-        const range = selection.getRangeAt(0)
-        if (!contentEl.contains(range.commonAncestorContainer)) {
-            showQuotePopup.value = false
+        if (!contentEl) {
+            hasSelection.value = false
             return
         }
-
-        selectedText.value = selection.toString().trim()
-        const rect = range.getBoundingClientRect()
-        quotePopupPos.value = {
-            top: Math.max(8, rect.top - 44),
-            left: rect.left + rect.width / 2,
-        }
-        showQuotePopup.value = true
+        const range = selection.getRangeAt(0)
+        hasSelection.value = contentEl.contains(range.commonAncestorContainer)
     }, 100)
 }
 
 async function saveQuote() {
-    if (!selectedText.value || !article.value) return
-    const text = selectedText.value
+    const selection = window.getSelection()
+    if (!selection || selection.isCollapsed || !article.value) return
+    const text = selection.toString().trim()
+    if (!text) return
     const articleId = article.value.id
-    showQuotePopup.value = false
     window.getSelection()?.removeAllRanges()
+    hasSelection.value = false
     try {
         await axios.post('/api/highlights', { article_id: articleId, text })
         success('Quote saved')
@@ -730,6 +721,35 @@ function navigateToFeed(feedId) {
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
                                     d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                            </svg>
+                        </button>
+
+                        <button
+                            v-if="article"
+                            @click="saveQuote"
+                            :disabled="!hasSelection"
+                            class="rounded-lg p-2 transition-colors cursor-pointer"
+                            :class="
+                                hasSelection
+                                    ? 'text-amber-500 hover:bg-neutral-200 dark:hover:bg-neutral-800'
+                                    : 'text-neutral-300 dark:text-neutral-600 cursor-default'
+                            "
+                            :aria-label="
+                                hasSelection
+                                    ? 'Save selected text as quote'
+                                    : 'Select text to save quote'
+                            "
+                            :title="hasSelection ? 'Save quote' : 'Select text first'">
+                            <svg
+                                class="h-5 w-5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
                             </svg>
                         </button>
 
@@ -873,29 +893,6 @@ function navigateToFeed(feedId) {
                     <div
                         class="article-content prose max-w-none dark:prose-invert prose-headings:text-neutral-800 dark:prose-headings:text-neutral-200 prose-p:text-neutral-700 dark:prose-p:text-neutral-300 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-neutral-800 dark:prose-strong:text-neutral-200 prose-code:text-blue-300 prose-pre:bg-neutral-50 dark:prose-pre:bg-neutral-900 prose-pre:border prose-pre:border-neutral-200 dark:prose-pre:border-neutral-800 prose-img:rounded-lg prose-blockquote:border-neutral-300 dark:prose-blockquote:border-neutral-700 prose-blockquote:text-neutral-500 dark:prose-blockquote:text-neutral-400"
                         v-html="upgradedContent" />
-
-                    <!-- Save quote popup -->
-                    <div
-                        v-if="showQuotePopup"
-                        class="fixed z-50 -translate-x-1/2 flex items-center gap-1 rounded-lg bg-neutral-800 px-3 py-1.5 text-sm text-white shadow-lg cursor-pointer"
-                        :style="{
-                            top: quotePopupPos.top + 'px',
-                            left: quotePopupPos.left + 'px',
-                        }"
-                        @click="saveQuote">
-                        <svg
-                            class="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="1.5"
-                            stroke="currentColor">
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
-                        </svg>
-                        Save quote
-                    </div>
 
                     <div v-if="!article.content && !article.summary" class="py-12 text-center">
                         <p class="text-neutral-500 dark:text-neutral-400">

@@ -499,11 +499,11 @@ async function saveArticle() {
                                         <TextInput
                                             ref="articleUrlInput"
                                             id="save-article-url"
-                                            type="url"
+                                            type="text"
+                                            inputmode="url"
                                             class="block w-full text-base"
                                             v-model="articleUrl"
-                                            placeholder="https://example.com/article"
-                                            required />
+                                            placeholder="https://example.com/article" />
                                         <p
                                             class="mt-1.5 text-xs text-neutral-600 dark:text-neutral-500">
                                             Save any web page as an article

@@ -1,10 +1,11 @@
 <script setup>
 import { ref } from 'vue'
 import { useAddFeedModal } from '@/Composables/useAddFeedModal.js'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 
 const { openAddFeedModal } = useAddFeedModal()
 const router = useRouter()
+const route = useRoute()
 
 const props = defineProps({
     open: Boolean,
@@ -58,6 +59,11 @@ function goToManage() {
 function goToSettings() {
     emit('close')
     router.push({ name: 'settings' })
+}
+
+function goToHighlights() {
+    if (!props.persistent) emit('close')
+    router.push({ name: 'highlights' })
 }
 
 function feedUnreadCount(feedId) {
@@ -201,6 +207,29 @@ function categoryUnreadCount(category) {
                                     d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <span class="flex-1 text-left">Recently Read</span>
+                        </button>
+
+                        <!-- Quotes -->
+                        <button
+                            @click="goToHighlights()"
+                            class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors cursor-pointer"
+                            :class="
+                                route.name === 'highlights'
+                                    ? 'bg-neutral-200 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100'
+                                    : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50'
+                            ">
+                            <svg
+                                class="h-5 w-5 text-purple-500"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                            </svg>
+                            <span class="flex-1 text-left">Quotes</span>
                         </button>
                     </div>
 
@@ -529,6 +558,30 @@ function categoryUnreadCount(category) {
                                 d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <span v-if="!collapsed" class="flex-1 text-left">Recently Read</span>
+                    </button>
+
+                    <!-- Quotes -->
+                    <button
+                        @click="goToHighlights()"
+                        class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors cursor-pointer"
+                        :class="
+                            route.name === 'highlights'
+                                ? 'bg-neutral-200 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100'
+                                : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50'
+                        "
+                        :title="collapsed ? 'Quotes' : undefined">
+                        <svg
+                            class="h-5 w-5 shrink-0 text-purple-500"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="1.5"
+                            stroke="currentColor">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                        </svg>
+                        <span v-if="!collapsed" class="flex-1 text-left">Quotes</span>
                     </button>
                 </div>
 

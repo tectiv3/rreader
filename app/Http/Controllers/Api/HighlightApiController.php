@@ -41,6 +41,19 @@ class HighlightApiController extends Controller
         return response()->json($highlight, 201);
     }
 
+    public function update(Request $request, int $id)
+    {
+        $highlight = $request->user()->highlights()->findOrFail($id);
+
+        $validated = $request->validate([
+            'text' => 'required|string|max:5000',
+        ]);
+
+        $highlight->update($validated);
+
+        return response()->json($highlight);
+    }
+
     public function destroy(Request $request, int $id)
     {
         $highlight = $request->user()->highlights()->findOrFail($id);

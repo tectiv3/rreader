@@ -51,5 +51,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Highlights
     Route::get('/highlights', [HighlightApiController::class, 'index']);
     Route::post('/highlights', [HighlightApiController::class, 'store']);
+    Route::put('/highlights/{highlight}', [HighlightApiController::class, 'update']);
     Route::delete('/highlights/{highlight}', [HighlightApiController::class, 'destroy']);
 });

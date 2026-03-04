@@ -1,5 +1,6 @@
 <script setup>
 import axios from 'axios'
+import DOMPurify from 'dompurify'
 import { useArticleStore } from '@/Stores/useArticleStore.js'
 import { useSidebarStore } from '@/Stores/useSidebarStore.js'
 import { useOnlineStatus } from '@/Composables/useOnlineStatus.js'
@@ -169,6 +170,7 @@ let loadMoreObserver = null
 onMounted(() => {
     window.addEventListener('resize', checkDesktop)
     window.addEventListener('keydown', onKeyDown)
+    document.addEventListener('selectionchange', onInlineSelectionChange)
 
     loadMoreObserver = new IntersectionObserver(
         entries => {
@@ -184,8 +186,10 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+    clearTimeout(inlineSelectionTimer)
     window.removeEventListener('resize', checkDesktop)
     window.removeEventListener('keydown', onKeyDown)
+    document.removeEventListener('selectionchange', onInlineSelectionChange)
     loadMoreObserver?.disconnect()
 })
 
@@ -247,6 +251,7 @@ function scrollExpandedIntoView(articleId) {
 function closeArticlePanel() {
     selectedArticle.value = null
     selectedArticleId.value = null
+    hasInlineSelection.value = false
 }
 
 function navigateToFeed(feedId) {
@@ -291,6 +296,50 @@ const selectedFormattedTime = computed(() => {
         minute: '2-digit',
     })
 })
+
+const upgradedInlineContent = computed(() => {
+    const raw = selectedArticle.value?.content || selectedArticle.value?.summary || ''
+    const upgraded = raw.replace(/(href|src)=(["'])http:\/\//gi, '$1=$2https://')
+    return DOMPurify.sanitize(upgraded, { USE_PROFILES: { html: true } })
+})
+
+// --- Quote selection tracking (desktop inline) ---
+const hasInlineSelection = ref(false)
+let inlineSelectionTimer = null
+
+function onInlineSelectionChange() {
+    clearTimeout(inlineSelectionTimer)
+    inlineSelectionTimer = setTimeout(() => {
+        const selection = window.getSelection()
+        if (!selection || selection.isCollapsed || !selection.toString().trim()) {
+            hasInlineSelection.value = false
+            return
+        }
+        const contentEl = document.querySelector('.article-content')
+        if (!contentEl) {
+            hasInlineSelection.value = false
+            return
+        }
+        const range = selection.getRangeAt(0)
+        hasInlineSelection.value = contentEl.contains(range.commonAncestorContainer)
+    }, 100)
+}
+
+async function saveInlineQuote() {
+    const selection = window.getSelection()
+    if (!selection || selection.isCollapsed || !selectedArticle.value) return
+    const text = selection.toString().trim()
+    if (!text) return
+    const articleId = selectedArticle.value.id
+    window.getSelection()?.removeAllRanges()
+    hasInlineSelection.value = false
+    try {
+        await axios.post('/api/highlights', { article_id: articleId, text })
+        success('Quote saved')
+    } catch {
+        showError('Failed to save quote')
+    }
+}
 
 // --- Keyboard shortcuts (desktop) ---
 const selectedIndex = computed(() => {
@@ -804,6 +853,32 @@ function getSwipeDirection(articleId) {
                                                     d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V18" />
                                             </svg>
                                         </button>
+                                        <button
+                                            @click.stop="saveInlineQuote"
+                                            :disabled="!hasInlineSelection"
+                                            class="rounded-lg p-1.5 transition-colors cursor-pointer"
+                                            :class="
+                                                hasInlineSelection
+                                                    ? 'text-amber-500 hover:bg-neutral-200 dark:hover:bg-neutral-800'
+                                                    : 'text-neutral-300 dark:text-neutral-600 cursor-default'
+                                            "
+                                            :title="
+                                                hasInlineSelection
+                                                    ? 'Save quote'
+                                                    : 'Select text first'
+                                            ">
+                                            <svg
+                                                class="h-4 w-4"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke-width="1.5"
+                                                stroke="currentColor">
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                                            </svg>
+                                        </button>
                                         <a
                                             v-if="selectedArticle?.url"
                                             :href="selectedArticle.url"
@@ -896,9 +971,7 @@ function getSwipeDirection(articleId) {
 
                                         <div
                                             class="article-content prose max-w-none dark:prose-invert prose-headings:text-neutral-800 dark:prose-headings:text-neutral-200 prose-p:text-neutral-700 dark:prose-p:text-neutral-300 prose-a:text-blue-500 prose-a:no-underline hover:prose-a:underline prose-strong:text-neutral-800 dark:prose-strong:text-neutral-200 prose-code:text-blue-600 dark:prose-code:text-blue-300 prose-pre:bg-white dark:prose-pre:bg-neutral-900 prose-pre:border prose-pre:border-neutral-200 dark:prose-pre:border-neutral-800 prose-img:rounded-lg prose-blockquote:border-neutral-300 dark:prose-blockquote:border-neutral-700 prose-blockquote:text-neutral-500 dark:prose-blockquote:text-neutral-400"
-                                            v-html="
-                                                selectedArticle.content || selectedArticle.summary
-                                            " />
+                                            v-html="upgradedInlineContent" />
 
                                         <div
                                             v-if="
