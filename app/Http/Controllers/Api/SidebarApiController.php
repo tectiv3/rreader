@@ -45,6 +45,7 @@ class SidebarApiController extends Controller
                     'site_url' => $feed->site_url,
                     'unread_count' => $feedUnreadCounts[$feed->id] ?? 0,
                     'disabled_at' => $feed->disabled_at,
+                    'is_special' => $feed->isSpecial(),
                 ]);
 
                 return [
@@ -67,6 +68,7 @@ class SidebarApiController extends Controller
                 'site_url' => $feed->site_url,
                 'unread_count' => $feedUnreadCounts[$feed->id] ?? 0,
                 'disabled_at' => $feed->disabled_at,
+                'is_special' => $feed->isSpecial(),
             ])
             ->values()
             ->all();

@@ -133,6 +133,7 @@ final class FeedApiController extends Controller
                     'site_url' => $feed->site_url,
                     'disabled_at' => $feed->disabled_at,
                     'last_error' => $feed->last_error,
+                    'is_special' => $feed->isSpecial(),
                 ]),
             ]);
 
@@ -148,6 +149,7 @@ final class FeedApiController extends Controller
                 'site_url' => $feed->site_url,
                 'disabled_at' => $feed->disabled_at,
                 'last_error' => $feed->last_error,
+                'is_special' => $feed->isSpecial(),
             ]);
 
         return response()->json([

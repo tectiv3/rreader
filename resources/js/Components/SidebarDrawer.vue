@@ -310,7 +310,7 @@ function categoryUnreadCount(category) {
                                         class="h-4 w-4 shrink-0 rounded-sm bg-neutral-300 dark:bg-neutral-700" />
                                     <span class="flex-1 truncate text-left">{{ feed.title }}</span>
                                     <svg
-                                        v-if="feed.disabled_at"
+                                        v-if="feed.disabled_at && !feed.is_special"
                                         class="h-3.5 w-3.5 shrink-0 text-amber-500"
                                         fill="none"
                                         viewBox="0 0 24 24"

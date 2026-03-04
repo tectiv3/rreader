@@ -532,7 +532,7 @@ async function reenableFeed(feed) {
                                         {{ feed.title }}
                                     </p>
                                     <svg
-                                        v-if="feed.disabled_at"
+                                        v-if="feed.disabled_at && !feed.is_special"
                                         class="h-4 w-4 shrink-0 text-amber-500"
                                         fill="none"
                                         viewBox="0 0 24 24"
@@ -545,18 +545,20 @@ async function reenableFeed(feed) {
                                             d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                                     </svg>
                                 </div>
-                                <p class="text-xs text-neutral-600 dark:text-neutral-500 truncate">
+                                <p
+                                    v-if="!feed.is_special"
+                                    class="text-xs text-neutral-600 dark:text-neutral-500 truncate">
                                     {{ feed.feed_url }}
                                 </p>
                                 <p
-                                    v-if="feed.disabled_at && feed.last_error"
+                                    v-if="feed.disabled_at && feed.last_error && !feed.is_special"
                                     class="text-xs text-amber-600 dark:text-amber-500 mt-0.5 truncate">
                                     {{ feed.last_error }}
                                 </p>
                             </div>
                             <div class="flex shrink-0 gap-1">
                                 <button
-                                    v-if="feed.disabled_at"
+                                    v-if="feed.disabled_at && !feed.is_special"
                                     @click="reenableFeed(feed)"
                                     class="rounded-lg px-2.5 py-1.5 text-xs font-medium text-amber-600 dark:text-amber-500 border border-amber-500/50 hover:bg-amber-500/10 transition-colors"
                                     title="Retry feed"
@@ -733,7 +735,7 @@ async function reenableFeed(feed) {
                                         {{ feed.title }}
                                     </p>
                                     <svg
-                                        v-if="feed.disabled_at"
+                                        v-if="feed.disabled_at && !feed.is_special"
                                         class="h-4 w-4 shrink-0 text-amber-500"
                                         fill="none"
                                         viewBox="0 0 24 24"
@@ -746,18 +748,20 @@ async function reenableFeed(feed) {
                                             d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                                     </svg>
                                 </div>
-                                <p class="text-xs text-neutral-600 dark:text-neutral-500 truncate">
+                                <p
+                                    v-if="!feed.is_special"
+                                    class="text-xs text-neutral-600 dark:text-neutral-500 truncate">
                                     {{ feed.feed_url }}
                                 </p>
                                 <p
-                                    v-if="feed.disabled_at && feed.last_error"
+                                    v-if="feed.disabled_at && feed.last_error && !feed.is_special"
                                     class="text-xs text-amber-600 dark:text-amber-500 mt-0.5 truncate">
                                     {{ feed.last_error }}
                                 </p>
                             </div>
                             <div class="flex shrink-0 gap-1">
                                 <button
-                                    v-if="feed.disabled_at"
+                                    v-if="feed.disabled_at && !feed.is_special"
                                     @click="reenableFeed(feed)"
                                     class="rounded-lg px-2.5 py-1.5 text-xs font-medium text-amber-600 dark:text-amber-500 border border-amber-500/50 hover:bg-amber-500/10 transition-colors"
                                     title="Retry feed"
