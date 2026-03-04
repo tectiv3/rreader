@@ -37,8 +37,15 @@ if (shareUrl) {
     openAddFeedModal('article', shareUrl)
 }
 
-// Fetch on mount, then warm SW cache in background
-articleStore.fetchArticles(deriveView()).then(() => articleStore.warmCache())
+// Fetch on mount, then restore inline article if specified, then warm cache
+articleStore.fetchArticles(deriveView()).then(async () => {
+    const restoreId = Number(route.query.article)
+    if (restoreId && isDesktop.value) {
+        selectedArticleId.value = restoreId
+        await loadArticleInline(restoreId)
+    }
+    articleStore.warmCache()
+})
 
 // Keep document title in sync with the current filter
 watch(
@@ -154,6 +161,31 @@ function timeAgo(dateString) {
 // --- Desktop inline reader state ---
 // screen.width is zoom-independent (Safari pinch-zoom changes innerWidth but not screen.width)
 const isDesktop = ref(typeof window !== 'undefined' && window.screen.width >= 1024)
+
+// --- Reading state persistence (desktop inline) ---
+const READING_STATE_KEY = 'rreader-reading-state'
+
+function saveReadingState(articleId) {
+    // Preserve current query params (feed_id, filter, etc.) and add selected article
+    const params = new URLSearchParams(window.location.search)
+    params.set('article', articleId)
+    const url = `/articles?${params.toString()}`
+    try {
+        localStorage.setItem(READING_STATE_KEY, JSON.stringify({ url }))
+    } catch {}
+    window.__swReady?.then(sw => {
+        if (sw) sw.postMessage({ type: 'save-reading-state', state: { url } })
+    })
+}
+
+function clearReadingState() {
+    try {
+        localStorage.removeItem(READING_STATE_KEY)
+    } catch {}
+    window.__swReady?.then(sw => {
+        if (sw) sw.postMessage({ type: 'clear-reading-state' })
+    })
+}
 const selectedArticleId = ref(null)
 const selectedArticle = ref(null)
 const loadingArticle = ref(false)
@@ -217,6 +249,8 @@ function openArticle(article) {
 }
 
 async function loadArticleInline(articleId) {
+    saveReadingState(articleId)
+
     const cached = articleStore.getContent(articleId)
     if (cached) {
         selectedArticle.value = cached
@@ -252,6 +286,7 @@ function closeArticlePanel() {
     selectedArticle.value = null
     selectedArticleId.value = null
     hasInlineSelection.value = false
+    clearReadingState()
 }
 
 function navigateToFeed(feedId) {
