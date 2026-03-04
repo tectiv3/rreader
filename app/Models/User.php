@@ -74,4 +74,9 @@ class User extends Authenticatable
     {
         return $this->hasManyThrough(Article::class, Feed::class);
     }
+
+    public function highlights(): HasMany
+    {
+        return $this->hasMany(Highlight::class);
+    }
 }
