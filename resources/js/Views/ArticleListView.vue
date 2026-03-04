@@ -443,6 +443,7 @@ function onTouchMove(articleId, e) {
     }
 
     if (state.directionLocked && Math.abs(deltaX) > SWIPE_DEAD_ZONE) {
+        e.preventDefault()
         state.swiping = true
         state.currentX = Math.max(Math.min(deltaX, 200), -200)
     }
