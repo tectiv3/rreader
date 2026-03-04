@@ -11,6 +11,7 @@ const routeTitles = {
     'feeds.edit': 'Edit Feed',
     settings: 'Settings',
     'opml.import': 'Import OPML',
+    highlights: 'Highlights',
 }
 
 const routes = [
@@ -55,6 +56,11 @@ const routes = [
         path: '/opml/import',
         name: 'opml.import',
         component: () => import('@/Views/OpmlImportView.vue'),
+    },
+    {
+        path: '/highlights',
+        name: 'highlights',
+        component: () => import('./Views/HighlightsView.vue'),
     },
     // Catch-all: redirect to articles
     {

@@ -218,6 +218,31 @@ onUnmounted(() => {
                     <span class="text-[10px]">Read Later</span>
                 </button>
 
+                <!-- Highlights (quotes) -->
+                <button
+                    @click="router.push({ name: 'highlights' })"
+                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors"
+                    :class="
+                        route.name === 'highlights'
+                            ? 'text-blue-500'
+                            : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'
+                    "
+                    title="Highlights"
+                    aria-label="Highlights">
+                    <svg
+                        class="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+                    </svg>
+                    <span class="text-[10px]">Quotes</span>
+                </button>
+
                 <!-- Feed view (grid icon) -->
                 <button
                     @click="navigateTo({})"
