@@ -18,6 +18,11 @@ const menuRef = ref(null)
 const articleEl = ref(null)
 const navigating = ref(false)
 
+const upgradedContent = computed(() => {
+    const raw = article.value?.content || article.value?.summary || ''
+    return raw.replace(/(href|src)=(["'])http:\/\//gi, '$1=$2https://')
+})
+
 // Mobile detection for pull-to-dismiss
 const isMobile = ref(false)
 const scrollContainer = ref(null)
@@ -814,7 +819,7 @@ function navigateToFeed(feedId) {
 
                     <div
                         class="article-content prose max-w-none dark:prose-invert prose-headings:text-neutral-800 dark:prose-headings:text-neutral-200 prose-p:text-neutral-700 dark:prose-p:text-neutral-300 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-neutral-800 dark:prose-strong:text-neutral-200 prose-code:text-blue-300 prose-pre:bg-neutral-50 dark:prose-pre:bg-neutral-900 prose-pre:border prose-pre:border-neutral-200 dark:prose-pre:border-neutral-800 prose-img:rounded-lg prose-blockquote:border-neutral-300 dark:prose-blockquote:border-neutral-700 prose-blockquote:text-neutral-500 dark:prose-blockquote:text-neutral-400"
-                        v-html="article.content || article.summary" />
+                        v-html="upgradedContent" />
 
                     <div v-if="!article.content && !article.summary" class="py-12 text-center">
                         <p class="text-neutral-500 dark:text-neutral-400">
