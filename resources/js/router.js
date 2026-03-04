@@ -25,6 +25,11 @@ const routes = [
         component: () => import('@/Views/SearchView.vue'),
     },
     {
+        path: '/articles/highlights',
+        name: 'articles.highlights',
+        component: () => import('@/Views/HighlightsView.vue'),
+    },
+    {
         path: '/articles/:id',
         name: 'articles.show',
         component: () => import('@/Views/ArticleDetailView.vue'),
@@ -55,11 +60,6 @@ const routes = [
         path: '/opml/import',
         name: 'opml.import',
         component: () => import('@/Views/OpmlImportView.vue'),
-    },
-    {
-        path: '/articles/highlights',
-        name: 'articles.highlights',
-        component: () => import('@/Views/HighlightsView.vue'),
     },
     {
         path: '/highlights',
