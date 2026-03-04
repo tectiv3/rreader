@@ -59,8 +59,8 @@ class ImportBookmarks extends Command
         $feedsBySlug = $this->buildFeedSlugMap($user);
 
         $catchAllFeed = Feed::firstOrCreate(
-            ['user_id' => $user->id, 'title' => 'Feedly Imports'],
-            ['feed_url' => 'import://feedly', 'site_url' => 'https://feedly.com']
+            ['user_id' => $user->id, 'feed_url' => 'special:imports'],
+            ['title' => 'Imports', 'description' => 'Articles saved by URL']
         );
 
         $existingUrls = Article::pluck('id', 'url');
