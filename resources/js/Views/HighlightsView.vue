@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
-import { useToast } from '../Composables/useToast.js'
+import { useToast } from '@/Composables/useToast.js'
 
 const router = useRouter()
 const { success, error } = useToast()

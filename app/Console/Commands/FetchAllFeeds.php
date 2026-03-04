@@ -20,7 +20,8 @@ class FetchAllFeeds extends Command
 
         foreach ($feeds as $feed) {
             if ($feed->isDisabled() || $feed->isSpecial()) {
-                $this->line("Skipping disabled feed [{$feed->id}]: {$feed->title}");
+                $reason = $feed->isSpecial() ? 'special' : 'disabled';
+                $this->line("Skipping {$reason} feed [{$feed->id}]: {$feed->title}");
                 $skipped++;
 
                 continue;

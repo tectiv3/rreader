@@ -621,7 +621,7 @@ function onSelectionChange() {
         selectedText.value = selection.toString().trim()
         const rect = range.getBoundingClientRect()
         quotePopupPos.value = {
-            top: rect.top - 44,
+            top: Math.max(8, rect.top - 44),
             left: rect.left + rect.width / 2,
         }
         showQuotePopup.value = true
