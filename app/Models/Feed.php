@@ -71,6 +71,11 @@ class Feed extends Model
         return $this->disabled_at !== null;
     }
 
+    public function isSpecial(): bool
+    {
+        return str_starts_with($this->feed_url, 'special:');
+    }
+
     public function shouldSkipRefresh(): bool
     {
         $failures = $this->consecutive_failures;

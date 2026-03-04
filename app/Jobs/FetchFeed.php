@@ -6,7 +6,6 @@ use App\Models\Feed;
 use App\Services\FeedParserService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\Log;
 
 class FetchFeed implements ShouldQueue
 {
@@ -18,7 +17,7 @@ class FetchFeed implements ShouldQueue
 
     public function handle(FeedParserService $parser): void
     {
-        if ($this->feed->isDisabled()) {
+        if ($this->feed->isDisabled() || $this->feed->isSpecial()) {
             return;
         }
 
