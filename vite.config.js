@@ -1,8 +1,8 @@
-import { defineConfig } from 'vite';
-import laravel from 'laravel-vite-plugin';
-import vue from '@vitejs/plugin-vue';
-import tailwindcss from '@tailwindcss/vite';
-import { VitePWA } from 'vite-plugin-pwa';
+import { defineConfig } from 'vite'
+import laravel from 'laravel-vite-plugin'
+import vue from '@vitejs/plugin-vue'
+import tailwindcss from '@tailwindcss/vite'
+import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
     plugins: [
@@ -21,7 +21,13 @@ export default defineConfig({
         tailwindcss(),
         VitePWA({
             registerType: false,
-            includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon.png', 'icons/apple-touch-icon-dark.png', 'robots.txt'],
+            includeAssets: [
+                'favicon.ico',
+                'favicon.svg',
+                'apple-touch-icon.png',
+                'icons/apple-touch-icon-dark.png',
+                'robots.txt',
+            ],
             manifest: {
                 name: 'RReader',
                 short_name: 'RReader',
@@ -59,7 +65,7 @@ export default defineConfig({
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
                 navigateFallback: null,
-                importScripts: ['/sw-reading-state.js'],
+                importScripts: ['/sw-reading-state.js', '/sw-article-cache.js'],
                 runtimeCaching: [
                     {
                         urlPattern: /^https?:\/\/fonts\.googleapis\.com\/.*/i,
@@ -94,7 +100,10 @@ export default defineConfig({
                     {
                         // Cache navigation requests (SPA HTML shell)
                         urlPattern: ({ request, url }) => {
-                            return request.mode === 'navigate' && url.origin === self.location.origin;
+                            return (
+                                request.mode === 'navigate' &&
+                                url.origin === self.location.origin
+                            )
                         },
                         handler: 'NetworkFirst',
                         options: {
@@ -126,7 +135,8 @@ export default defineConfig({
                     },
                     {
                         // Cache external article images (cross-origin)
-                        urlPattern: /^https?:\/\/.*\.(?:jpg|jpeg|gif|png|webp|avif|svg)(?:\?.*)?$/i,
+                        urlPattern:
+                            /^https?:\/\/.*\.(?:jpg|jpeg|gif|png|webp|avif|svg)(?:\?.*)?$/i,
                         handler: 'CacheFirst',
                         options: {
                             cacheName: 'external-images-cache',
@@ -158,4 +168,4 @@ export default defineConfig({
             },
         }),
     ],
-});
+})
