@@ -3,6 +3,40 @@ import { ref, computed } from 'vue'
 import axios from 'axios'
 import { useSidebarStore } from '@/Stores/useSidebarStore.js'
 
+async function swCacheGet(articleId) {
+    const sw = await window.__swReady
+    if (!sw) return null
+    return new Promise(resolve => {
+        const channel = new MessageChannel()
+        const timer = setTimeout(() => resolve(null), 400)
+        channel.port1.onmessage = e => {
+            clearTimeout(timer)
+            resolve(e.data)
+        }
+        sw.postMessage({ type: 'article-cache-get', articleId }, [channel.port2])
+    })
+}
+
+async function swCachePut(articleId, content) {
+    const sw = await window.__swReady
+    if (!sw) return
+    sw.postMessage({ type: 'article-cache-put', articleId, content })
+}
+
+async function swCacheList() {
+    const sw = await window.__swReady
+    if (!sw) return []
+    return new Promise(resolve => {
+        const channel = new MessageChannel()
+        const timer = setTimeout(() => resolve([]), 800)
+        channel.port1.onmessage = e => {
+            clearTimeout(timer)
+            resolve(e.data || [])
+        }
+        sw.postMessage({ type: 'article-cache-list' }, [channel.port2])
+    })
+}
+
 export const useArticleStore = defineStore('articles', () => {
     // --- State ---
     const articles = ref([])
@@ -167,10 +201,9 @@ export const useArticleStore = defineStore('articles', () => {
     }
 
     async function fetchContent(id) {
-        // 1. Cache hit
+        // 1. In-memory cache hit
         const cached = contentCache.value.get(id)
         if (cached) {
-            // Move to end (most recently used)
             contentCache.value.delete(id)
             contentCache.value.set(id, cached)
             return cached
@@ -181,26 +214,35 @@ export const useArticleStore = defineStore('articles', () => {
             return inFlightRequests.get(id)
         }
 
-        // 3. Fetch
-        const promise = axios
-            .get(`/api/articles/${id}`)
-            .then(res => {
+        // 3. Try SW persistent cache, then network
+        const promise = (async () => {
+            try {
+                const swCached = await swCacheGet(id)
+                if (swCached) {
+                    contentCache.value.set(id, swCached)
+                    if (contentCache.value.size > CONTENT_CACHE_MAX) {
+                        const firstKey = contentCache.value.keys().next().value
+                        contentCache.value.delete(firstKey)
+                    }
+                    return swCached
+                }
+
+                // 4. Network fetch
+                const res = await axios.get(`/api/articles/${id}`)
                 const content = res.data
                 contentCache.value.set(id, content)
+                swCachePut(id, content)
 
-                // Evict LRU if over max
                 if (contentCache.value.size > CONTENT_CACHE_MAX) {
                     const firstKey = contentCache.value.keys().next().value
                     contentCache.value.delete(firstKey)
                 }
 
-                inFlightRequests.delete(id)
                 return content
-            })
-            .catch(err => {
+            } finally {
                 inFlightRequests.delete(id)
-                throw err
-            })
+            }
+        })()
 
         inFlightRequests.set(id, promise)
         return promise
@@ -210,6 +252,19 @@ export const useArticleStore = defineStore('articles', () => {
         const { prev, next } = adjacentIds(id)
         if (next) fetchContent(next).catch(() => {})
         if (prev) fetchContent(prev).catch(() => {})
+    }
+
+    async function warmCache() {
+        const articleIds = articles.value.map(a => a.id)
+        if (articleIds.length === 0) return
+
+        const cachedIds = new Set(await swCacheList())
+        const missing = articleIds.filter(id => !cachedIds.has(id))
+
+        for (let i = 0; i < missing.length; i += 3) {
+            const batch = missing.slice(i, i + 3)
+            await Promise.allSettled(batch.map(id => fetchContent(id)))
+        }
     }
 
     function _isToday(dateString) {
@@ -358,6 +413,7 @@ export const useArticleStore = defineStore('articles', () => {
         loadMore,
         fetchContent,
         prefetchAdjacent,
+        warmCache,
         markRead,
         markUnread,
         toggleReadLater,
