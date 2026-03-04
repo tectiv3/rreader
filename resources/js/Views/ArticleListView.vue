@@ -16,7 +16,7 @@ const sidebarStore = useSidebarStore()
 const router = useRouter()
 const route = useRoute()
 const { isOnline } = useOnlineStatus()
-const { success } = useToast()
+const { success, error: showError } = useToast()
 const { openAddFeedModal } = useAddFeedModal()
 const toggleSidebar = inject('toggleSidebar')
 
@@ -27,6 +27,13 @@ function deriveView() {
     if (q.feed_id) return { type: 'feed', feedId: Number(q.feed_id) }
     if (q.category_id) return { type: 'category', categoryId: Number(q.category_id) }
     return { type: 'all' }
+}
+
+// Handle PWA share target: open Save Article modal with pre-filled URL
+const shareUrl = route.query['save-url']
+if (shareUrl) {
+    router.replace({ query: {} })
+    openAddFeedModal('article', shareUrl)
 }
 
 // Fetch on mount, then warm SW cache in background

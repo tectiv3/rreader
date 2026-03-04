@@ -38,6 +38,15 @@ export default defineConfig({
                 orientation: 'portrait-primary',
                 scope: '/',
                 start_url: '/',
+                share_target: {
+                    action: '/_share-target',
+                    method: 'GET',
+                    params: {
+                        url: 'url',
+                        title: 'title',
+                        text: 'text',
+                    },
+                },
                 icons: [
                     {
                         src: '/icons/icon-192x192.png',
@@ -65,7 +74,11 @@ export default defineConfig({
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
                 navigateFallback: null,
-                importScripts: ['/sw-reading-state.js', '/sw-article-cache.js'],
+                importScripts: [
+                    '/sw-reading-state.js',
+                    '/sw-article-cache.js',
+                    '/sw-share-target.js',
+                ],
                 runtimeCaching: [
                     {
                         urlPattern: /^https?:\/\/fonts\.googleapis\.com\/.*/i,
