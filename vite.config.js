@@ -82,8 +82,10 @@ export default defineConfig({
                         },
                     },
                     {
-                        // Cache API responses for offline viewing
-                        urlPattern: /^https?:\/\/.*\/api\/.*/i,
+                        // Cache API responses for offline viewing (exclude article detail, handled by custom SW)
+                        urlPattern: ({ url }) =>
+                            /\/api\//.test(url.pathname) &&
+                            !/\/api\/articles\/\d+$/.test(url.pathname),
                         handler: 'NetworkFirst',
                         options: {
                             cacheName: 'api-cache',

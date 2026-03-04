@@ -52,6 +52,7 @@ export const useArticleStore = defineStore('articles', () => {
     const viewCache = new Map() // per-view article list cache
 
     const CONTENT_CACHE_MAX = 20
+    let warmGeneration = 0
 
     // --- Getters ---
     const unreadCount = computed(() => articles.value.filter(a => !a.is_read).length)
@@ -255,13 +256,17 @@ export const useArticleStore = defineStore('articles', () => {
     }
 
     async function warmCache() {
-        const articleIds = articles.value.map(a => a.id)
+        const gen = ++warmGeneration
+        const articleIds = articles.value.filter(a => !a.is_read).map(a => a.id)
         if (articleIds.length === 0) return
 
         const cachedIds = new Set(await swCacheList())
-        const missing = articleIds.filter(id => !cachedIds.has(id))
+        if (gen !== warmGeneration) return
+
+        const missing = articleIds.filter(id => !cachedIds.has(id)).slice(0, 50)
 
         for (let i = 0; i < missing.length; i += 3) {
+            if (gen !== warmGeneration) return
             const batch = missing.slice(i, i + 3)
             await Promise.allSettled(batch.map(id => fetchContent(id)))
         }
