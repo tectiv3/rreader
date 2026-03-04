@@ -12,7 +12,7 @@ const appName = import.meta.env.VITE_APP_NAME || 'RReader'
 window.__swReady =
     'serviceWorker' in navigator
         ? navigator.serviceWorker
-              .register('/build/sw.js')
+              .register('/sw.js')
               .then(reg => {
                   const sw = reg.active || reg.installing || reg.waiting
                   if (!sw) return null

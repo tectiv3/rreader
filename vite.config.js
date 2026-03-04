@@ -81,7 +81,7 @@ export default defineConfig({
                 ],
                 runtimeCaching: [
                     {
-                        urlPattern: /^https?:\/\/fonts\.googleapis\.com\/.*/i,
+                        urlPattern: /^https?:\/\/fonts\.(bunny\.net|googleapis\.com)\/.*/i,
                         handler: 'CacheFirst',
                         options: {
                             cacheName: 'google-fonts-cache',
