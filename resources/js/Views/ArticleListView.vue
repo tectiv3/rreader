@@ -29,8 +29,8 @@ function deriveView() {
     return { type: 'all' }
 }
 
-// Fetch on mount
-articleStore.fetchArticles(deriveView())
+// Fetch on mount, then warm SW cache in background
+articleStore.fetchArticles(deriveView()).then(() => articleStore.warmCache())
 
 // Keep document title in sync with the current filter
 watch(
@@ -46,7 +46,7 @@ watch(
         if (route.name === 'articles.index') {
             closeArticlePanel()
             showFeedInfo.value = false
-            articleStore.fetchArticles(deriveView())
+            articleStore.fetchArticles(deriveView()).then(() => articleStore.warmCache())
         }
     },
     { deep: true }

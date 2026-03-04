@@ -26,6 +26,11 @@ window.__swReady =
               .catch(() => null)
         : Promise.resolve(null)
 
+// Evict expired article cache entries on app open
+window.__swReady.then(sw => {
+    if (sw) sw.postMessage({ type: 'article-cache-clean' })
+})
+
 // Check reading state before mounting Inertia to restore article position
 async function boot() {
     try {
