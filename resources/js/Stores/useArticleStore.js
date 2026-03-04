@@ -8,7 +8,7 @@ async function swCacheGet(articleId) {
     if (!sw) return null
     return new Promise(resolve => {
         const channel = new MessageChannel()
-        const timer = setTimeout(() => resolve(null), 400)
+        const timer = setTimeout(() => resolve(null), 2000)
         channel.port1.onmessage = e => {
             clearTimeout(timer)
             resolve(e.data)
@@ -28,7 +28,7 @@ async function swCacheList() {
     if (!sw) return []
     return new Promise(resolve => {
         const channel = new MessageChannel()
-        const timer = setTimeout(() => resolve([]), 800)
+        const timer = setTimeout(() => resolve([]), 3000)
         channel.port1.onmessage = e => {
             clearTimeout(timer)
             resolve(e.data || [])
@@ -201,6 +201,13 @@ export const useArticleStore = defineStore('articles', () => {
         }
     }
 
+    function evictContentCache() {
+        while (contentCache.value.size > CONTENT_CACHE_MAX) {
+            const firstKey = contentCache.value.keys().next().value
+            contentCache.value.delete(firstKey)
+        }
+    }
+
     async function fetchContent(id) {
         // 1. In-memory cache hit
         const cached = contentCache.value.get(id)
@@ -215,31 +222,33 @@ export const useArticleStore = defineStore('articles', () => {
             return inFlightRequests.get(id)
         }
 
-        // 3. Try SW persistent cache, then network
+        // 3. Try SW persistent cache, then network, then list fallback
         const promise = (async () => {
             try {
                 const swCached = await swCacheGet(id)
                 if (swCached) {
                     contentCache.value.set(id, swCached)
-                    if (contentCache.value.size > CONTENT_CACHE_MAX) {
-                        const firstKey = contentCache.value.keys().next().value
-                        contentCache.value.delete(firstKey)
-                    }
+                    evictContentCache()
                     return swCached
                 }
 
-                // 4. Network fetch
-                const res = await axios.get(`/api/articles/${id}`)
-                const content = res.data
-                contentCache.value.set(id, content)
-                swCachePut(id, content)
-
-                if (contentCache.value.size > CONTENT_CACHE_MAX) {
-                    const firstKey = contentCache.value.keys().next().value
-                    contentCache.value.delete(firstKey)
+                // 4. Network fetch (skip if offline)
+                if (navigator.onLine) {
+                    const res = await axios.get(`/api/articles/${id}`)
+                    const content = res.data
+                    contentCache.value.set(id, content)
+                    swCachePut(id, content)
+                    evictContentCache()
+                    return content
                 }
 
-                return content
+                // 5. Offline fallback: construct from article list data
+                const listArticle = articles.value.find(a => a.id === id)
+                if (listArticle) {
+                    return { ...listArticle, _offline: true }
+                }
+
+                throw new Error('Article not available offline')
             } finally {
                 inFlightRequests.delete(id)
             }
@@ -255,6 +264,7 @@ export const useArticleStore = defineStore('articles', () => {
         if (prev) fetchContent(prev).catch(() => {})
     }
 
+    // Warm SW cache without polluting in-memory cache
     async function warmCache() {
         const gen = ++warmGeneration
         const articleIds = articles.value.filter(a => !a.is_read).map(a => a.id)
@@ -263,12 +273,23 @@ export const useArticleStore = defineStore('articles', () => {
         const cachedIds = new Set(await swCacheList())
         if (gen !== warmGeneration) return
 
-        const missing = articleIds.filter(id => !cachedIds.has(id)).slice(0, 50)
+        const missing = articleIds
+            .filter(id => !cachedIds.has(id) && !contentCache.value.has(id))
+            .slice(0, 50)
 
         for (let i = 0; i < missing.length; i += 3) {
             if (gen !== warmGeneration) return
             const batch = missing.slice(i, i + 3)
-            await Promise.allSettled(batch.map(id => fetchContent(id)))
+            await Promise.allSettled(
+                batch.map(async id => {
+                    try {
+                        const res = await axios.get(`/api/articles/${id}`)
+                        swCachePut(id, res.data)
+                    } catch {
+                        // Network error — stop warming
+                    }
+                })
+            )
         }
     }
 
