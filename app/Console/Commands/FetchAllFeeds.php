@@ -19,7 +19,7 @@ class FetchAllFeeds extends Command
         $skipped = 0;
 
         foreach ($feeds as $feed) {
-            if ($feed->isDisabled()) {
+            if ($feed->isDisabled() || $feed->isSpecial()) {
                 $this->line("Skipping disabled feed [{$feed->id}]: {$feed->title}");
                 $skipped++;
 

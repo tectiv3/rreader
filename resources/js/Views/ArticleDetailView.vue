@@ -4,6 +4,7 @@ import { useToast } from '@/Composables/useToast.js'
 import { useRouter, useRoute } from 'vue-router'
 import { setTitle } from '@/router.js'
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import DOMPurify from 'dompurify'
 
 const articleStore = useArticleStore()
 const router = useRouter()
@@ -20,7 +21,8 @@ const navigating = ref(false)
 
 const upgradedContent = computed(() => {
     const raw = article.value?.content || article.value?.summary || ''
-    return raw.replace(/(href|src)=(["'])http:\/\//gi, '$1=$2https://')
+    const upgraded = raw.replace(/(href|src)=(["'])http:\/\//gi, '$1=$2https://')
+    return DOMPurify.sanitize(upgraded, { USE_PROFILES: { html: true } })
 })
 
 // Mobile detection for pull-to-dismiss

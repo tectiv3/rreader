@@ -208,7 +208,26 @@ class ArticleApiController extends Controller
 
     public function saveUrl(Request $request, ContentExtractorService $extractor)
     {
-        $request->validate(['url' => 'required|url']);
+        $request->validate([
+            'url' => [
+                'required',
+                'url',
+                'max:2048',
+                function ($attribute, $value, $fail) {
+                    $parsed = parse_url($value);
+                    if (! in_array($parsed['scheme'] ?? '', ['http', 'https'], true)) {
+                        $fail('Only http and https URLs are allowed.');
+
+                        return;
+                    }
+                    $host = strtolower($parsed['host'] ?? '');
+                    $blocked = ['localhost', '127.0.0.1', '::1', '0.0.0.0'];
+                    if (in_array($host, $blocked, true) || str_ends_with($host, '.local')) {
+                        $fail('URL points to a private or reserved address.');
+                    }
+                },
+            ],
+        ]);
 
         $user = $request->user();
         $url = $request->input('url');
@@ -223,7 +242,7 @@ class ArticleApiController extends Controller
             ]
         );
 
-        $existing = $feed->articles()->where('url', $url)->first();
+        $existing = $feed->articles()->where('guid', $url)->first();
         if ($existing) {
             $user->articles()->syncWithoutDetaching([
                 $existing->id => ['is_read_later' => true],

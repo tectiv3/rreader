@@ -566,6 +566,7 @@ async function reenableFeed(feed) {
                                     Retry
                                 </button>
                                 <button
+                                    v-if="!feed.is_special"
                                     @click="startEditFeed(feed)"
                                     class="rounded-lg p-1.5 text-neutral-600 dark:text-neutral-500 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
                                     title="Rename feed"
@@ -583,6 +584,7 @@ async function reenableFeed(feed) {
                                     </svg>
                                 </button>
                                 <button
+                                    v-if="!feed.is_special"
                                     @click="startMoveFeed(feed, category.id)"
                                     class="rounded-lg p-1.5 text-neutral-600 dark:text-neutral-500 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
                                     title="Move feed"
@@ -600,6 +602,7 @@ async function reenableFeed(feed) {
                                     </svg>
                                 </button>
                                 <button
+                                    v-if="!feed.is_special"
                                     @click="startUnsubscribe(feed)"
                                     class="rounded-lg p-1.5 text-neutral-500 hover:bg-red-900/50 hover:text-red-400 transition-colors"
                                     title="Unsubscribe"
@@ -769,6 +772,7 @@ async function reenableFeed(feed) {
                                     Retry
                                 </button>
                                 <button
+                                    v-if="!feed.is_special"
                                     @click="startEditFeed(feed)"
                                     class="rounded-lg p-1.5 text-neutral-600 dark:text-neutral-500 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
                                     title="Rename feed"
@@ -786,6 +790,7 @@ async function reenableFeed(feed) {
                                     </svg>
                                 </button>
                                 <button
+                                    v-if="!feed.is_special"
                                     @click="startMoveFeed(feed, null)"
                                     class="rounded-lg p-1.5 text-neutral-600 dark:text-neutral-500 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
                                     title="Move feed"
@@ -803,6 +808,7 @@ async function reenableFeed(feed) {
                                     </svg>
                                 </button>
                                 <button
+                                    v-if="!feed.is_special"
                                     @click="startUnsubscribe(feed)"
                                     class="rounded-lg p-1.5 text-neutral-500 hover:bg-red-900/50 hover:text-red-400 transition-colors"
                                     title="Unsubscribe"
