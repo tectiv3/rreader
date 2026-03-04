@@ -22,7 +22,8 @@ const uiStore = useUIStore()
 const router = useRouter()
 const route = useRoute()
 
-const { isAddFeedModalOpen, openAddFeedModal, closeAddFeedModal } = useAddFeedModal()
+const { isAddFeedModalOpen, initialTab, initialUrl, openAddFeedModal, closeAddFeedModal } =
+    useAddFeedModal()
 
 // Desktop detection via matchMedia
 const desktopQuery = typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)') : null
@@ -149,7 +150,11 @@ onUnmounted(() => {
 
         <!-- Toast notifications -->
         <ToastContainer />
-        <AddFeedModal :show="isAddFeedModalOpen" @close="closeAddFeedModal" />
+        <AddFeedModal
+            :show="isAddFeedModalOpen"
+            :initial-tab="initialTab"
+            :initial-url="initialUrl"
+            @close="closeAddFeedModal" />
 
         <!-- Mobile: overlay sidebar drawer -->
         <SidebarDrawer
