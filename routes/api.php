@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\ArticleApiController;
 use App\Http\Controllers\Api\CategoryApiController;
 use App\Http\Controllers\Api\FeedApiController;
+use App\Http\Controllers\Api\HighlightApiController;
 use App\Http\Controllers\Api\OpmlApiController;
 use App\Http\Controllers\Api\SettingsApiController;
 use App\Http\Controllers\Api\SidebarApiController;
@@ -46,4 +47,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // OPML
     Route::post('/opml/preview', [OpmlApiController::class, 'preview']);
     Route::post('/opml/import', [OpmlApiController::class, 'import']);
+
+    // Highlights
+    Route::get('/highlights', [HighlightApiController::class, 'index']);
+    Route::post('/highlights', [HighlightApiController::class, 'store']);
+    Route::delete('/highlights/{highlight}', [HighlightApiController::class, 'destroy']);
 });
