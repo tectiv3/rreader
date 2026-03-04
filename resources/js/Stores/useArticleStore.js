@@ -31,6 +31,20 @@ async function swCachePut(articleId, content) {
     })
 }
 
+async function swCacheList() {
+    const sw = await window.__swReady
+    if (!sw) return []
+    return new Promise(resolve => {
+        const channel = new MessageChannel()
+        const timer = setTimeout(() => resolve([]), 3000)
+        channel.port1.onmessage = e => {
+            clearTimeout(timer)
+            resolve(e.data || [])
+        }
+        sw.postMessage({ type: 'article-cache-list' }, [channel.port2])
+    })
+}
+
 export const useArticleStore = defineStore('articles', () => {
     // --- State ---
     const articles = ref([])
@@ -258,22 +272,31 @@ export const useArticleStore = defineStore('articles', () => {
         if (prev) fetchContent(prev).catch(() => {})
     }
 
-    // Warm SW cache without polluting in-memory cache
+    // Warm caches: first few go to in-memory (instant tap), rest to SW only (offline)
+    const WARM_INMEMORY = 5
     async function warmCache() {
         const gen = ++warmGeneration
+        const cachedIds = new Set(await swCacheList())
+        if (gen !== warmGeneration) return
+
         const toWarm = articles.value
-            .filter(a => !a.is_read && !contentCache.value.has(a.id))
+            .filter(a => !a.is_read && !contentCache.value.has(a.id) && !cachedIds.has(a.id))
             .map(a => a.id)
             .slice(0, 50)
         if (toWarm.length === 0) return
 
-        for (const id of toWarm) {
+        for (let i = 0; i < toWarm.length; i++) {
             if (gen !== warmGeneration) return
+            const id = toWarm[i]
             try {
                 const res = await axios.get(`/api/articles/${id}`)
+                if (i < WARM_INMEMORY) {
+                    contentCache.value.set(id, res.data)
+                    evictContentCache()
+                }
                 await swCachePut(id, res.data)
             } catch {
-                return // network error — stop warming
+                return
             }
         }
     }

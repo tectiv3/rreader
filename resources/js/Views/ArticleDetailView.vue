@@ -60,27 +60,42 @@ function clearReadingState() {
 onUnmounted(() => clearReadingState())
 
 // --- Load article ---
+const loadingContent = ref(false)
+
 async function loadArticle(id) {
-    loading.value = true
-    article.value = null
+    const numId = Number(id)
     if (isMobile.value && scrollContainer.value) scrollContainer.value.scrollTop = 0
     else window.scrollTo(0, 0)
 
-    const url = `/articles/${id}`
+    const url = `/articles/${numId}`
     saveReadingState(url)
 
+    // Show list-level metadata immediately (title, author, date, summary)
+    const listArticle = articleStore.articles.find(a => a.id === numId)
+    if (listArticle) {
+        article.value = { ...listArticle }
+        isReadLater.value = listArticle.is_read_later || false
+        setTitle(listArticle.title)
+        loading.value = false
+        loadingContent.value = true
+    } else {
+        article.value = null
+        loading.value = true
+    }
+
     try {
-        const content = await articleStore.fetchContent(Number(id))
+        const content = await articleStore.fetchContent(numId)
         article.value = content
         isReadLater.value = content.is_read_later || false
         setTitle(content.title)
-        articleStore.markRead(Number(id))
-        articleStore.prefetchAdjacent(Number(id))
+        articleStore.markRead(numId)
+        articleStore.prefetchAdjacent(numId)
     } catch {
         clearReadingState()
         router.replace({ name: 'articles.index' })
     } finally {
         loading.value = false
+        loadingContent.value = false
     }
 }
 
@@ -596,7 +611,10 @@ function resetTransform() {
 }
 
 // --- Quote selection tracking ---
+// Store selected text eagerly — on iOS, tapping the toolbar button
+// collapses the selection before the click handler can read it.
 const hasSelection = ref(false)
+let pendingQuoteText = ''
 let selectionTimer = null
 
 function onSelectionChange() {
@@ -613,16 +631,17 @@ function onSelectionChange() {
             return
         }
         const range = selection.getRangeAt(0)
-        hasSelection.value = contentEl.contains(range.commonAncestorContainer)
+        const inContent = contentEl.contains(range.commonAncestorContainer)
+        hasSelection.value = inContent
+        if (inContent) pendingQuoteText = selection.toString().trim()
     }, 100)
 }
 
 async function saveQuote() {
-    const selection = window.getSelection()
-    if (!selection || selection.isCollapsed || !article.value) return
-    const text = selection.toString().trim()
-    if (!text) return
+    const text = pendingQuoteText
+    if (!text || !article.value) return
     const articleId = article.value.id
+    pendingQuoteText = ''
     window.getSelection()?.removeAllRanges()
     hasSelection.value = false
     try {
@@ -890,7 +909,28 @@ function navigateToFeed(feedId) {
                         class="mb-6 w-full max-h-80 object-cover rounded-lg"
                         loading="lazy" />
 
+                    <!-- Inline content loading indicator -->
                     <div
+                        v-if="loadingContent && !article.content"
+                        class="flex items-center gap-2 py-8 text-neutral-400">
+                        <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle
+                                class="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                stroke-width="4" />
+                            <path
+                                class="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        <span class="text-sm">Loading full article...</span>
+                    </div>
+
+                    <div
+                        v-else
                         class="article-content prose max-w-none dark:prose-invert prose-headings:text-neutral-800 dark:prose-headings:text-neutral-200 prose-p:text-neutral-700 dark:prose-p:text-neutral-300 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-neutral-800 dark:prose-strong:text-neutral-200 prose-code:text-blue-300 prose-pre:bg-neutral-50 dark:prose-pre:bg-neutral-900 prose-pre:border prose-pre:border-neutral-200 dark:prose-pre:border-neutral-800 prose-img:rounded-lg prose-blockquote:border-neutral-300 dark:prose-blockquote:border-neutral-700 prose-blockquote:text-neutral-500 dark:prose-blockquote:text-neutral-400"
                         v-html="upgradedContent" />
 

@@ -305,6 +305,7 @@ const upgradedInlineContent = computed(() => {
 
 // --- Quote selection tracking (desktop inline) ---
 const hasInlineSelection = ref(false)
+let pendingInlineQuoteText = ''
 let inlineSelectionTimer = null
 
 function onInlineSelectionChange() {
@@ -321,16 +322,17 @@ function onInlineSelectionChange() {
             return
         }
         const range = selection.getRangeAt(0)
-        hasInlineSelection.value = contentEl.contains(range.commonAncestorContainer)
+        const inContent = contentEl.contains(range.commonAncestorContainer)
+        hasInlineSelection.value = inContent
+        if (inContent) pendingInlineQuoteText = selection.toString().trim()
     }, 100)
 }
 
 async function saveInlineQuote() {
-    const selection = window.getSelection()
-    if (!selection || selection.isCollapsed || !selectedArticle.value) return
-    const text = selection.toString().trim()
-    if (!text) return
+    const text = pendingInlineQuoteText
+    if (!text || !selectedArticle.value) return
     const articleId = selectedArticle.value.id
+    pendingInlineQuoteText = ''
     window.getSelection()?.removeAllRanges()
     hasInlineSelection.value = false
     try {
