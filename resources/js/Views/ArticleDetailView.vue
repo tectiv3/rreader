@@ -31,7 +31,7 @@ const isMobile = ref(false)
 const scrollContainer = ref(null)
 
 function checkMobile() {
-    const mobile = window.innerWidth < 1024
+    const mobile = window.screen.width < 1024
     if (isMobile.value !== mobile) isMobile.value = mobile
 }
 

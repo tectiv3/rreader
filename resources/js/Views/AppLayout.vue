@@ -25,13 +25,8 @@ const route = useRoute()
 const { isAddFeedModalOpen, initialTab, initialUrl, openAddFeedModal, closeAddFeedModal } =
     useAddFeedModal()
 
-// Desktop detection via matchMedia
-const desktopQuery = typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)') : null
-const isDesktop = ref(desktopQuery ? desktopQuery.matches : false)
-
-function onMediaChange(e) {
-    isDesktop.value = e.matches
-}
+// screen.width is zoom-independent (Safari pinch-zoom changes innerWidth but not screen.width)
+const isDesktop = ref(typeof window !== 'undefined' && window.screen.width >= 1024)
 
 // Sidebar collapsed state persisted to localStorage
 const sidebarCollapsed = ref(
@@ -90,18 +85,6 @@ function navigateTo(params) {
         router.push({ name: 'articles.index' })
     }
 }
-
-onMounted(() => {
-    if (desktopQuery) {
-        desktopQuery.addEventListener('change', onMediaChange)
-    }
-})
-
-onUnmounted(() => {
-    if (desktopQuery) {
-        desktopQuery.removeEventListener('change', onMediaChange)
-    }
-})
 </script>
 
 <template>

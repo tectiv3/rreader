@@ -151,7 +151,8 @@ function timeAgo(dateString) {
 }
 
 // --- Desktop inline reader state ---
-const isDesktop = ref(typeof window !== 'undefined' && window.innerWidth >= 1024)
+// screen.width is zoom-independent (Safari pinch-zoom changes innerWidth but not screen.width)
+const isDesktop = ref(typeof window !== 'undefined' && window.screen.width >= 1024)
 const selectedArticleId = ref(null)
 const selectedArticle = ref(null)
 const loadingArticle = ref(false)
@@ -160,7 +161,7 @@ const articleListEl = ref(null)
 const loadMoreSentinel = ref(null)
 
 function checkDesktop() {
-    isDesktop.value = window.innerWidth >= 1024
+    isDesktop.value = window.screen.width >= 1024
 }
 
 let loadMoreObserver = null
