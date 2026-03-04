@@ -136,6 +136,7 @@ class OpmlService
                 foreach ($categoryFeeds as $feedData) {
                     if (in_array($feedData['feed_url'], $existingFeedUrls)) {
                         $skipped++;
+
                         continue;
                     }
 
@@ -161,6 +162,7 @@ class OpmlService
 
                 if (in_array($feedData['feed_url'], $existingFeedUrls)) {
                     $skipped++;
+
                     continue;
                 }
 
@@ -199,7 +201,7 @@ class OpmlService
             ->orderBy('title')
             ->get();
 
-        $xml = new \XMLWriter();
+        $xml = new \XMLWriter;
         $xml->openMemory();
         $xml->setIndent(true);
         $xml->setIndentString('  ');
@@ -254,7 +256,7 @@ class OpmlService
         $domain = $siteUrl ?: $feedUrl;
         $parsed = parse_url($domain);
         if (isset($parsed['host'])) {
-            $faviconUrl = ($parsed['scheme'] ?? 'https') . '://' . $parsed['host'] . '/favicon.ico';
+            $faviconUrl = ($parsed['scheme'] ?? 'https').'://'.$parsed['host'].'/favicon.ico';
         }
 
         return [

@@ -16,22 +16,22 @@ class FaviconService
     public function resolveAndStore(string $siteUrl, int $feedId): ?string
     {
         $parsed = parse_url($siteUrl);
-        if (!isset($parsed['host'])) {
+        if (! isset($parsed['host'])) {
             return null;
         }
 
-        $baseUrl = ($parsed['scheme'] ?? 'https') . '://' . $parsed['host'];
+        $baseUrl = ($parsed['scheme'] ?? 'https').'://'.$parsed['host'];
 
         // Step 1: Try parsing HTML <link> tags
         $iconUrl = $this->resolveFromHtml($baseUrl);
 
         // Step 2: Try /favicon.ico
-        if (!$iconUrl) {
+        if (! $iconUrl) {
             $iconUrl = $this->resolveFromFaviconIco($baseUrl);
         }
 
         // Step 3: Try Google Favicon API
-        if (!$iconUrl) {
+        if (! $iconUrl) {
             $iconUrl = $this->resolveFromGoogle($parsed['host'], $feedId);
             if ($iconUrl) {
                 return $iconUrl; // Already stored by resolveFromGoogle
@@ -51,7 +51,7 @@ class FaviconService
                 ->withUserAgent('RReader/1.0')
                 ->get($baseUrl);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 return null;
             }
 
@@ -59,7 +59,7 @@ class FaviconService
 
             return $this->extractIconFromHtml($html, $baseUrl);
         } catch (\Exception $e) {
-            Log::debug('Favicon HTML fetch failed: ' . $e->getMessage());
+            Log::debug('Favicon HTML fetch failed: '.$e->getMessage());
 
             return null;
         }
@@ -68,7 +68,7 @@ class FaviconService
     private function extractIconFromHtml(string $html, string $baseUrl): ?string
     {
         // Suppress DOM warnings for malformed HTML
-        $doc = new \DOMDocument();
+        $doc = new \DOMDocument;
         @$doc->loadHTML($html, LIBXML_NOERROR);
 
         $links = $doc->getElementsByTagName('link');
@@ -79,17 +79,17 @@ class FaviconService
             $href = trim($link->getAttribute('href'));
             $type = strtolower(trim($link->getAttribute('type')));
 
-            if (!$href) {
+            if (! $href) {
                 continue;
             }
 
             if ($rel === 'icon' && $type === 'image/svg+xml') {
                 $candidates[0] = $href; // Highest priority
-            } elseif ($rel === 'icon' && !isset($candidates[1])) {
+            } elseif ($rel === 'icon' && ! isset($candidates[1])) {
                 $candidates[1] = $href;
-            } elseif ($rel === 'shortcut icon' && !isset($candidates[2])) {
+            } elseif ($rel === 'shortcut icon' && ! isset($candidates[2])) {
                 $candidates[2] = $href;
-            } elseif ($rel === 'apple-touch-icon' && !isset($candidates[3])) {
+            } elseif ($rel === 'apple-touch-icon' && ! isset($candidates[3])) {
                 $candidates[3] = $href;
             }
         }
@@ -113,22 +113,22 @@ class FaviconService
 
         // Protocol-relative
         if (str_starts_with($href, '//')) {
-            return 'https:' . $href;
+            return 'https:'.$href;
         }
 
         // Absolute path
         if (str_starts_with($href, '/')) {
-            return rtrim($baseUrl, '/') . $href;
+            return rtrim($baseUrl, '/').$href;
         }
 
         // Relative path
-        return rtrim($baseUrl, '/') . '/' . $href;
+        return rtrim($baseUrl, '/').'/'.$href;
     }
 
     private function resolveFromFaviconIco(string $baseUrl): ?string
     {
         try {
-            $url = rtrim($baseUrl, '/') . '/favicon.ico';
+            $url = rtrim($baseUrl, '/').'/favicon.ico';
             $response = Http::timeout(5)
                 ->withUserAgent('RReader/1.0')
                 ->head($url);
@@ -137,7 +137,7 @@ class FaviconService
                 return $url;
             }
         } catch (\Exception $e) {
-            Log::debug('Favicon .ico check failed: ' . $e->getMessage());
+            Log::debug('Favicon .ico check failed: '.$e->getMessage());
         }
 
         return null;
@@ -146,10 +146,10 @@ class FaviconService
     private function resolveFromGoogle(string $host, int $feedId): ?string
     {
         try {
-            $url = 'https://www.google.com/s2/favicons?domain=' . urlencode($host) . '&sz=64';
+            $url = 'https://www.google.com/s2/favicons?domain='.urlencode($host).'&sz=64';
             $response = Http::timeout(5)->get($url);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 return null;
             }
 
@@ -160,12 +160,12 @@ class FaviconService
                 return null;
             }
 
-            $storagePath = 'favicons/' . $feedId . '.png';
+            $storagePath = 'favicons/'.$feedId.'.png';
             Storage::disk('public')->put($storagePath, $body);
 
-            return '/storage/' . $storagePath;
+            return '/storage/'.$storagePath;
         } catch (\Exception $e) {
-            Log::debug('Favicon Google API failed: ' . $e->getMessage());
+            Log::debug('Favicon Google API failed: '.$e->getMessage());
 
             return null;
         }
@@ -178,19 +178,19 @@ class FaviconService
                 ->withUserAgent('RReader/1.0')
                 ->get($iconUrl);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 return null;
             }
 
             $contentType = (string) $response->header('Content-Type');
             $ext = $this->extensionFromContentType($contentType, $iconUrl);
 
-            $storagePath = 'favicons/' . $feedId . '.' . $ext;
+            $storagePath = 'favicons/'.$feedId.'.'.$ext;
             Storage::disk('public')->put($storagePath, $response->body());
 
-            return '/storage/' . $storagePath;
+            return '/storage/'.$storagePath;
         } catch (\Exception $e) {
-            Log::debug('Favicon download failed: ' . $e->getMessage());
+            Log::debug('Favicon download failed: '.$e->getMessage());
 
             return null;
         }
@@ -206,8 +206,7 @@ class FaviconService
             str_contains($contentType, 'gif') => 'gif',
             str_contains($contentType, 'jpeg'), str_contains($contentType, 'jpg') => 'jpg',
             str_contains($contentType, 'webp') => 'webp',
-            str_contains($contentType, 'icon') || str_contains($contentType, 'x-icon')
-                => 'ico',
+            str_contains($contentType, 'icon') || str_contains($contentType, 'x-icon') => 'ico',
             default => pathinfo(parse_url($url, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION) ?:
             'ico',
         };
