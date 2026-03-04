@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ArticleResource;
 use App\Models\Article;
+use App\Services\ContentExtractorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -60,7 +61,7 @@ class ArticleApiController extends Controller
         } else {
             $query = $user
                 ->feedArticles()
-                ->when($feedIds !== null, fn($q) => $q->whereIn('articles.feed_id', $feedIds))
+                ->when($feedIds !== null, fn ($q) => $q->whereIn('articles.feed_id', $feedIds))
                 ->withUserState($user->id)
                 ->select($this->listSelect());
 
@@ -70,7 +71,7 @@ class ArticleApiController extends Controller
 
             $hideRead = $user->settings['hide_read_articles'] ?? false;
             $showAll = $request->boolean('show_all');
-            if ($hideRead && !$showAll) {
+            if ($hideRead && ! $showAll) {
                 $query->whereNull('user_articles.read_at');
             }
 
@@ -149,14 +150,14 @@ class ArticleApiController extends Controller
 
         $articleIds = $user
             ->feedArticles()
-            ->when($feedIds !== null, fn($q) => $q->whereIn('articles.feed_id', $feedIds))
+            ->when($feedIds !== null, fn ($q) => $q->whereIn('articles.feed_id', $feedIds))
             ->when(
                 $filter === 'today',
-                fn($q) => $q->whereDate('articles.published_at', today())
+                fn ($q) => $q->whereDate('articles.published_at', today())
             )
             ->pluck('articles.id');
 
-        $records = $articleIds->mapWithKeys(fn($id) => [$id => ['read_at' => now()]])->all();
+        $records = $articleIds->mapWithKeys(fn ($id) => [$id => ['read_at' => now()]])->all();
 
         $user->articles()->syncWithoutDetaching($records);
 
@@ -205,6 +206,48 @@ class ArticleApiController extends Controller
         ]);
     }
 
+    public function saveUrl(Request $request, ContentExtractorService $extractor)
+    {
+        $request->validate(['url' => 'required|url']);
+
+        $user = $request->user();
+        $url = $request->input('url');
+
+        $feed = $user->feeds()->firstOrCreate(
+            ['feed_url' => 'special:imports'],
+            [
+                'title' => 'Imports',
+                'site_url' => null,
+                'description' => 'Articles saved by URL',
+                'favicon_url' => null,
+            ]
+        );
+
+        $existing = $feed->articles()->where('url', $url)->first();
+        if ($existing) {
+            $user->articles()->syncWithoutDetaching([
+                $existing->id => ['is_read_later' => true],
+            ]);
+
+            return response()->json(['article_id' => $existing->id, 'duplicate' => true]);
+        }
+
+        $extracted = $extractor->extract($url);
+
+        $article = $feed->articles()->create([
+            'guid' => $url,
+            'title' => $extracted['title'] ?? parse_url($url, PHP_URL_HOST) ?? $url,
+            'content' => $extracted['content'] ?? null,
+            'summary' => $extracted['excerpt'] ?? null,
+            'url' => $url,
+            'published_at' => now(),
+        ]);
+
+        $user->articles()->attach($article->id, ['is_read_later' => true]);
+
+        return response()->json(['article_id' => $article->id, 'duplicate' => false], 201);
+    }
+
     // Private helpers
 
     private function listSelect(): array
@@ -248,7 +291,7 @@ class ArticleApiController extends Controller
                     ->feeds()
                     ->pluck('feeds.id')
                     ->all();
-                $feedIds = !empty($catFeedIds) ? $catFeedIds : [];
+                $feedIds = ! empty($catFeedIds) ? $catFeedIds : [];
                 $filterTitle = $category->name;
             }
         }
@@ -284,7 +327,7 @@ class ArticleApiController extends Controller
         $lastArticle = $articles->last();
         $nextCursor = null;
         if ($hasMore && $lastArticle) {
-            $nextCursor = $lastArticle->$cursorField . ',' . $lastArticle->id;
+            $nextCursor = $lastArticle->$cursorField.','.$lastArticle->id;
         }
 
         return [$articles, $hasMore, $nextCursor];

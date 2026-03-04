@@ -16,7 +16,7 @@ class ContentExtractorService
     /**
      * Fetch a URL and extract article content. Falls back to Wayback Machine.
      *
-     * @return array{content: string, excerpt: string|null}|null
+     * @return array{title: string|null, content: string, excerpt: string|null}|null
      */
     public function extract(string $url): ?array
     {
@@ -103,6 +103,7 @@ class ContentExtractorService
             }
 
             return [
+                'title' => $readability->getTitle(),
                 'content' => $content,
                 'excerpt' => $readability->getExcerpt(),
             ];

@@ -17,6 +17,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/articles/{article}', [ArticleApiController::class, 'show']);
     Route::patch('/articles/{article}', [ArticleApiController::class, 'update']);
     Route::post('/articles/mark-all-read', [ArticleApiController::class, 'markAllRead']);
+    Route::post('/articles/save-url', [ArticleApiController::class, 'saveUrl']);
 
     // Sidebar
     Route::get('/sidebar', [SidebarApiController::class, 'index']);
