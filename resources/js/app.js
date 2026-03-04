@@ -32,13 +32,15 @@ window.__swReady.then(sw => {
 })
 
 // Check reading state before mounting Inertia to restore article position
-async function boot() {
+const READING_STATE_KEY = 'rreader-reading-state'
+
+async function getReadingState() {
+    // Try SW first (works offline in PWA)
     try {
         const sw = await Promise.race([
             window.__swReady,
             new Promise(resolve => setTimeout(() => resolve(null), 800)),
         ])
-
         if (sw) {
             const state = await new Promise(resolve => {
                 const channel = new MessageChannel()
@@ -46,17 +48,29 @@ async function boot() {
                 sw.postMessage({ type: 'get-reading-state' }, [channel.port2])
                 setTimeout(() => resolve(null), 400)
             })
-
-            if (
-                state?.url &&
-                state.url !== window.location.pathname + window.location.search
-            ) {
-                window.location.replace(state.url)
-                return // Don't mount Inertia — we're redirecting
-            }
+            if (state?.url) return state
         }
     } catch {
-        // SW unavailable, proceed normally
+        // SW unavailable
+    }
+    // Fallback to localStorage
+    try {
+        const raw = localStorage.getItem(READING_STATE_KEY)
+        return raw ? JSON.parse(raw) : null
+    } catch {
+        return null
+    }
+}
+
+async function boot() {
+    try {
+        const state = await getReadingState()
+        if (state?.url && state.url !== window.location.pathname + window.location.search) {
+            window.location.replace(state.url)
+            return
+        }
+    } catch {
+        // proceed normally
     }
 
     createInertiaApp({

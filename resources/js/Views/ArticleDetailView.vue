@@ -45,13 +45,21 @@ onUnmounted(() => {
 })
 
 // --- Reading state persistence (restore article on app reopen) ---
+const READING_STATE_KEY = 'rreader-reading-state'
+
 function saveReadingState(url) {
+    try {
+        localStorage.setItem(READING_STATE_KEY, JSON.stringify({ url }))
+    } catch {}
     window.__swReady?.then(sw => {
         if (sw) sw.postMessage({ type: 'save-reading-state', state: { url } })
     })
 }
 
 function clearReadingState() {
+    try {
+        localStorage.removeItem(READING_STATE_KEY)
+    } catch {}
     window.__swReady?.then(sw => {
         if (sw) sw.postMessage({ type: 'clear-reading-state' })
     })
