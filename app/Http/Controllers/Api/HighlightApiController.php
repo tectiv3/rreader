@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Highlight;
+use App\Models\Feed;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class HighlightApiController extends Controller
 {
@@ -14,15 +15,23 @@ class HighlightApiController extends Controller
             ->highlights()
             ->with('article:id,title,url,feed_id', 'article.feed:id,title,favicon_url')
             ->orderByDesc('created_at')
-            ->paginate(50);
+            ->get();
 
         return response()->json($highlights);
     }
 
     public function store(Request $request)
     {
+        $userId = $request->user()->id;
         $validated = $request->validate([
-            'article_id' => 'required|integer|exists:articles,id',
+            'article_id' => [
+                'required',
+                'integer',
+                Rule::exists('articles', 'id')->whereIn(
+                    'feed_id',
+                    Feed::where('user_id', $userId)->select('id')
+                ),
+            ],
             'text' => 'required|string|max:5000',
             'note' => 'nullable|string|max:1000',
         ]);
@@ -32,12 +41,9 @@ class HighlightApiController extends Controller
         return response()->json($highlight, 201);
     }
 
-    public function destroy(Request $request, Highlight $highlight)
+    public function destroy(Request $request, int $id)
     {
-        if ($highlight->user_id !== $request->user()->id) {
-            abort(403);
-        }
-
+        $highlight = $request->user()->highlights()->findOrFail($id);
         $highlight->delete();
 
         return response()->json(null, 204);

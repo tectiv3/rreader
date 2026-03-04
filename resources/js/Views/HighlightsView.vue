@@ -15,7 +15,7 @@ async function fetchHighlights() {
     loading.value = true
     try {
         const response = await axios.get('/api/highlights')
-        highlights.value = response.data.data || []
+        highlights.value = response.data || []
     } catch {
         error('Failed to load highlights')
     } finally {
@@ -74,7 +74,11 @@ function formatDate(dateString) {
 }
 
 function goBack() {
-    router.back()
+    if (window.history.length > 1) {
+        router.back()
+    } else {
+        router.push({ name: 'articles.index' })
+    }
 }
 
 function openArticle(articleId) {

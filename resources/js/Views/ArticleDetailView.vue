@@ -255,6 +255,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+    clearTimeout(selectionTimer)
     document.removeEventListener('click', closeMenu)
     document.removeEventListener('keydown', onKeydown)
     document.removeEventListener('selectionchange', onSelectionChange)
@@ -598,44 +599,47 @@ function resetTransform() {
 const showQuotePopup = ref(false)
 const quotePopupPos = ref({ top: 0, left: 0 })
 const selectedText = ref('')
+let selectionTimer = null
 
 function onSelectionChange() {
-    const selection = window.getSelection()
-    if (!selection || selection.isCollapsed || !selection.toString().trim()) {
-        showQuotePopup.value = false
-        return
-    }
+    clearTimeout(selectionTimer)
+    selectionTimer = setTimeout(() => {
+        const selection = window.getSelection()
+        if (!selection || selection.isCollapsed || !selection.toString().trim()) {
+            showQuotePopup.value = false
+            return
+        }
 
-    const contentEl = document.querySelector('.article-content')
-    if (!contentEl) return
-    const range = selection.getRangeAt(0)
-    if (!contentEl.contains(range.commonAncestorContainer)) {
-        showQuotePopup.value = false
-        return
-    }
+        const contentEl = document.querySelector('.article-content')
+        if (!contentEl) return
+        const range = selection.getRangeAt(0)
+        if (!contentEl.contains(range.commonAncestorContainer)) {
+            showQuotePopup.value = false
+            return
+        }
 
-    selectedText.value = selection.toString().trim()
-    const rect = range.getBoundingClientRect()
-    quotePopupPos.value = {
-        top: rect.top + window.scrollY - 44,
-        left: rect.left + rect.width / 2,
-    }
-    showQuotePopup.value = true
+        selectedText.value = selection.toString().trim()
+        const rect = range.getBoundingClientRect()
+        quotePopupPos.value = {
+            top: rect.top - 44,
+            left: rect.left + rect.width / 2,
+        }
+        showQuotePopup.value = true
+    }, 100)
 }
 
 async function saveQuote() {
     if (!selectedText.value || !article.value) return
+    const text = selectedText.value
+    const articleId = article.value.id
+    showQuotePopup.value = false
+    window.getSelection()?.removeAllRanges()
     try {
-        await axios.post('/api/highlights', {
-            article_id: article.value.id,
-            text: selectedText.value,
-        })
+        await axios.post('/api/highlights', { article_id: articleId, text })
         success('Quote saved')
     } catch {
         error('Failed to save quote')
     }
-    showQuotePopup.value = false
-    window.getSelection()?.removeAllRanges()
 }
 
 function navigateToFeed(feedId) {
