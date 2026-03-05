@@ -15,8 +15,6 @@ const { success, error } = useToast()
 const article = ref(null)
 const loading = ref(true)
 const isReadLater = ref(false)
-const showMenu = ref(false)
-const menuRef = ref(null)
 const articleEl = ref(null)
 const navigating = ref(false)
 
@@ -186,14 +184,12 @@ function toggleReadLater() {
 
 function markAsUnread() {
     if (!article.value) return
-    showMenu.value = false
     articleStore.markUnread(article.value.id)
     success('Marked as unread')
 }
 
 function openInBrowser() {
     if (article.value?.url) {
-        showMenu.value = false
         try {
             const url = new URL(article.value.url)
             if (url.protocol === 'http:' || url.protocol === 'https:') {
@@ -221,16 +217,6 @@ function shareArticle() {
                 success('Link copied to clipboard')
             })
             .catch(() => {})
-    }
-}
-
-function toggleMenu() {
-    showMenu.value = !showMenu.value
-}
-
-function closeMenu(e) {
-    if (menuRef.value && !menuRef.value.contains(e.target)) {
-        showMenu.value = false
     }
 }
 
@@ -270,7 +256,6 @@ function applySlideInAnimation() {
 }
 
 onMounted(() => {
-    document.addEventListener('click', closeMenu)
     document.addEventListener('keydown', onKeydown)
     document.addEventListener('selectionchange', onSelectionChange)
 
@@ -279,7 +264,6 @@ onMounted(() => {
 
 onUnmounted(() => {
     clearTimeout(selectionTimer)
-    document.removeEventListener('click', closeMenu)
     document.removeEventListener('keydown', onKeydown)
     document.removeEventListener('selectionchange', onSelectionChange)
     touchState = 'idle'
@@ -782,9 +766,9 @@ function navigateToFeed(feedId) {
 
                         <button
                             v-if="article"
-                            @click="shareArticle"
+                            @click="markAsUnread()"
                             class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer"
-                            aria-label="Share article">
+                            aria-label="Mark as unread">
                             <svg
                                 class="h-5 w-5"
                                 fill="none"
@@ -794,66 +778,46 @@ function navigateToFeed(feedId) {
                                 <path
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
-                                    d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+                                    d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V18" />
                             </svg>
                         </button>
 
-                        <div v-if="article" ref="menuRef" class="relative">
-                            <button
-                                @click="toggleMenu"
-                                class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer"
-                                aria-label="More actions">
-                                <svg
-                                    class="h-5 w-5"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke-width="1.5"
-                                    stroke="currentColor">
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-                                </svg>
-                            </button>
+                        <button
+                            v-if="article?.url"
+                            @click="openInBrowser()"
+                            class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer"
+                            aria-label="Open in browser">
+                            <svg
+                                class="h-5 w-5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                            </svg>
+                        </button>
 
-                            <div
-                                v-if="showMenu"
-                                class="absolute right-0 top-full mt-1 w-48 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 shadow-lg py-1 z-50">
-                                <button
-                                    @click="markAsUnread()"
-                                    class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors cursor-pointer">
-                                    <svg
-                                        class="h-4 w-4"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke-width="1.5"
-                                        stroke="currentColor">
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V18" />
-                                    </svg>
-                                    Mark as unread
-                                </button>
-                                <button
-                                    v-if="article.url"
-                                    @click="openInBrowser()"
-                                    class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors cursor-pointer">
-                                    <svg
-                                        class="h-4 w-4"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke-width="1.5"
-                                        stroke="currentColor">
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                                    </svg>
-                                    Open in browser
-                                </button>
-                            </div>
-                        </div>
+                        <button
+                            v-if="article"
+                            @click="shareArticle"
+                            class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer"
+                            aria-label="Share article">
+                            <!-- iOS-style share icon (square with up arrow) -->
+                            <svg
+                                class="h-5 w-5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15M9 12l3-3m0 0l3 3m-3-3v12" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </header>

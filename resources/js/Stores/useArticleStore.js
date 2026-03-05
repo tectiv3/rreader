@@ -245,7 +245,7 @@ export const useArticleStore = defineStore('articles', () => {
                     const res = await axios.get(`/api/articles/${id}`)
                     const content = res.data
                     contentCache.value.set(id, content)
-                    swCachePut(id, content)
+                    await swCachePut(id, content)
                     evictContentCache()
                     return content
                 }
