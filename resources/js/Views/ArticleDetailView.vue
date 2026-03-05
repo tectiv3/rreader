@@ -806,7 +806,7 @@ function navigateToFeed(feedId) {
                             class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer"
                             aria-label="Share article">
                             <svg
-                                class="h-[18px] w-[18px]"
+                                class="h-5 w-5"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke-width="1.5"
