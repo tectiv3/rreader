@@ -308,6 +308,20 @@ function markAsUnreadInline() {
     success('Marked as unread')
 }
 
+function shareInlineArticle() {
+    if (!selectedArticle.value) return
+    if (navigator.share) {
+        navigator
+            .share({ title: selectedArticle.value.title, url: selectedArticle.value.url })
+            .catch(() => {})
+    } else if (selectedArticle.value.url) {
+        navigator.clipboard
+            .writeText(selectedArticle.value.url)
+            .then(() => success('Link copied to clipboard'))
+            .catch(() => {})
+    }
+}
+
 const showHeroImage = computed(() => {
     if (!selectedArticle.value?.image_url) return false
     const content = selectedArticle.value.content || selectedArticle.value.summary || ''
@@ -936,6 +950,23 @@ function getSwipeDirection(articleId) {
                                                     d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                                             </svg>
                                         </a>
+                                        <button
+                                            v-if="selectedArticle"
+                                            @click.stop="shareInlineArticle"
+                                            class="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors cursor-pointer"
+                                            title="Share article">
+                                            <svg
+                                                class="h-[18px] w-[18px]"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke-width="1.5"
+                                                stroke="currentColor">
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    d="M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25H15m0-3-3-3m0 0-3 3m3-3V15" />
+                                            </svg>
+                                        </button>
                                         <button
                                             @click.stop="closeArticlePanel"
                                             class="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors cursor-pointer"
