@@ -41,6 +41,17 @@ if (shareUrl) {
 articleStore.fetchArticles(deriveView()).then(async () => {
     const restoreId = Number(route.query.article)
     if (restoreId && isDesktop.value) {
+        // If article isn't in the list (e.g. already read), inject it so inline panel can render
+        if (!articleStore.articles.some(a => a.id === restoreId)) {
+            try {
+                const content = await articleStore.fetchContent(restoreId)
+                if (content && !content._offline) {
+                    articleStore.articles.unshift(content)
+                }
+            } catch {
+                // Article unavailable — skip restore
+            }
+        }
         selectedArticleId.value = restoreId
         await loadArticleInline(restoreId)
     }
