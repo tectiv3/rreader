@@ -74,11 +74,7 @@ export default defineConfig({
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
                 navigateFallback: null,
-                importScripts: [
-                    '/sw-reading-state.js',
-                    '/sw-article-cache.js',
-                    '/sw-share-target.js',
-                ],
+                importScripts: ['/sw-reading-state.js', '/sw-share-target.js'],
                 runtimeCaching: [
                     {
                         urlPattern: /^https?:\/\/fonts\.(bunny\.net|googleapis\.com)\/.*/i,

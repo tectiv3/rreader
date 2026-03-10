@@ -6,6 +6,7 @@ import { createInertiaApp } from '@inertiajs/vue3'
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers'
 import { createApp, h } from 'vue'
 import router from '@/router.js'
+import { idbCleanup } from '@/Composables/useArticleCache.js'
 const appName = import.meta.env.VITE_APP_NAME || 'RReader'
 
 // Register SW and store promise globally for composables to use
@@ -26,10 +27,7 @@ window.__swReady =
               .catch(() => null)
         : Promise.resolve(null)
 
-// Evict expired article cache entries on app open
-window.__swReady.then(sw => {
-    if (sw) sw.postMessage({ type: 'article-cache-clean' })
-})
+idbCleanup()
 
 // Check reading state before mounting Inertia to restore article position
 const READING_STATE_KEY = 'rreader-reading-state'

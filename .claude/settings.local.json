@@ -33,7 +33,8 @@
       "Bash(./vendor/bin/phpstan analyse:*)",
       "WebSearch",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:packagist.org)"
+      "WebFetch(domain:packagist.org)",
+      "Bash(git log:*)"
     ],
     "defaultMode": "acceptEdits"
   }

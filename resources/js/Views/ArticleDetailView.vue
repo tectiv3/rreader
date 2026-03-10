@@ -36,21 +36,25 @@ function checkMobile() {
 onMounted(() => {
     checkMobile()
     window.addEventListener('resize', checkMobile)
+    window.addEventListener('scroll', onArticleScroll, { passive: true })
 })
 
 onUnmounted(() => {
     window.removeEventListener('resize', checkMobile)
+    window.removeEventListener('scroll', onArticleScroll)
+    clearTimeout(scrollSaveTimer)
 })
 
 // --- Reading state persistence (restore article on app reopen) ---
 const READING_STATE_KEY = 'rreader-reading-state'
 
-function saveReadingState(url) {
+function saveReadingState(url, scrollTop = 0) {
+    const state = { url, scrollTop }
     try {
-        localStorage.setItem(READING_STATE_KEY, JSON.stringify({ url }))
+        localStorage.setItem(READING_STATE_KEY, JSON.stringify(state))
     } catch {}
     window.__swReady?.then(sw => {
-        if (sw) sw.postMessage({ type: 'save-reading-state', state: { url } })
+        if (sw) sw.postMessage({ type: 'save-reading-state', state })
     })
 }
 
@@ -96,6 +100,22 @@ async function loadArticle(id) {
         setTitle(content.title)
         articleStore.markRead(numId)
         articleStore.prefetchAdjacent(numId)
+
+        // Restore scroll position if returning to same article
+        try {
+            const raw = localStorage.getItem(READING_STATE_KEY)
+            const saved = raw ? JSON.parse(raw) : null
+            if (saved?.scrollTop && saved.url === `/articles/${numId}`) {
+                await nextTick()
+                setTimeout(() => {
+                    if (isMobile.value && scrollContainer.value) {
+                        scrollContainer.value.scrollTop = saved.scrollTop
+                    } else {
+                        window.scrollTo(0, saved.scrollTop)
+                    }
+                }, 100)
+            }
+        } catch {}
     } catch {
         clearReadingState()
         router.replace({ name: 'articles.index' })
@@ -103,6 +123,20 @@ async function loadArticle(id) {
         loading.value = false
         loadingContent.value = false
     }
+}
+
+let scrollSaveTimer = null
+
+function onArticleScroll() {
+    if (!article.value) return
+    clearTimeout(scrollSaveTimer)
+    scrollSaveTimer = setTimeout(() => {
+        const top =
+            isMobile.value && scrollContainer.value
+                ? scrollContainer.value.scrollTop
+                : window.scrollY
+        saveReadingState(`/articles/${article.value.id}`, top)
+    }, 500)
 }
 
 // Load on mount
@@ -684,6 +718,7 @@ function navigateToFeed(feedId) {
                     ? 'fixed inset-0 z-50 overflow-y-auto overscroll-none bg-white dark:bg-neutral-950'
                     : ''
             "
+            @scroll.passive="onArticleScroll"
             @touchstart.passive="onTouchStart"
             @touchmove="onTouchMove"
             @touchend="onTouchEnd">
