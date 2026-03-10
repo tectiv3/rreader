@@ -37,6 +37,14 @@ if (shareUrl) {
     openAddFeedModal('article', shareUrl)
 }
 
+// Read saved scroll position before it gets overwritten by loadArticleInline
+let savedDesktopScroll = 0
+try {
+    const raw = localStorage.getItem(READING_STATE_KEY)
+    const saved = raw ? JSON.parse(raw) : null
+    if (saved?.scrollTop) savedDesktopScroll = saved.scrollTop
+} catch {}
+
 // Fetch on mount, then restore inline article if specified, then warm cache
 articleStore.fetchArticles(deriveView()).then(async () => {
     const restoreId = Number(route.query.article)
@@ -54,6 +62,16 @@ articleStore.fetchArticles(deriveView()).then(async () => {
         }
         selectedArticleId.value = restoreId
         await loadArticleInline(restoreId)
+
+        // Restore scroll position after inline panel renders
+        if (savedDesktopScroll) {
+            await nextTick()
+            setTimeout(() => {
+                if (articleListEl.value) {
+                    articleListEl.value.scrollTop = savedDesktopScroll
+                }
+            }, 100)
+        }
     }
     articleStore.warmCache()
 })
@@ -176,16 +194,17 @@ const isDesktop = ref(typeof window !== 'undefined' && window.screen.width >= 10
 // --- Reading state persistence (desktop inline) ---
 const READING_STATE_KEY = 'rreader-reading-state'
 
-function saveReadingState(articleId) {
+function saveReadingState(articleId, scrollTop = 0) {
     // Preserve current query params (feed_id, filter, etc.) and add selected article
     const params = new URLSearchParams(window.location.search)
     params.set('article', articleId)
     const url = `/articles?${params.toString()}`
+    const state = { url, scrollTop }
     try {
-        localStorage.setItem(READING_STATE_KEY, JSON.stringify({ url }))
+        localStorage.setItem(READING_STATE_KEY, JSON.stringify(state))
     } catch {}
     window.__swReady?.then(sw => {
-        if (sw) sw.postMessage({ type: 'save-reading-state', state: { url } })
+        if (sw) sw.postMessage({ type: 'save-reading-state', state })
     })
 }
 
@@ -197,6 +216,17 @@ function clearReadingState() {
         if (sw) sw.postMessage({ type: 'clear-reading-state' })
     })
 }
+
+let scrollSaveTimer = null
+function onDesktopScroll() {
+    if (!selectedArticleId.value) return
+    clearTimeout(scrollSaveTimer)
+    scrollSaveTimer = setTimeout(() => {
+        const top = articleListEl.value?.scrollTop ?? 0
+        saveReadingState(selectedArticleId.value, top)
+    }, 500)
+}
+
 const selectedArticleId = ref(null)
 const selectedArticle = ref(null)
 const loadingArticle = ref(false)
@@ -230,6 +260,7 @@ onMounted(() => {
 
 onUnmounted(() => {
     clearTimeout(inlineSelectionTimer)
+    clearTimeout(scrollSaveTimer)
     window.removeEventListener('resize', checkDesktop)
     window.removeEventListener('keydown', onKeyDown)
     document.removeEventListener('selectionchange', onInlineSelectionChange)
@@ -801,7 +832,10 @@ function getSwipeDirection(articleId) {
         v-else-if="isDesktop"
         class="flex"
         style="height: calc(100vh - 2.75rem - env(safe-area-inset-top, 0px))">
-        <div ref="articleListEl" class="flex-1 flex flex-col overflow-y-auto pr-2">
+        <div
+            ref="articleListEl"
+            class="flex-1 flex flex-col overflow-y-auto pr-2"
+            @scroll.passive="onDesktopScroll">
             <template v-if="articleStore.articles.length > 0">
                 <template v-for="(articles, dateLabel) in groupedArticles" :key="dateLabel">
                     <div
