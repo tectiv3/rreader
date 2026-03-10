@@ -27,7 +27,7 @@ const { isDark, toggle } = useDarkMode()
                             <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                                 <NavLink
                                     :href="'/dashboard'"
-                                    :active="route().current('dashboard')">
+                                    :active="$page.url.startsWith('/dashboard')">
                                     Dashboard
                                 </NavLink>
                             </div>
@@ -137,7 +137,7 @@ const { isDark, toggle } = useDarkMode()
                     <div class="space-y-1 pb-3 pt-2">
                         <ResponsiveNavLink
                             :href="'/dashboard'"
-                            :active="route().current('dashboard')">
+                            :active="$page.url.startsWith('/dashboard')">
                             Dashboard
                         </ResponsiveNavLink>
                     </div>
