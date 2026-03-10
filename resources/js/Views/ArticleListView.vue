@@ -876,7 +876,16 @@ function getSwipeDirection(articleId) {
                                             ? 'text-neutral-600 dark:text-neutral-500 font-normal'
                                             : 'text-neutral-900 dark:text-neutral-100 font-medium'
                                     ">
-                                    {{ article.title }}
+                                    <a
+                                        v-if="selectedArticleId === article.id && article.url"
+                                        :href="article.url"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="hover:underline"
+                                        @click.stop>
+                                        {{ article.title }}
+                                    </a>
+                                    <template v-else>{{ article.title }}</template>
                                 </h3>
 
                                 <!-- Collapsed: time + dismiss -->
