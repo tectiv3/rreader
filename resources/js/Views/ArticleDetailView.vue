@@ -77,6 +77,16 @@ async function loadArticle(id) {
     if (isMobile.value && scrollContainer.value) scrollContainer.value.scrollTop = 0
     else window.scrollTo(0, 0)
 
+    // Read saved scroll position BEFORE overwriting reading state
+    let savedScrollTop = 0
+    try {
+        const raw = localStorage.getItem(READING_STATE_KEY)
+        const saved = raw ? JSON.parse(raw) : null
+        if (saved?.scrollTop && saved.url === `/articles/${numId}`) {
+            savedScrollTop = saved.scrollTop
+        }
+    } catch {}
+
     const url = `/articles/${numId}`
     saveReadingState(url)
 
@@ -101,21 +111,17 @@ async function loadArticle(id) {
         articleStore.markRead(numId)
         articleStore.prefetchAdjacent(numId)
 
-        // Restore scroll position if returning to same article
-        try {
-            const raw = localStorage.getItem(READING_STATE_KEY)
-            const saved = raw ? JSON.parse(raw) : null
-            if (saved?.scrollTop && saved.url === `/articles/${numId}`) {
-                await nextTick()
-                setTimeout(() => {
-                    if (isMobile.value && scrollContainer.value) {
-                        scrollContainer.value.scrollTop = saved.scrollTop
-                    } else {
-                        window.scrollTo(0, saved.scrollTop)
-                    }
-                }, 100)
-            }
-        } catch {}
+        // Restore scroll position if returning to same article after app restart
+        if (savedScrollTop) {
+            await nextTick()
+            setTimeout(() => {
+                if (isMobile.value && scrollContainer.value) {
+                    scrollContainer.value.scrollTop = savedScrollTop
+                } else {
+                    window.scrollTo(0, savedScrollTop)
+                }
+            }, 100)
+        }
     } catch {
         clearReadingState()
         router.replace({ name: 'articles.index' })
