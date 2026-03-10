@@ -1295,6 +1295,7 @@ function getSwipeDirection(articleId) {
 
         <!-- Scrollable area with pull-to-refresh touch handlers -->
         <div
+            class="touch-pan-y"
             @touchstart.passive="onPullStart"
             @touchmove.passive="onPullMove"
             @touchend="onPullEnd">
