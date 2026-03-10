@@ -2,48 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
 import { useSidebarStore } from '@/Stores/useSidebarStore.js'
-
-async function swCacheGet(articleId) {
-    const sw = await window.__swReady
-    if (!sw) return null
-    return new Promise(resolve => {
-        const channel = new MessageChannel()
-        const timer = setTimeout(() => resolve(null), 2000)
-        channel.port1.onmessage = e => {
-            clearTimeout(timer)
-            resolve(e.data)
-        }
-        sw.postMessage({ type: 'article-cache-get', articleId }, [channel.port2])
-    })
-}
-
-async function swCachePut(articleId, content) {
-    const sw = await window.__swReady
-    if (!sw) return
-    return new Promise(resolve => {
-        const channel = new MessageChannel()
-        const timer = setTimeout(() => resolve(false), 5000)
-        channel.port1.onmessage = () => {
-            clearTimeout(timer)
-            resolve(true)
-        }
-        sw.postMessage({ type: 'article-cache-put', articleId, content }, [channel.port2])
-    })
-}
-
-async function swCacheList() {
-    const sw = await window.__swReady
-    if (!sw) return []
-    return new Promise(resolve => {
-        const channel = new MessageChannel()
-        const timer = setTimeout(() => resolve([]), 3000)
-        channel.port1.onmessage = e => {
-            clearTimeout(timer)
-            resolve(e.data || [])
-        }
-        sw.postMessage({ type: 'article-cache-list' }, [channel.port2])
-    })
-}
+import { idbGet, idbPut, idbList, idbMarkRead } from '@/Composables/useArticleCache.js'
 
 export const useArticleStore = defineStore('articles', () => {
     // --- State ---
@@ -230,10 +189,10 @@ export const useArticleStore = defineStore('articles', () => {
             return inFlightRequests.get(id)
         }
 
-        // 3. Try SW persistent cache, then network, then list fallback
+        // 3. Try IndexedDB cache, then network, then list fallback
         const promise = (async () => {
             try {
-                const swCached = await swCacheGet(id)
+                const swCached = await idbGet(id)
                 if (swCached) {
                     contentCache.value.set(id, swCached)
                     evictContentCache()
@@ -245,7 +204,7 @@ export const useArticleStore = defineStore('articles', () => {
                     const res = await axios.get(`/api/articles/${id}`)
                     const content = res.data
                     contentCache.value.set(id, content)
-                    await swCachePut(id, content)
+                    await idbPut(id, content)
                     evictContentCache()
                     return content
                 }
@@ -276,7 +235,7 @@ export const useArticleStore = defineStore('articles', () => {
     const WARM_INMEMORY = 5
     async function warmCache() {
         const gen = ++warmGeneration
-        const cachedIds = new Set(await swCacheList())
+        const cachedIds = new Set(await idbList())
         if (gen !== warmGeneration) return
 
         const toWarm = articles.value
@@ -294,7 +253,7 @@ export const useArticleStore = defineStore('articles', () => {
                     contentCache.value.set(id, res.data)
                     evictContentCache()
                 }
-                await swCachePut(id, res.data)
+                await idbPut(id, res.data)
             } catch {
                 return
             }
@@ -319,6 +278,7 @@ export const useArticleStore = defineStore('articles', () => {
         const sidebar = useSidebarStore()
         sidebar.decrementFeedUnread(article.feed_id)
         if (_isToday(article.published_at)) sidebar.adjustTodayCount(-1)
+        idbMarkRead(id)
         axios.patch(`/api/articles/${id}`, { is_read: true }).catch(() => {
             article.is_read = false
             article.read_at = null
