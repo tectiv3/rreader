@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
 import { useSidebarStore } from '@/Stores/useSidebarStore.js'
-import { idbGet, idbPut, idbList, idbMarkRead } from '@/Composables/useArticleCache.js'
+import { idbGet, idbPut, idbList, idbMarkRead, idbUpdateMeta } from '@/Composables/useArticleCache.js'
 
 export const useArticleStore = defineStore('articles', () => {
     // --- State ---
@@ -194,6 +194,16 @@ export const useArticleStore = defineStore('articles', () => {
             try {
                 const swCached = await idbGet(id)
                 if (swCached) {
+                    // IDB caches article body but user state may be stale —
+                    // overlay fresh metadata from the list if available
+                    const listArticle = articles.value.find(a => a.id === id)
+                    if (listArticle) {
+                        swCached.is_read_later = listArticle.is_read_later
+                        swCached.is_read = listArticle.is_read
+                        if (listArticle.reading_progress != null) {
+                            swCached.reading_progress = listArticle.reading_progress
+                        }
+                    }
                     contentCache.value.set(id, swCached)
                     evictContentCache()
                     return swCached
@@ -314,11 +324,15 @@ export const useArticleStore = defineStore('articles', () => {
         if (cached) cached.is_read_later = !was
 
         const payload = { is_read_later: !was }
+        const idbFields = { is_read_later: !was }
         if (!was && currentProgress !== null) {
             payload.reading_progress = currentProgress
             article.reading_progress = currentProgress
+            idbFields.reading_progress = currentProgress
             if (cached) cached.reading_progress = currentProgress
         }
+
+        idbUpdateMeta(id, idbFields)
 
         axios.patch(`/api/articles/${id}`, payload).catch(() => {
             article.is_read_later = was
@@ -332,6 +346,7 @@ export const useArticleStore = defineStore('articles', () => {
         if (article) article.reading_progress = progress
         const cached = contentCache.value.get(id)
         if (cached) cached.reading_progress = progress
+        idbUpdateMeta(id, { reading_progress: progress })
         axios.patch(`/api/articles/${id}`, { reading_progress: progress }).catch(() => {})
     }
 

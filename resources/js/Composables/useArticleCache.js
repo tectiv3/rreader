@@ -86,6 +86,19 @@ export async function idbMarkRead(id) {
     }
 }
 
+export async function idbUpdateMeta(id, fields) {
+    try {
+        const store = await tx('readwrite')
+        const record = await reqToPromise(store.get(id))
+        if (!record?.content) return
+
+        Object.assign(record.content, fields)
+        await reqToPromise(store.put(record))
+    } catch {
+        // Silent failure
+    }
+}
+
 export async function idbList() {
     try {
         const store = await tx('readonly')
