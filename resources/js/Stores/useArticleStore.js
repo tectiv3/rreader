@@ -310,14 +310,19 @@ export const useArticleStore = defineStore('articles', () => {
         const sidebar = useSidebarStore()
         sidebar.adjustReadLaterCount(was ? -1 : 1)
 
+        const cached = contentCache.value.get(id)
+        if (cached) cached.is_read_later = !was
+
         const payload = { is_read_later: !was }
         if (!was && currentProgress !== null) {
             payload.reading_progress = currentProgress
             article.reading_progress = currentProgress
+            if (cached) cached.reading_progress = currentProgress
         }
 
         axios.patch(`/api/articles/${id}`, payload).catch(() => {
             article.is_read_later = was
+            if (cached) cached.is_read_later = was
             sidebar.adjustReadLaterCount(was ? 1 : -1)
         })
     }
@@ -325,6 +330,8 @@ export const useArticleStore = defineStore('articles', () => {
     function saveReadingProgress(id, progress) {
         const article = articles.value.find(a => a.id === id)
         if (article) article.reading_progress = progress
+        const cached = contentCache.value.get(id)
+        if (cached) cached.reading_progress = progress
         axios.patch(`/api/articles/${id}`, { reading_progress: progress }).catch(() => {})
     }
 
