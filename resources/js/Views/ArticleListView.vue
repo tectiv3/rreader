@@ -146,6 +146,8 @@ const feedCount = computed(() => {
 })
 
 // --- Date grouping ---
+const isRecentlyReadView = computed(() => activeFilter.value === 'recently_read')
+
 const groupedArticles = computed(() => {
     const groups = {}
     const today = new Date()
@@ -154,7 +156,8 @@ const groupedArticles = computed(() => {
     yesterday.setDate(yesterday.getDate() - 1)
 
     for (const article of articleStore.articles) {
-        const pubDate = new Date(article.published_at)
+        const dateField = isRecentlyReadView.value ? article.read_at : article.published_at
+        const pubDate = new Date(dateField)
         pubDate.setHours(0, 0, 0, 0)
 
         let label
