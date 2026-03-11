@@ -111,7 +111,8 @@ async function loadArticle(id) {
         articleStore.markRead(numId)
         articleStore.prefetchAdjacent(numId)
 
-        // Restore scroll position if returning to same article after app restart
+        // Restore scroll: pixel-exact for same-session (app restart), percentage for cross-session (read-later)
+        const progress = content.reading_progress
         if (savedScrollTop) {
             await nextTick()
             setTimeout(() => {
@@ -119,6 +120,18 @@ async function loadArticle(id) {
                     scrollContainer.value.scrollTop = savedScrollTop
                 } else {
                     window.scrollTo(0, savedScrollTop)
+                }
+            }, 100)
+        } else if (content.is_read_later && progress && progress > 0) {
+            await nextTick()
+            setTimeout(() => {
+                if (isMobile.value && scrollContainer.value) {
+                    const max =
+                        scrollContainer.value.scrollHeight - scrollContainer.value.clientHeight
+                    scrollContainer.value.scrollTop = Math.round((progress / 100) * max)
+                } else {
+                    const max = document.documentElement.scrollHeight - window.innerHeight
+                    window.scrollTo(0, Math.round((progress / 100) * max))
                 }
             }, 100)
         }
@@ -133,6 +146,22 @@ async function loadArticle(id) {
 
 let scrollSaveTimer = null
 
+function computeReadingProgress() {
+    let scrollTop, scrollHeight, clientHeight
+    if (isMobile.value && scrollContainer.value) {
+        scrollTop = scrollContainer.value.scrollTop
+        scrollHeight = scrollContainer.value.scrollHeight
+        clientHeight = scrollContainer.value.clientHeight
+    } else {
+        scrollTop = window.scrollY
+        scrollHeight = document.documentElement.scrollHeight
+        clientHeight = window.innerHeight
+    }
+    const maxScroll = scrollHeight - clientHeight
+    if (maxScroll <= 0) return 0
+    return Math.min(100, Math.round((scrollTop / maxScroll) * 100))
+}
+
 function onArticleScroll() {
     if (!article.value) return
     clearTimeout(scrollSaveTimer)
@@ -142,6 +171,10 @@ function onArticleScroll() {
                 ? scrollContainer.value.scrollTop
                 : window.scrollY
         saveReadingState(`/articles/${article.value.id}`, top)
+
+        if (isReadLater.value) {
+            articleStore.saveReadingProgress(article.value.id, computeReadingProgress())
+        }
     }, 500)
 }
 
@@ -217,7 +250,7 @@ function goBack() {
 
 function toggleReadLater() {
     if (!article.value) return
-    articleStore.toggleReadLater(article.value.id)
+    articleStore.toggleReadLater(article.value.id, computeReadingProgress())
     isReadLater.value = !isReadLater.value
     success(isReadLater.value ? 'Article saved' : 'Removed from Read Later')
 }

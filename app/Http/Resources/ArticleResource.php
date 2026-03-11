@@ -31,6 +31,7 @@ class ArticleResource extends JsonResource
             'is_read' => (bool) ($article->is_read ?? false),
             'is_read_later' => (bool) ($article->is_read_later ?? false),
             'read_at' => $article->read_at,
+            'reading_progress' => $article->reading_progress !== null ? (int) $article->reading_progress : null,
             'feed_title' => $article->feed_title ?? $article->feed?->title,
             'feed_favicon_url' => $article->feed_favicon_url ?? $article->feed?->favicon_url,
         ];

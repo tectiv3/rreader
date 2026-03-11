@@ -302,17 +302,30 @@ export const useArticleStore = defineStore('articles', () => {
         })
     }
 
-    function toggleReadLater(id) {
+    function toggleReadLater(id, currentProgress = null) {
         const article = articles.value.find(a => a.id === id)
         if (!article) return
         const was = article.is_read_later
         article.is_read_later = !was
         const sidebar = useSidebarStore()
         sidebar.adjustReadLaterCount(was ? -1 : 1)
-        axios.patch(`/api/articles/${id}`, { is_read_later: !was }).catch(() => {
+
+        const payload = { is_read_later: !was }
+        if (!was && currentProgress !== null) {
+            payload.reading_progress = currentProgress
+            article.reading_progress = currentProgress
+        }
+
+        axios.patch(`/api/articles/${id}`, payload).catch(() => {
             article.is_read_later = was
             sidebar.adjustReadLaterCount(was ? 1 : -1)
         })
+    }
+
+    function saveReadingProgress(id, progress) {
+        const article = articles.value.find(a => a.id === id)
+        if (article) article.reading_progress = progress
+        axios.patch(`/api/articles/${id}`, { reading_progress: progress }).catch(() => {})
     }
 
     function markAllRead(feedId = null) {
@@ -411,6 +424,7 @@ export const useArticleStore = defineStore('articles', () => {
         markRead,
         markUnread,
         toggleReadLater,
+        saveReadingProgress,
         markAllRead,
         dismissArticle,
         forceRefresh,

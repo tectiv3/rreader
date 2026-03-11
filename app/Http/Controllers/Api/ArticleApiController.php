@@ -111,6 +111,7 @@ class ArticleApiController extends Controller
             ->where('article_id', $article->id)
             ->first();
         $article->is_read_later = (bool) $userArticle?->pivot?->is_read_later;
+        $article->reading_progress = $userArticle?->pivot?->reading_progress;
 
         return response()->json((new ArticleResource($article))->asDetail());
     }
@@ -122,6 +123,7 @@ class ArticleApiController extends Controller
         $data = $request->validate([
             'is_read' => 'sometimes|boolean',
             'is_read_later' => 'sometimes|boolean',
+            'reading_progress' => 'sometimes|integer|min:0|max:100',
         ]);
 
         $pivot = [];
@@ -130,6 +132,9 @@ class ArticleApiController extends Controller
         }
         if (array_key_exists('is_read_later', $data)) {
             $pivot['is_read_later'] = $data['is_read_later'];
+        }
+        if (array_key_exists('reading_progress', $data)) {
+            $pivot['reading_progress'] = $data['reading_progress'];
         }
 
         $user->articles()->syncWithoutDetaching([$article->id => $pivot]);
@@ -283,6 +288,7 @@ class ArticleApiController extends Controller
             ),
             DB::raw('COALESCE(user_articles.is_read_later, 0) as is_read_later'),
             'user_articles.read_at',
+            'user_articles.reading_progress',
         ];
     }
 

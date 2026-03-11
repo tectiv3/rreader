@@ -34,7 +34,9 @@
       "WebSearch",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:packagist.org)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Skill(go)",
+      "Bash(php artisan:*)"
     ],
     "defaultMode": "acceptEdits"
   }

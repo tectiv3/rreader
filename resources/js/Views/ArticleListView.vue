@@ -160,12 +160,11 @@ const groupedArticles = computed(() => {
         let label
         if (pubDate.getTime() === today.getTime()) label = 'Today'
         else if (pubDate.getTime() === yesterday.getTime()) label = 'Yesterday'
-        else
-            label = pubDate.toLocaleDateString('en-US', {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric',
-            })
+        else {
+            const opts = { weekday: 'short', month: 'short', day: 'numeric' }
+            if (pubDate.getFullYear() !== today.getFullYear()) opts.year = 'numeric'
+            label = pubDate.toLocaleDateString('en-US', opts)
+        }
 
         if (!groups[label]) groups[label] = []
         groups[label].push(article)
@@ -218,12 +217,34 @@ function clearReadingState() {
 }
 
 let scrollSaveTimer = null
+
+function computeInlineReadingProgress() {
+    if (!selectedArticleId.value) return 0
+    const articleEl = document.getElementById(`article-expanded-${selectedArticleId.value}`)
+    const container = articleListEl.value
+    if (!articleEl || !container) return 0
+    // How far through the expanded article the viewport has scrolled
+    const articleTop = articleEl.offsetTop
+    const articleHeight = articleEl.offsetHeight
+    const scrollableArticle = articleHeight - container.clientHeight
+    if (scrollableArticle <= 0) return 0
+    const offset = container.scrollTop - articleTop
+    return Math.min(100, Math.max(0, Math.round((offset / scrollableArticle) * 100)))
+}
+
 function onDesktopScroll() {
     if (!selectedArticleId.value) return
     clearTimeout(scrollSaveTimer)
     scrollSaveTimer = setTimeout(() => {
         const top = articleListEl.value?.scrollTop ?? 0
         saveReadingState(selectedArticleId.value, top)
+
+        if (selectedIsReadLater.value) {
+            articleStore.saveReadingProgress(
+                selectedArticleId.value,
+                computeInlineReadingProgress()
+            )
+        }
     }, 500)
 }
 
@@ -300,6 +321,7 @@ async function loadArticleInline(articleId) {
         loadingArticle.value = false
         await nextTick()
         scrollExpandedIntoView(articleId)
+        restoreReadingProgress(cached)
         articleStore.prefetchAdjacent(articleId)
         return
     }
@@ -311,12 +333,28 @@ async function loadArticleInline(articleId) {
         selectedIsReadLater.value = content.is_read_later || false
         await nextTick()
         scrollExpandedIntoView(articleId)
+        restoreReadingProgress(content)
         articleStore.prefetchAdjacent(articleId)
     } catch {
         router.push({ name: 'articles.show', params: { id: articleId } })
     } finally {
         loadingArticle.value = false
     }
+}
+
+function restoreReadingProgress(content) {
+    const progress = content.reading_progress
+    if (!content.is_read_later || !progress || progress <= 0) return
+    // Delay to let scrollExpandedIntoView finish, then position within the article
+    setTimeout(() => {
+        const articleEl = document.getElementById(`article-expanded-${content.id}`)
+        const container = articleListEl.value
+        if (!articleEl || !container) return
+        const articleTop = articleEl.offsetTop
+        const scrollableArticle = articleEl.offsetHeight - container.clientHeight
+        if (scrollableArticle <= 0) return
+        container.scrollTop = articleTop + Math.round((progress / 100) * scrollableArticle)
+    }, 600)
 }
 
 function scrollExpandedIntoView(articleId) {
@@ -339,7 +377,7 @@ function navigateToFeed(feedId) {
 // --- Desktop inline actions ---
 function toggleReadLaterInline() {
     if (!selectedArticle.value) return
-    articleStore.toggleReadLater(selectedArticle.value.id)
+    articleStore.toggleReadLater(selectedArticle.value.id, computeInlineReadingProgress())
     selectedIsReadLater.value = !selectedIsReadLater.value
     success(selectedIsReadLater.value ? 'Article saved' : 'Removed from Read Later')
 }
