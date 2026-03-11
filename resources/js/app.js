@@ -27,6 +27,16 @@ window.__swReady =
               .catch(() => null)
         : Promise.resolve(null)
 
+// Reload when a new SW takes control (deploy detected)
+if ('serviceWorker' in navigator) {
+    let refreshing = false
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return
+        refreshing = true
+        window.location.reload()
+    })
+}
+
 idbCleanup()
 
 // Check reading state before mounting Inertia to restore article position
