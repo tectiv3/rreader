@@ -326,6 +326,7 @@ async function loadArticleInline(articleId) {
         scrollExpandedIntoView(articleId)
         restoreReadingProgress(cached)
         articleStore.prefetchAdjacent(articleId)
+        articleListEl.value?.focus({ preventScroll: true })
         return
     }
 
@@ -342,6 +343,7 @@ async function loadArticleInline(articleId) {
         router.push({ name: 'articles.show', params: { id: articleId } })
     } finally {
         loadingArticle.value = false
+        articleListEl.value?.focus({ preventScroll: true })
     }
 }
 
@@ -875,7 +877,8 @@ function getSwipeDirection(articleId) {
         style="height: calc(100vh - 2.75rem - env(safe-area-inset-top, 0px))">
         <div
             ref="articleListEl"
-            class="flex-1 flex flex-col overflow-y-auto pr-2"
+            tabindex="-1"
+            class="flex-1 flex flex-col overflow-y-auto pr-2 outline-none"
             @scroll.passive="onDesktopScroll">
             <template v-if="articleStore.articles.length > 0">
                 <template v-for="(articles, dateLabel) in groupedArticles" :key="dateLabel">
