@@ -7,9 +7,21 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Carbon;
 
 /**
+ * @property int $id
+ * @property int $feed_id
+ * @property string $guid
+ * @property string $title
+ * @property string|null $author
+ * @property string|null $content
+ * @property string|null $summary
+ * @property string $url
+ * @property string|null $image_url
+ * @property Carbon|null $published_at
  * @property bool $is_read_later
+ * @property float|null $reading_progress
  */
 class Article extends Model
 {

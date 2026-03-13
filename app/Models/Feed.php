@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
@@ -16,11 +17,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $site_url
  * @property string|null $description
  * @property string|null $favicon_url
- * @property \Illuminate\Support\Carbon|null $last_fetched_at
+ * @property Carbon|null $last_fetched_at
  * @property int $consecutive_failures
  * @property string|null $last_error
- * @property \Illuminate\Support\Carbon|null $last_failed_at
- * @property \Illuminate\Support\Carbon|null $disabled_at
+ * @property Carbon|null $last_failed_at
+ * @property Carbon|null $disabled_at
  */
 class Feed extends Model
 {

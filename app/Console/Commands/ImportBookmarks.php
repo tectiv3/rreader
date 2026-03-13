@@ -70,7 +70,7 @@ class ImportBookmarks extends Command
         $noContent = 0;
 
         foreach ($bookmarks as $i => $bookmark) {
-            $num = str_pad($i + 1, strlen((string) $count), ' ', STR_PAD_LEFT);
+            $num = str_pad((string) ($i + 1), strlen((string) $count), ' ', STR_PAD_LEFT);
             $originalUrl = $bookmark['url'];
             $title = mb_strimwidth($bookmark['title'], 0, 60, '...');
 

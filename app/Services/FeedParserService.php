@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Laminas\Feed\Reader\Reader as FeedReader;
 
@@ -14,7 +15,7 @@ class FeedParserService
      * @return array{feed_url: string, site_url: string|null, title: string|null, description: string|null, favicon_url: string|null, articles: array}
      *
      * @throws \RuntimeException
-     * @throws \Illuminate\Http\Client\ConnectionException
+     * @throws ConnectionException
      */
     public function discoverAndParse(string $url): array
     {

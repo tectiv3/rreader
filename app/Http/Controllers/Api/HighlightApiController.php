@@ -29,7 +29,7 @@ class HighlightApiController extends Controller
                 'integer',
                 Rule::exists('articles', 'id')->whereIn(
                     'feed_id',
-                    Feed::where('user_id', $userId)->select('id')
+                    Feed::where('user_id', $userId)->pluck('id')
                 ),
             ],
             'text' => 'required|string|max:5000',

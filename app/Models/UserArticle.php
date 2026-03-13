@@ -4,12 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * @property int $user_id
  * @property int $article_id
  * @property bool $is_read_later
- * @property \Illuminate\Support\Carbon|null $read_at
+ * @property Carbon|null $read_at
  */
 class UserArticle extends Model
 {

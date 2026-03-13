@@ -25,6 +25,7 @@ class BookmarkParserService
         $bookmarks = [];
 
         foreach ($links as $link) {
+            /** @var \DOMElement $link */
             $url = trim($link->getAttribute('href'));
             $addDate = (int) $link->getAttribute('add_date');
             $title = trim(preg_replace('/\s+/', ' ', $link->textContent));
