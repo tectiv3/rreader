@@ -103,6 +103,7 @@ async function loadArticle(id) {
         loading.value = true
     }
 
+    articleStore.cancelWarmCache()
     try {
         const content = await articleStore.fetchContent(numId)
         article.value = content

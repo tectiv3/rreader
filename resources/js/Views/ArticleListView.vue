@@ -8,7 +8,7 @@ import { useToast } from '@/Composables/useToast.js'
 import { useAddFeedModal } from '@/Composables/useAddFeedModal.js'
 import { useRouter, useRoute } from 'vue-router'
 import { setTitle } from '@/router.js'
-import { ref, computed, onMounted, onUnmounted, watch, nextTick, inject } from 'vue'
+import { ref, computed, onMounted, onUnmounted, onActivated, watch, nextTick, inject } from 'vue'
 
 defineOptions({ name: 'ArticleListView' })
 
@@ -255,6 +255,7 @@ const selectedArticleId = ref(null)
 const selectedArticle = ref(null)
 const loadingArticle = ref(false)
 const selectedIsReadLater = ref(false)
+const navigatingArticleId = ref(null)
 const articleListEl = ref(null)
 const loadMoreSentinel = ref(null)
 
@@ -291,6 +292,10 @@ onUnmounted(() => {
     loadMoreObserver?.disconnect()
 })
 
+onActivated(() => {
+    navigatingArticleId.value = null
+})
+
 watch(loadMoreSentinel, el => {
     loadMoreObserver?.disconnect()
     if (el) loadMoreObserver?.observe(el)
@@ -310,6 +315,8 @@ function openArticle(article) {
         selectedArticleId.value = article.id
         loadArticleInline(article.id)
     } else {
+        navigatingArticleId.value = article.id
+        articleStore.cancelWarmCache()
         router.push({ name: 'articles.show', params: { id: article.id } })
     }
 }
@@ -330,7 +337,10 @@ async function loadArticleInline(articleId) {
         return
     }
 
+    // Clear previous article so loading spinner shows
+    selectedArticle.value = null
     loadingArticle.value = true
+    articleStore.cancelWarmCache()
     try {
         const content = await articleStore.fetchContent(articleId)
         selectedArticle.value = content
@@ -785,7 +795,7 @@ function getSwipeDirection(articleId) {
                     </svg>
                 </button>
                 <button
-                    v-if="articleStore.unreadCount > 0"
+                    v-if="isSingleFeedView && articleStore.unreadCount > 0"
                     @click="markAllAsRead"
                     :disabled="markingAllRead"
                     class="rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer"
@@ -1602,6 +1612,23 @@ function getSwipeDirection(articleId) {
                                     class="h-16 w-16 shrink-0 rounded-lg object-cover"
                                     :alt="article.title"
                                     loading="lazy" />
+                                <svg
+                                    v-if="navigatingArticleId === article.id"
+                                    class="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 animate-spin text-neutral-400"
+                                    fill="none"
+                                    viewBox="0 0 24 24">
+                                    <circle
+                                        class="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        stroke="currentColor"
+                                        stroke-width="4" />
+                                    <path
+                                        class="opacity-75"
+                                        fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                </svg>
                             </button>
                         </div>
                     </div>

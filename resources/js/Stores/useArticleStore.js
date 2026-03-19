@@ -2,7 +2,13 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
 import { useSidebarStore } from '@/Stores/useSidebarStore.js'
-import { idbGet, idbPut, idbList, idbMarkRead, idbUpdateMeta } from '@/Composables/useArticleCache.js'
+import {
+    idbGet,
+    idbPut,
+    idbList,
+    idbMarkRead,
+    idbUpdateMeta,
+} from '@/Composables/useArticleCache.js'
 
 export const useArticleStore = defineStore('articles', () => {
     // --- State ---
@@ -241,6 +247,10 @@ export const useArticleStore = defineStore('articles', () => {
         if (prev) fetchContent(prev).catch(() => {})
     }
 
+    function cancelWarmCache() {
+        warmGeneration++
+    }
+
     // Warm caches: first few go to in-memory (instant tap), rest to SW only (offline)
     const WARM_INMEMORY = 5
     async function warmCache() {
@@ -443,6 +453,7 @@ export const useArticleStore = defineStore('articles', () => {
         fetchContent,
         prefetchAdjacent,
         warmCache,
+        cancelWarmCache,
         markRead,
         markUnread,
         toggleReadLater,
