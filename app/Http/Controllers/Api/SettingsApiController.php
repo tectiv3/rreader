@@ -18,14 +18,8 @@ final class SettingsApiController extends Controller
         'article_view' => 'full',
         'font_size' => 'medium',
         'hide_read_articles' => false,
-        'hide_read_articles' => false,
-        'hide_read_articles' => false,
-        'mark_read_on_scroll' => false,
         'mark_read_on_scroll' => false,
         'refresh_interval' => 30,
-        'refresh_interval' => 30,
-        'refresh_interval' => 30,
-        'hide_read_articles' => false,
     ];
 
     public function index(Request $request): JsonResponse
@@ -70,7 +64,7 @@ final class SettingsApiController extends Controller
                 'string',
                 'email',
                 'max:255',
-                'unique:users,email,' . $request->user()->id,
+                'unique:users,email,'.$request->user()->id,
             ],
         ]);
 
