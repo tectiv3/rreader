@@ -17,8 +17,14 @@ final class SettingsApiController extends Controller
         'theme' => 'dark',
         'article_view' => 'full',
         'font_size' => 'medium',
-        'refresh_interval' => 30,
+        'hide_read_articles' => false,
+        'hide_read_articles' => false,
+        'hide_read_articles' => false,
         'mark_read_on_scroll' => false,
+        'mark_read_on_scroll' => false,
+        'refresh_interval' => 30,
+        'refresh_interval' => 30,
+        'refresh_interval' => 30,
         'hide_read_articles' => false,
     ];
 
@@ -59,7 +65,13 @@ final class SettingsApiController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,'.$request->user()->id],
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                'unique:users,email,' . $request->user()->id,
+            ],
         ]);
 
         $user = $request->user();

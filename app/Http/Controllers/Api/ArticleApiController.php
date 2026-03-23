@@ -8,6 +8,7 @@ use App\Models\Article;
 use App\Services\ContentExtractorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ArticleApiController extends Controller
 {
@@ -248,15 +249,39 @@ class ArticleApiController extends Controller
         );
 
         $existing = $feed->articles()->where('guid', $url)->first();
-        if ($existing) {
+        if ($existing && $existing->content !== null) {
             $user->articles()->syncWithoutDetaching([
                 $existing->id => ['is_read_later' => true],
             ]);
+
+            Log::info('Article save-url: duplicate found', ['url' => $url, 'article_id' => $existing->id, 'user_id' => $user->id]);
 
             return response()->json(['article_id' => $existing->id, 'duplicate' => true]);
         }
 
         $extracted = $extractor->extract($url);
+
+        if ($extracted === null) {
+            Log::warning('Article save-url: extraction returned nothing', ['url' => $url, 'user_id' => $user->id]);
+        }
+
+        if ($existing) {
+            Log::info('Article save-url: re-extracting content for empty duplicate', ['url' => $url, 'article_id' => $existing->id, 'user_id' => $user->id]);
+
+            $existing->update([
+                'title' => $extracted['title'] ?? $existing->title,
+                'content' => $extracted['content'] ?? null,
+                'summary' => $extracted['excerpt'] ?? null,
+            ]);
+
+            $user->articles()->syncWithoutDetaching([
+                $existing->id => ['is_read_later' => true],
+            ]);
+
+            Log::info('Article save-url: updated empty duplicate', ['url' => $url, 'article_id' => $existing->id, 'has_content' => $extracted !== null]);
+
+            return response()->json(['article_id' => $existing->id, 'duplicate' => true]);
+        }
 
         $article = $feed->articles()->create([
             'guid' => $url,
@@ -268,6 +293,8 @@ class ArticleApiController extends Controller
         ]);
 
         $user->articles()->attach($article->id, ['is_read_later' => true]);
+
+        Log::info('Article save-url: saved', ['url' => $url, 'article_id' => $article->id, 'user_id' => $user->id, 'has_content' => $extracted !== null]);
 
         return response()->json(['article_id' => $article->id, 'duplicate' => false], 201);
     }

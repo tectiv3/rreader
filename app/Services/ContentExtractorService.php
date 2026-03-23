@@ -6,6 +6,7 @@ use fivefilters\Readability\Configuration as ReadabilityConfig;
 use fivefilters\Readability\ParseException;
 use fivefilters\Readability\Readability;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class ContentExtractorService
 {
@@ -23,10 +24,13 @@ class ContentExtractorService
         $html = $this->fetchUrl($url);
 
         if ($html === null) {
+            Log::info('ContentExtractor: direct fetch failed, trying Wayback Machine', ['url' => $url]);
             $html = $this->fetchFromWayback($url);
         }
 
         if ($html === null) {
+            Log::warning('ContentExtractor: all fetch sources failed', ['url' => $url]);
+
             return null;
         }
 
@@ -43,8 +47,8 @@ class ContentExtractorService
             if ($response->successful() && ! empty($response->body())) {
                 return $response->body();
             }
-        } catch (\Exception) {
-            // Fall through to return null
+        } catch (\Exception $e) {
+            Log::warning('ContentExtractor: direct fetch threw exception', ['url' => $url, 'error' => $e->getMessage()]);
         }
 
         return null;
@@ -78,8 +82,8 @@ class ContentExtractorService
             if ($response->successful() && ! empty($response->body())) {
                 return $response->body();
             }
-        } catch (\Exception) {
-            // Fall through to return null
+        } catch (\Exception $e) {
+            Log::warning('ContentExtractor: Wayback fetch threw exception', ['url' => $url, 'error' => $e->getMessage()]);
         }
 
         return null;
@@ -93,12 +97,19 @@ class ContentExtractorService
                 'originalURL' => $url,
             ]);
 
+            // Readability requires a <body> tag
+            if (stripos($html, '<body') === false) {
+                $html = '<html><body>'.$html.'</body></html>';
+            }
+
             $readability = new Readability($config);
             $readability->parse($html);
 
             $content = $readability->getContent();
 
             if (empty(trim(strip_tags($content ?? '')))) {
+                Log::warning('ContentExtractor: readability returned empty content', ['url' => $url, 'raw_length' => strlen($html)]);
+
                 return null;
             }
 
@@ -107,7 +118,13 @@ class ContentExtractorService
                 'content' => $content,
                 'excerpt' => $readability->getExcerpt(),
             ];
-        } catch (ParseException|\TypeError) {
+        } catch (ParseException $e) {
+            Log::warning('ContentExtractor: readability parse failed', ['url' => $url, 'error' => $e->getMessage()]);
+
+            return null;
+        } catch (\TypeError $e) {
+            Log::warning('ContentExtractor: readability type error', ['url' => $url, 'error' => $e->getMessage()]);
+
             return null;
         }
     }
