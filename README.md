@@ -37,6 +37,19 @@ This runs `composer install`, copies `.env.example`, generates the app key, runs
 
 ## Development
 
+Requires [Nix](https://nixos.org/download) with flakes enabled.
+
+```bash
+nix develop          # enter dev shell with PHP, Node, pnpm, overmind
+overmind start       # starts PHP-FPM, queue worker, Vite
+```
+
+Site available at `https://rreader.test` (requires system nginx + mkcert cert).
+
+To connect to a specific process: `overmind connect <name>` (e.g. `overmind connect vite`).
+
+### Without Nix
+
 ```bash
 composer dev
 ```
