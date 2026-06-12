@@ -106,6 +106,11 @@ class FaviconService
 
     private function resolveIconUrl(string $href, string $baseUrl): string
     {
+        // Inline icon, handled by downloadAndStore
+        if (str_starts_with($href, 'data:')) {
+            return $href;
+        }
+
         // Already absolute
         if (str_starts_with($href, 'http://') || str_starts_with($href, 'https://')) {
             return $href;
@@ -179,6 +184,10 @@ class FaviconService
 
     private function downloadAndStore(string $iconUrl, int $feedId): ?string
     {
+        if (str_starts_with($iconUrl, 'data:')) {
+            return $this->storeDataUri($iconUrl, $feedId);
+        }
+
         try {
             $response = Http::timeout(5)
                 ->withUserAgent('RReader/1.0')
@@ -204,6 +213,30 @@ class FaviconService
 
             return null;
         }
+    }
+
+    private function storeDataUri(string $uri, int $feedId): ?string
+    {
+        if (! preg_match('#^data:([^;,]*)(;base64)?,(.*)$#s', $uri, $m)) {
+            return null;
+        }
+
+        $body = $m[2] ? base64_decode($m[3], true) : rawurldecode($m[3]);
+
+        if (! $body) {
+            return null;
+        }
+
+        $ext = $this->extensionFromContentType($m[1], '');
+
+        $storagePath = 'favicons/'.$feedId.'.'.$ext;
+        if (! Storage::disk('public')->put($storagePath, $body)) {
+            Log::warning('Favicon write to disk failed', ['path' => $storagePath, 'source' => 'data-uri']);
+
+            return null;
+        }
+
+        return '/storage/'.$storagePath;
     }
 
     private function extensionFromContentType(string $contentType, string $url): string
