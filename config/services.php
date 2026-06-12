@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    // curl-impersonate wrapper script (e.g. curl_chrome136), used as a
+    // fallback for feeds behind TLS-fingerprinting bot protection
+    'curl_impersonate' => [
+        'binary' => env('CURL_IMPERSONATE_BIN'),
+    ],
+
 ];

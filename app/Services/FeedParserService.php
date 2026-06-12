@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use GuzzleHttp\Psr7\Response as Psr7Response;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Process;
 use Laminas\Feed\Reader\Reader as FeedReader;
 
 class FeedParserService
@@ -64,6 +66,18 @@ class FeedParserService
             throw new \RuntimeException("Could not connect to {$url}: {$e->getMessage()}");
         }
 
+        // 403/503 from bot protection (Cloudflare et al.) keys on the TLS
+        // fingerprint, so retry with a browser-impersonating client
+        if (in_array($response->status(), [403, 503], true)) {
+            $impersonated = $this->fetchImpersonated($url);
+
+            if ($impersonated && $impersonated->successful()) {
+                Log::info('Feed fetched via curl-impersonate fallback', ['url' => $url]);
+
+                return $impersonated;
+            }
+        }
+
         if (! $response->successful()) {
             $status = $response->status();
             $reason = $response->reason();
@@ -93,6 +107,53 @@ class FeedParserService
         }
 
         return $response;
+    }
+
+    /**
+     * Fetch a URL using a curl-impersonate wrapper script, which replicates a
+     * real browser's TLS and HTTP/2 fingerprint to pass bot-protection walls.
+     */
+    private function fetchImpersonated(string $url): ?Response
+    {
+        $binary = config('services.curl_impersonate.binary');
+
+        if (! $binary) {
+            return null;
+        }
+
+        $marker = '__CURL_META__';
+
+        $result = Process::timeout(25)->run([
+            $binary, '-s', '-L', '--max-time', '15',
+            '-w', "\n{$marker} %{http_code} %{content_type}",
+            $url,
+        ]);
+
+        if (! $result->successful()) {
+            Log::warning('curl-impersonate fetch failed', [
+                'url' => $url,
+                'exit_code' => $result->exitCode(),
+                'error' => $result->errorOutput(),
+            ]);
+
+            return null;
+        }
+
+        $output = $result->output();
+        $pos = strrpos($output, "\n{$marker} ");
+
+        if ($pos === false) {
+            return null;
+        }
+
+        $body = substr($output, 0, $pos);
+        [$status, $contentType] = array_pad(
+            explode(' ', trim(substr($output, $pos + strlen("\n{$marker} "))), 2),
+            2,
+            ''
+        );
+
+        return new Response(new Psr7Response((int) $status, ['Content-Type' => $contentType], $body));
     }
 
     private function normalizeUrl(string $url): string
