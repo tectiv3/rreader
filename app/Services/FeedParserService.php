@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Laminas\Feed\Reader\Reader as FeedReader;
 
 class FeedParserService
@@ -15,19 +17,12 @@ class FeedParserService
      * @return array{feed_url: string, site_url: string|null, title: string|null, description: string|null, favicon_url: string|null, articles: array}
      *
      * @throws \RuntimeException
-     * @throws ConnectionException
      */
     public function discoverAndParse(string $url): array
     {
         $url = $this->normalizeUrl($url);
 
-        $response = Http::timeout(15)
-            ->withUserAgent('RReader/1.0')
-            ->get($url);
-
-        if (! $response->successful()) {
-            throw new \RuntimeException('Could not fetch the URL. Please check the address and try again.');
-        }
+        $response = $this->fetch($url);
 
         $contentType = (string) $response->header('Content-Type');
         $body = $response->body();
@@ -44,15 +39,60 @@ class FeedParserService
             throw new \RuntimeException('No RSS or Atom feed found at this URL.');
         }
 
-        $feedResponse = Http::timeout(15)
-            ->withUserAgent('RReader/1.0')
-            ->get($feedUrl);
-
-        if (! $feedResponse->successful()) {
-            throw new \RuntimeException('Found a feed link but could not fetch it.');
-        }
+        $feedResponse = $this->fetch($feedUrl);
 
         return $this->parseFeedContent($feedResponse->body(), $feedUrl, $url);
+    }
+
+    /**
+     * Fetch a URL, throwing a RuntimeException with diagnostic detail on any failure.
+     *
+     * @throws \RuntimeException
+     */
+    private function fetch(string $url): Response
+    {
+        try {
+            $response = Http::timeout(15)
+                ->withUserAgent('RReader/1.0')
+                ->get($url);
+        } catch (ConnectionException $e) {
+            Log::warning('Feed fetch connection error', [
+                'url' => $url,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw new \RuntimeException("Could not connect to {$url}: {$e->getMessage()}");
+        }
+
+        if (! $response->successful()) {
+            $status = $response->status();
+            $reason = $response->reason();
+            $server = $response->header('Server');
+
+            Log::warning('Feed fetch failed', [
+                'url' => $url,
+                'status' => $status,
+                'reason' => $reason,
+                'server' => $server,
+                'content_type' => $response->header('Content-Type'),
+                'body_snippet' => substr($response->body(), 0, 500),
+            ]);
+
+            $message = "Could not fetch {$url}: HTTP {$status} {$reason}"
+                .($server ? " (server: {$server})" : '');
+
+            $message .= match (true) {
+                $status === 401 || $status === 403 => ' — the site is blocking automated requests (bot protection).',
+                $status === 404 => ' — the page does not exist.',
+                $status === 429 => ' — the site is rate-limiting requests, try again later.',
+                $status >= 500 => ' — the site is having server problems.',
+                default => '',
+            };
+
+            throw new \RuntimeException($message);
+        }
+
+        return $response;
     }
 
     private function normalizeUrl(string $url): string
@@ -173,7 +213,7 @@ class FeedParserService
                 'title' => $entry->getTitle(),
                 'author' => $entry->getAuthor()['name'] ?? null,
                 'content' => $entry->getContent(),
-                'summary' => strip_tags($entry->getDescription()),
+                'summary' => strip_tags($entry->getDescription() ?? ''),
                 'url' => $entry->getLink(),
                 'image_url' => $imageUrl,
                 'published_at' => $entry->getDateCreated()?->format('Y-m-d H:i:s')

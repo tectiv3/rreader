@@ -13,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 final class FeedApiController extends Controller
 {
@@ -22,9 +23,19 @@ final class FeedApiController extends Controller
             'url' => ['required', 'string', 'max:2048'],
         ]);
 
+        Log::info('Feed add attempt', [
+            'url' => $request->input('url'),
+            'user_id' => $request->user()->id,
+        ]);
+
         try {
             $data = $parser->discoverAndParse($request->input('url'));
         } catch (\RuntimeException $e) {
+            Log::notice('Feed add failed', [
+                'url' => $request->input('url'),
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json(['errors' => ['url' => [$e->getMessage()]]], 422);
         }
 
@@ -106,6 +117,12 @@ final class FeedApiController extends Controller
         });
 
         $request->session()->forget('feed_preview');
+
+        Log::info('Feed subscribed', [
+            'feed_id' => $feed->id,
+            'feed_url' => $feed->feed_url,
+            'user_id' => $request->user()->id,
+        ]);
 
         FetchFeed::dispatch($feed);
         ResolveFavicon::dispatch($feed);

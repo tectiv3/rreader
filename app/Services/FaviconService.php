@@ -155,13 +155,19 @@ class FaviconService
 
             $body = $response->body();
 
-            // Google returns a ~726-byte generic globe icon when it has no favicon
-            if (strlen($body) <= 726) {
+            // Google serves real icons at the requested size (64px) but its
+            // "no favicon" fallback globe stays 16x16 regardless
+            $info = @getimagesizefromstring($body);
+            if (! $info || $info[0] <= 16) {
                 return null;
             }
 
             $storagePath = 'favicons/'.$feedId.'.png';
-            Storage::disk('public')->put($storagePath, $body);
+            if (! Storage::disk('public')->put($storagePath, $body)) {
+                Log::warning('Favicon write to disk failed', ['path' => $storagePath, 'source' => 'google']);
+
+                return null;
+            }
 
             return '/storage/'.$storagePath;
         } catch (\Exception $e) {
@@ -186,7 +192,11 @@ class FaviconService
             $ext = $this->extensionFromContentType($contentType, $iconUrl);
 
             $storagePath = 'favicons/'.$feedId.'.'.$ext;
-            Storage::disk('public')->put($storagePath, $response->body());
+            if (! Storage::disk('public')->put($storagePath, $response->body())) {
+                Log::warning('Favicon write to disk failed', ['path' => $storagePath, 'source' => $iconUrl]);
+
+                return null;
+            }
 
             return '/storage/'.$storagePath;
         } catch (\Exception $e) {
