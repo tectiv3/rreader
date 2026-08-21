@@ -1,4 +1,4 @@
-import { p as l } from './app-BO6VQ9fp.js'
+import { p as l } from './app-BnURHHqH.js'
 const e = l(!1),
     d = l('feed'),
     a = l('')

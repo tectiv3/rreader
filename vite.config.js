@@ -1,3 +1,4 @@
+import { execSync } from 'child_process'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -21,7 +22,19 @@ function localHttps() {
 // same prefix for asset URLs.
 const BUILD_BASE = '/build/'
 
+function gitVersion() {
+    try {
+        return execSync('git describe --tags --always', { encoding: 'utf8' }).trim()
+    } catch {
+        return 'dev'
+    }
+}
+
 export default defineConfig({
+    define: {
+        __BUILD_VERSION__: JSON.stringify(gitVersion()),
+        __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    },
     server: {
         https: localHttps(),
         hmr: { host: 'rreader.test' },

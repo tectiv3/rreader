@@ -11,7 +11,7 @@ import {
     J as a,
     F as c,
     j as d,
-} from './app-BO6VQ9fp.js'
+} from './app-BnURHHqH.js'
 const m = {
         class: 'flex min-h-screen flex-col items-center justify-center bg-neutral-950 px-6',
     },
