@@ -7,6 +7,7 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers'
 import { createApp, h } from 'vue'
 import router from '@/router.js'
 import { idbCleanup } from '@/Composables/useArticleCache.js'
+import { readReadingState } from '@/Composables/useReadingState.js'
 const appName = import.meta.env.VITE_APP_NAME || 'RReader'
 
 // Register SW and store promise globally for composables to use
@@ -27,8 +28,10 @@ window.__swReady =
               .catch(() => null)
         : Promise.resolve(null)
 
-// Reload when a new SW takes control (deploy detected)
-if ('serviceWorker' in navigator) {
+// Reload when a new SW takes control (deploy detected). The very first install
+// also fires controllerchange because of clientsClaim — reloading there would
+// bounce every first-time visitor, so only react once a controller already exists.
+if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
     let refreshing = false
     navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (refreshing) return
@@ -40,8 +43,6 @@ if ('serviceWorker' in navigator) {
 idbCleanup()
 
 // Check reading state before mounting Inertia to restore article position
-const READING_STATE_KEY = 'rreader-reading-state'
-
 async function getReadingState() {
     // Try SW first (works offline in PWA)
     try {
@@ -62,18 +63,22 @@ async function getReadingState() {
         // SW unavailable
     }
     // Fallback to localStorage
-    try {
-        const raw = localStorage.getItem(READING_STATE_KEY)
-        return raw ? JSON.parse(raw) : null
-    } catch {
-        return null
-    }
+    return readReadingState()
+}
+
+// The bookmark comes from localStorage or the service worker, so it's untrusted:
+// "//evil.example.com" starts with "/" but navigates off-origin.
+function isLocalPath(url) {
+    return typeof url === 'string' && /^\/(?!\/)/.test(url)
 }
 
 async function boot() {
     try {
         const state = await getReadingState()
-        if (state?.url && state.url !== window.location.pathname + window.location.search) {
+        if (
+            isLocalPath(state?.url) &&
+            state.url !== window.location.pathname + window.location.search
+        ) {
             window.location.replace(state.url)
             return
         }

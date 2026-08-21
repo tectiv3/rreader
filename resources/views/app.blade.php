@@ -30,6 +30,8 @@
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
         <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-dark.png" media="(prefers-color-scheme: dark)">
 
+        <link rel="manifest" href="/manifest.webmanifest">
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />

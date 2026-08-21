@@ -9,8 +9,26 @@ use Inertia\Inertia;
 
 // Serve SW from root so its scope covers the entire origin
 Route::get('/sw.js', function () {
-    return response()->file(public_path('build/sw.js'), [
+    $path = public_path('build/sw.js');
+
+    abort_unless(is_file($path), 404);
+
+    return response()->file($path, [
         'Content-Type' => 'application/javascript',
+        'Cache-Control' => 'no-cache',
+        'Service-Worker-Allowed' => '/',
+    ]);
+});
+
+// Vite emits the web app manifest into public/build, but it must be reachable
+// (and precacheable) from the root scope the service worker runs in.
+Route::get('/manifest.webmanifest', function () {
+    $path = public_path('build/manifest.webmanifest');
+
+    abort_unless(is_file($path), 404);
+
+    return response()->file($path, [
+        'Content-Type' => 'application/manifest+json',
         'Cache-Control' => 'no-cache',
     ]);
 });
@@ -41,7 +59,8 @@ Route::middleware('auth')->group(function () {
     // OPML export (direct file download, not JSON API)
     Route::get('/opml/export', [OpmlController::class, 'export'])->name('opml.export');
 
-    // SPA catch-all — must be last
+    // SPA catch-all — must be last. Missing build assets must 404 rather than fall
+    // through to the HTML shell, or the service worker precaches HTML under .js/.css URLs.
     Route::get('/{any}', function (Request $request) {
         $user = $request->user();
         $sidebarData = SidebarApiController::buildSidebarData($user);
@@ -50,5 +69,5 @@ Route::middleware('auth')->group(function () {
             'initialSidebar' => $sidebarData,
             'user' => $user,
         ]);
-    })->where('any', '^(?!api/).*$')->name('spa');
+    })->where('any', '^(?!api/|build/).*$')->name('spa');
 });

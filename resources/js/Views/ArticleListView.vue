@@ -1,6 +1,12 @@
 <script setup>
 import axios from 'axios'
 import DOMPurify from 'dompurify'
+import ArticleListErrorState from '@/Components/ArticleListErrorState.vue'
+import {
+    saveReadingState,
+    clearReadingState,
+    readReadingState,
+} from '@/Composables/useReadingState.js'
 import { useArticleStore } from '@/Stores/useArticleStore.js'
 import { useSidebarStore } from '@/Stores/useSidebarStore.js'
 import { useOnlineStatus } from '@/Composables/useOnlineStatus.js'
@@ -38,12 +44,7 @@ if (shareUrl) {
 }
 
 // Read saved scroll position before it gets overwritten by loadArticleInline
-let savedDesktopScroll = 0
-try {
-    const raw = localStorage.getItem(READING_STATE_KEY)
-    const saved = raw ? JSON.parse(raw) : null
-    if (saved?.scrollTop) savedDesktopScroll = saved.scrollTop
-} catch {}
+const savedDesktopScroll = readReadingState()?.scrollTop ?? 0
 
 // Fetch on mount, then restore inline article if specified, then warm cache
 articleStore.fetchArticles(deriveView()).then(async () => {
@@ -193,30 +194,12 @@ function timeAgo(dateString) {
 // screen.width is zoom-independent (Safari pinch-zoom changes innerWidth but not screen.width)
 const isDesktop = ref(typeof window !== 'undefined' && window.screen.width >= 1024)
 
-// --- Reading state persistence (desktop inline) ---
-const READING_STATE_KEY = 'rreader-reading-state'
-
-function saveReadingState(articleId, scrollTop = 0) {
+function saveInlineReadingState(articleId, scrollTop = 0) {
     // Preserve current query params (feed_id, filter, etc.) and add selected article
     const params = new URLSearchParams(window.location.search)
     params.set('article', articleId)
-    const url = `/articles?${params.toString()}`
-    const state = { url, scrollTop }
-    try {
-        localStorage.setItem(READING_STATE_KEY, JSON.stringify(state))
-    } catch {}
-    window.__swReady?.then(sw => {
-        if (sw) sw.postMessage({ type: 'save-reading-state', state })
-    })
-}
-
-function clearReadingState() {
-    try {
-        localStorage.removeItem(READING_STATE_KEY)
-    } catch {}
-    window.__swReady?.then(sw => {
-        if (sw) sw.postMessage({ type: 'clear-reading-state' })
-    })
+    const title = articleStore.articles.find(a => a.id === articleId)?.title ?? null
+    saveReadingState(`/articles?${params.toString()}`, scrollTop, title)
 }
 
 let scrollSaveTimer = null
@@ -240,7 +223,7 @@ function onDesktopScroll() {
     clearTimeout(scrollSaveTimer)
     scrollSaveTimer = setTimeout(() => {
         const top = articleListEl.value?.scrollTop ?? 0
-        saveReadingState(selectedArticleId.value, top)
+        saveInlineReadingState(selectedArticleId.value, top)
 
         if (selectedIsReadLater.value) {
             articleStore.saveReadingProgress(
@@ -322,7 +305,7 @@ function openArticle(article) {
 }
 
 async function loadArticleInline(articleId) {
-    saveReadingState(articleId)
+    saveInlineReadingState(articleId)
 
     const cached = articleStore.getContent(articleId)
     if (cached) {
@@ -553,14 +536,23 @@ function onKeyDown(e) {
 const markingAllRead = ref(false)
 function markAllAsRead() {
     markingAllRead.value = true
-    articleStore.markAllRead(activeFeedId.value)
+    const sent = articleStore.markAllRead(activeFeedId.value)
     markingAllRead.value = false
+    if (!sent) {
+        showError("You're offline — marking all as read needs a connection.")
+        return
+    }
     success('All marked as read')
 }
 
 // --- Refresh ---
 const refreshing = ref(false)
 async function refreshFeeds() {
+    if (!isOnline.value) {
+        showError("You're offline — showing cached articles.")
+        return
+    }
+
     refreshing.value = true
     try {
         if (activeFeedId.value) {
@@ -569,7 +561,12 @@ async function refreshFeeds() {
                 : `/api/feeds/${activeFeedId.value}/refresh`
             await axios.post(endpoint)
         }
-        await Promise.all([articleStore.forceRefresh(), sidebarStore.fetchSidebar()])
+        await Promise.all([
+            articleStore.forceRefresh(),
+            sidebarStore.fetchSidebar().catch(() => {}),
+        ])
+    } catch {
+        showError("Couldn't refresh — check your connection.")
     } finally {
         refreshing.value = false
     }
@@ -1155,10 +1152,14 @@ function getSwipeDirection(articleId) {
                                             "
                                             class="py-12 text-center">
                                             <p class="text-neutral-500 dark:text-neutral-400">
-                                                No article content available.
+                                                {{
+                                                    selectedArticle._offline
+                                                        ? "This article wasn't downloaded for offline reading."
+                                                        : 'No article content available.'
+                                                }}
                                             </p>
                                             <a
-                                                v-if="selectedArticle.url"
+                                                v-if="selectedArticle.url && isOnline"
                                                 :href="selectedArticle.url"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
@@ -1258,7 +1259,10 @@ function getSwipeDirection(articleId) {
 
             <!-- Empty states (desktop) -->
             <div v-else class="flex flex-col items-center justify-center px-4 py-20 text-center">
-                <template v-if="activeFilter === 'read_later'">
+                <ArticleListErrorState
+                    v-if="articleStore.loadError"
+                    :reason="articleStore.loadError" />
+                <template v-else-if="activeFilter === 'read_later'">
                     <svg
                         class="h-16 w-16 text-neutral-300 dark:text-neutral-700"
                         fill="none"
@@ -1411,7 +1415,10 @@ function getSwipeDirection(articleId) {
             <div
                 v-if="articleStore.articles.length === 0 && !articleStore.loading"
                 class="flex flex-col items-center justify-center px-4 py-20 text-center">
-                <template v-if="activeFilter === 'read_later'">
+                <ArticleListErrorState
+                    v-if="articleStore.loadError"
+                    :reason="articleStore.loadError" />
+                <template v-else-if="activeFilter === 'read_later'">
                     <svg
                         class="h-16 w-16 text-neutral-300 dark:text-neutral-700"
                         fill="none"

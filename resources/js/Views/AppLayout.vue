@@ -10,10 +10,10 @@ import { useArticleStore } from '@/Stores/useArticleStore.js'
 import { useSidebarStore } from '@/Stores/useSidebarStore.js'
 import { useUIStore } from '@/Stores/useUIStore.js'
 import { useRouter, useRoute } from 'vue-router'
-import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
+import { ref, computed, onMounted, onUnmounted, provide, watch } from 'vue'
 
 const { isOnline } = useOnlineStatus()
-useOfflineQueue()
+const { flushQueue } = useOfflineQueue()
 useDarkMode()
 
 const articleStore = useArticleStore()
@@ -72,6 +72,27 @@ const activeCategoryId = computed(() => {
 
 const activeFilter = computed(() => route.query.filter || null)
 
+// navigator.onLine only reports link state — the server can also just be
+// unreachable, in which case the store falls back to its cached snapshot.
+const showOfflineBanner = computed(() => !isOnline.value || articleStore.showingCached)
+
+// Coming back online doesn't make a cached snapshot fresh, so refetch rather than
+// just clearing the flag — otherwise the banner sticks and the list stays stale.
+// loadError counts too: a view that had nothing cached is showing an error screen
+// with no way out but manual navigation.
+watch(isOnline, async online => {
+    if (!online) return
+    if (!articleStore.showingCached && !articleStore.loadError) return
+
+    // Replay first, then refetch. A GET beats a queue of PATCHes to the server by
+    // a wide margin, and the answer it brings back predates them — so refreshing
+    // first shows the reader their offline changes undone, and snapshots that
+    // stale list to IndexedDB on the way.
+    await flushQueue()
+    articleStore.forceRefresh()
+    sidebarStore.fetchSidebar().catch(() => {})
+})
+
 // Navigate via Vue Router (used by sidebar)
 function navigateTo(params) {
     uiStore.closeSidebar()
@@ -91,7 +112,7 @@ function navigateTo(params) {
     <div class="min-h-screen bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
         <!-- Offline indicator banner (full width, above everything) -->
         <div
-            v-if="!isOnline"
+            v-if="showOfflineBanner"
             class="flex items-center justify-center gap-2 bg-amber-600 px-4 py-1.5 text-xs font-medium text-white">
             <svg
                 class="h-4 w-4 shrink-0"
@@ -104,7 +125,11 @@ function navigateTo(params) {
                     stroke-linejoin="round"
                     d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
-            You're offline — viewing cached content
+            {{
+                isOnline
+                    ? "Can't reach the server — viewing cached content"
+                    : "You're offline — viewing cached content"
+            }}
         </div>
 
         <div class="flex" :style="isDesktop ? 'height: 100vh' : undefined">

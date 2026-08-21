@@ -1,6 +1,12 @@
 <script setup>
 import { useArticleStore } from '@/Stores/useArticleStore.js'
 import { useToast } from '@/Composables/useToast.js'
+import { useOnlineStatus } from '@/Composables/useOnlineStatus.js'
+import {
+    saveReadingState,
+    clearReadingState,
+    readReadingState,
+} from '@/Composables/useReadingState.js'
 import { useRouter, useRoute } from 'vue-router'
 import { setTitle } from '@/router.js'
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
@@ -11,6 +17,7 @@ const articleStore = useArticleStore()
 const router = useRouter()
 const route = useRoute()
 const { success, error } = useToast()
+const { isOnline } = useOnlineStatus()
 
 const article = ref(null)
 const loading = ref(true)
@@ -45,53 +52,46 @@ onUnmounted(() => {
     clearTimeout(scrollSaveTimer)
 })
 
-// --- Reading state persistence (restore article on app reopen) ---
-const READING_STATE_KEY = 'rreader-reading-state'
-
-function saveReadingState(url, scrollTop = 0) {
-    const state = { url, scrollTop }
-    try {
-        localStorage.setItem(READING_STATE_KEY, JSON.stringify(state))
-    } catch {}
-    window.__swReady?.then(sw => {
-        if (sw) sw.postMessage({ type: 'save-reading-state', state })
-    })
-}
-
-function clearReadingState() {
-    try {
-        localStorage.removeItem(READING_STATE_KEY)
-    } catch {}
-    window.__swReady?.then(sw => {
-        if (sw) sw.postMessage({ type: 'clear-reading-state' })
-    })
-}
-
 onUnmounted(() => clearReadingState())
 
 // --- Load article ---
 const loadingContent = ref(false)
 
+// Set when the article couldn't be fetched for a reason that may not last, so the
+// view can explain itself instead of silently bouncing back to the list. Plain
+// refs, not computeds: they're read from localStorage, which isn't reactive, so a
+// computed would cache the first article's title and keep showing it.
+const unavailable = ref(false)
+const bookmarkedTitle = ref(null)
+
+// Loads overlap: the route watcher clears `navigating` before it awaits, and the
+// "Try again" button calls loadArticle directly with no guard at all. Each load
+// claims a generation and bails at every resumption point, so a slow failure for
+// an article the reader already swiped past can't replace the one on screen with
+// the "couldn't load" state — the template checks `unavailable` before `article`.
+let loadGeneration = 0
+
 async function loadArticle(id) {
+    const gen = ++loadGeneration
     const numId = Number(id)
+    unavailable.value = false
     if (isMobile.value && scrollContainer.value) scrollContainer.value.scrollTop = 0
     else window.scrollTo(0, 0)
 
     // Read saved scroll position BEFORE overwriting reading state
     let savedScrollTop = 0
-    try {
-        const raw = localStorage.getItem(READING_STATE_KEY)
-        const saved = raw ? JSON.parse(raw) : null
-        if (saved?.scrollTop && saved.url === `/articles/${numId}`) {
-            savedScrollTop = saved.scrollTop
-        }
-    } catch {}
+    const saved = readReadingState()
+    if (saved?.scrollTop && saved.url === `/articles/${numId}`) {
+        savedScrollTop = saved.scrollTop
+    }
 
     const url = `/articles/${numId}`
-    saveReadingState(url)
+    const listArticle = articleStore.articles.find(a => a.id === numId)
+    // Record the title with the bookmark: if the article can't be loaded on a
+    // later restore, it's the only thing left to name what we're reopening.
+    saveReadingState(url, 0, listArticle?.title ?? (saved?.url === url ? saved.title : null))
 
     // Show list-level metadata immediately (title, author, date, summary)
-    const listArticle = articleStore.articles.find(a => a.id === numId)
     if (listArticle) {
         article.value = { ...listArticle }
         isReadLater.value = listArticle.is_read_later || false
@@ -106,6 +106,8 @@ async function loadArticle(id) {
     articleStore.cancelWarmCache()
     try {
         const content = await articleStore.fetchContent(numId)
+        if (gen !== loadGeneration) return
+
         article.value = content
         isReadLater.value = content.is_read_later || false
         setTitle(content.title)
@@ -117,6 +119,7 @@ async function loadArticle(id) {
         if (savedScrollTop) {
             await nextTick()
             setTimeout(() => {
+                if (gen !== loadGeneration) return
                 if (isMobile.value && scrollContainer.value) {
                     scrollContainer.value.scrollTop = savedScrollTop
                 } else {
@@ -126,6 +129,7 @@ async function loadArticle(id) {
         } else if (content.is_read_later && progress && progress > 0) {
             await nextTick()
             setTimeout(() => {
+                if (gen !== loadGeneration) return
                 if (isMobile.value && scrollContainer.value) {
                     const max =
                         scrollContainer.value.scrollHeight - scrollContainer.value.clientHeight
@@ -136,12 +140,29 @@ async function loadArticle(id) {
                 }
             }, 100)
         }
-    } catch {
-        clearReadingState()
-        router.replace({ name: 'articles.index' })
+    } catch (e) {
+        if (gen !== loadGeneration) return
+
+        // A status means the server answered. 404/403/410 say the article is gone
+        // for good, so drop the bookmark and go back to the list — there's nothing
+        // to return to. Anything else (offline, network drop, 5xx) is temporary:
+        // keep the bookmark and say so in place, or a moment without a connection
+        // would silently throw away the reader's place.
+        const gone = [403, 404, 410].includes(e.response?.status)
+        if (gone) {
+            clearReadingState()
+            router.replace({ name: 'articles.index' })
+        } else {
+            bookmarkedTitle.value = readReadingState()?.title ?? null
+            unavailable.value = true
+            setTitle(bookmarkedTitle.value || 'Unavailable')
+        }
     } finally {
-        loading.value = false
-        loadingContent.value = false
+        // A superseded load must not clear the flags for the one still running.
+        if (gen === loadGeneration) {
+            loading.value = false
+            loadingContent.value = false
+        }
     }
 }
 
@@ -171,7 +192,7 @@ function onArticleScroll() {
             isMobile.value && scrollContainer.value
                 ? scrollContainer.value.scrollTop
                 : window.scrollY
-        saveReadingState(`/articles/${article.value.id}`, top)
+        saveReadingState(`/articles/${article.value.id}`, top, article.value.title ?? null)
 
         if (isReadLater.value) {
             articleStore.saveReadingProgress(article.value.id, computeReadingProgress())
@@ -913,6 +934,51 @@ function navigateToFeed(feedId) {
                 </svg>
             </div>
 
+            <!-- Couldn't load, but might load later: keep the reader here with the
+                 bookmark intact rather than bouncing them back to the list -->
+            <div v-else-if="unavailable" class="mx-auto max-w-3xl px-4 py-20 text-center">
+                <svg
+                    class="mx-auto h-16 w-16 text-neutral-300 dark:text-neutral-700"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1"
+                    stroke="currentColor">
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+                <h1
+                    v-if="bookmarkedTitle"
+                    class="mt-4 text-xl font-semibold text-neutral-800 dark:text-neutral-200">
+                    {{ bookmarkedTitle }}
+                </h1>
+                <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+                    {{
+                        isOnline
+                            ? "Couldn't load this article. It may just be a hiccup — try again."
+                            : "This article isn't downloaded, so it can't be opened offline."
+                    }}
+                </p>
+                <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-500">
+                    Your place is saved — it'll reopen here next time.
+                </p>
+                <div class="mt-6 flex items-center justify-center gap-3">
+                    <button
+                        type="button"
+                        @click="loadArticle(route.params.id)"
+                        class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
+                        Try again
+                    </button>
+                    <button
+                        type="button"
+                        @click="goBack"
+                        class="rounded-lg border border-neutral-300 dark:border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer">
+                        Back to list
+                    </button>
+                </div>
+            </div>
+
             <!-- Article content -->
             <div v-else-if="article" class="overflow-x-hidden">
                 <article ref="articleEl" class="mx-auto max-w-3xl px-4 py-6">
@@ -982,10 +1048,14 @@ function navigateToFeed(feedId) {
 
                     <div v-if="!article.content && !article.summary" class="py-12 text-center">
                         <p class="text-neutral-500 dark:text-neutral-400">
-                            No article content available.
+                            {{
+                                article._offline
+                                    ? "This article wasn't downloaded for offline reading."
+                                    : 'No article content available.'
+                            }}
                         </p>
                         <button
-                            v-if="article.url"
+                            v-if="article.url && isOnline"
                             @click="openInBrowser"
                             class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors cursor-pointer">
                             Read on original site

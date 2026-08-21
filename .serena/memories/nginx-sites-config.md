@@ -1,0 +1,1 @@
+Nginx site configs at /etc/nginx/sites/ (not sites-enabled/ split). Nginx is nix-managed.
