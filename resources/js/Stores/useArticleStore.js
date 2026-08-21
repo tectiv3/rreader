@@ -469,17 +469,24 @@ export const useArticleStore = defineStore('articles', () => {
     }
 
     async function cacheReadLater() {
-        const cachedIds = new Set(await idbList())
-        const toCache = articles.value
-            .filter(a => a.is_read_later && !cachedIds.has(a.id))
-            .map(a => a.id)
-        for (const id of toCache) {
-            try {
-                const res = await axios.get(`/api/articles/${id}`)
-                await idbPut(id, res.data)
-            } catch {
-                return
+        if (!navigator.onLine) return
+        try {
+            const res = await axios.get('/api/articles', { params: { filter: 'read_later' } })
+            const list = res.data.articles ?? res.data.data ?? []
+            saveSnapshot('read_later', list)
+
+            const cachedIds = new Set(await idbList())
+            for (const article of list) {
+                if (cachedIds.has(article.id)) continue
+                try {
+                    const detail = await axios.get(`/api/articles/${article.id}`)
+                    await idbPut(article.id, detail.data)
+                } catch {
+                    return
+                }
             }
+        } catch {
+            // Offline or server error — skip
         }
     }
 

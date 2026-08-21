@@ -17,9 +17,9 @@ import {
     a4 as x,
     p as _,
     b as u,
-} from './app-BnURHHqH.js'
-import { u as I } from './useDarkMode-CRp9DEOA.js'
-import { u as G } from './useToast-B2RcqhN9.js'
+} from './app-CHkijDF0.js'
+import { u as I } from './useDarkMode-CBtMes8M.js'
+import { u as G } from './useToast-C3IzSksO.js'
 import { _ as R } from './_plugin-vue_export-helper-DlAUqK2U.js'
 const q = { key: 0, class: 'flex items-center justify-center py-20' },
     Q = { key: 1, class: 'mx-auto max-w-lg px-4 py-6 space-y-5' },
@@ -48,7 +48,7 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
             const V = D(),
                 { setTheme: M } = I(),
                 { success: y, error: k } = G(),
-                F = `2963880 (${new Date('2026-08-21T14:58:58.399Z').toLocaleDateString()})`,
+                F = `v1.1.1 (${new Date('2026-08-21T18:11:36.617Z').toLocaleDateString()})`,
                 S = _(!0),
                 r = x({
                     theme: 'dark',
