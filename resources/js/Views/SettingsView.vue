@@ -162,7 +162,7 @@ function goBack() {
 
 <template>
     <header
-        class="sticky top-0 z-30 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 pt-safe">
+        class="sticky top-0 z-30 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 pt-safe">
         <div class="flex h-11 items-center justify-between px-4">
             <div class="flex items-center gap-2 min-w-0">
                 <button

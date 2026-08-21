@@ -691,8 +691,8 @@ function getSwipeDirection(articleId) {
     <header
         :class="
             isDesktop
-                ? 'sticky top-0 z-30 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 pt-safe'
-                : 'fixed top-0 inset-x-0 z-30 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-neutral-900/80 pt-safe'
+                ? 'sticky top-0 z-30 bg-white dark:bg-neutral-900 pt-safe'
+                : 'fixed top-0 inset-x-0 z-30 bg-white dark:bg-neutral-900 pt-safe'
         ">
         <div
             class="flex h-11 items-center justify-between border-b border-neutral-200 dark:border-neutral-800 px-4">
