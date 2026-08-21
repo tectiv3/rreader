@@ -1,8 +1,8 @@
-# RReader SPA Architecture Overview (spa-overhaul branch)
+# RReader SPA Architecture Overview
 
 ## Tech Stack
 
-- **Backend**: Laravel 11, PHP
+- **Backend**: Laravel 12, PHP 8.2+ (running 8.3.6)
 - **Frontend**: Vue 3 (Composition API), Pinia 3, Vue Router 4
 - **Inertia.js**: v2 (used only for the auth shell and page-bootstrapping, NOT for SPA navigation)
 - **Build**: Vite 7 + laravel-vite-plugin + vite-plugin-pwa (Workbox)
@@ -33,7 +33,7 @@ This means:
 ## Directory Structure
 
 ```
-spa-overhaul/
+rreader/
 ├── app/
 │   ├── Http/
 │   │   ├── Controllers/
@@ -41,6 +41,7 @@ spa-overhaul/
 │   │   │   │   ├── ArticleApiController.php
 │   │   │   │   ├── CategoryApiController.php
 │   │   │   │   ├── FeedApiController.php
+│   │   │   │   ├── HighlightApiController.php
 │   │   │   │   ├── OpmlApiController.php
 │   │   │   │   ├── SettingsApiController.php
 │   │   │   │   └── SidebarApiController.php
@@ -50,14 +51,19 @@ spa-overhaul/
 │   │   └── Middleware/
 │   │       └── HandleInertiaRequests.php
 │   ├── Jobs/
-│   │   └── FetchFeed.php               # Queued job for fetching feeds
+│   │   ├── FetchFeed.php               # Queued job for fetching feeds
+│   │   └── ResolveFavicon.php          # Queued job for favicon resolution
 │   ├── Models/
 │   │   ├── Article.php
 │   │   ├── Category.php
 │   │   ├── Feed.php
+│   │   ├── Highlight.php              # User text highlights/annotations
 │   │   ├── User.php
 │   │   └── UserArticle.php             # Pivot model for read state
 │   └── Services/
+│       ├── BookmarkParserService.php    # Bookmark/URL saving
+│       ├── ContentExtractorService.php  # Article content extraction
+│       ├── FaviconService.php           # Favicon discovery and caching
 │       ├── FeedParserService.php        # Feed discovery and parsing
 │       └── OpmlService.php              # OPML import/export
 ├── resources/
@@ -73,26 +79,31 @@ spa-overhaul/
 │   │   │   ├── AppLayout.vue           # Main layout wrapping all SPA views
 │   │   │   ├── ArticleListView.vue     # /articles (keep-alive cached)
 │   │   │   ├── ArticleDetailView.vue   # /articles/:id (mobile full page)
+│   │   │   ├── HighlightsView.vue      # /articles/highlights
+│   │   │   ├── SearchView.vue          # /articles/search
 │   │   │   ├── FeedManageView.vue      # /feeds/manage
 │   │   │   ├── FeedCreateView.vue      # /feeds/create
 │   │   │   ├── FeedEditView.vue        # /feeds/:id/edit
 │   │   │   ├── SettingsView.vue        # /settings
-│   │   │   ├── SearchView.vue          # /articles/search
 │   │   │   └── OpmlImportView.vue      # /opml/import
 │   │   ├── Components/                 # Shared UI components
 │   │   │   ├── AddFeedModal.vue
+│   │   │   ├── ArticleListErrorState.vue  # Offline/error state for article list
+│   │   │   ├── ArticleListSkeleton.vue
 │   │   │   ├── SidebarDrawer.vue
 │   │   │   ├── ToastContainer.vue
-│   │   │   └── ArticleListSkeleton.vue
+│   │   │   └── (Breeze defaults: Modal, Dropdown, TextInput, etc.)
 │   │   ├── Stores/                     # Pinia stores
-│   │   │   ├── useArticleStore.js      # Article list, content cache, read state
+│   │   │   ├── useArticleStore.js      # Article list, content cache, read state, offline
 │   │   │   ├── useSidebarStore.js      # Sidebar data (categories, feeds, counts)
 │   │   │   └── useUIStore.js           # UI state (sidebar open/closed)
 │   │   ├── Composables/
 │   │   │   ├── useAddFeedModal.js      # Module-level singleton for modal state
+│   │   │   ├── useArticleCache.js      # IndexedDB article + list cache (two stores)
 │   │   │   ├── useDarkMode.js          # Theme management
-│   │   │   ├── useOfflineQueue.js      # localStorage queue for offline actions
+│   │   │   ├── useOfflineQueue.js      # localStorage queue with merge-on-update
 │   │   │   ├── useOnlineStatus.js      # navigator.onLine watcher
+│   │   │   ├── useReadingState.js      # Bookmark persistence (localStorage + SW)
 │   │   │   └── useToast.js             # Toast notification system
 │   │   └── Layouts/
 │   │       ├── AuthenticatedLayout.vue # Used by Profile page
@@ -106,7 +117,9 @@ spa-overhaul/
 ├── bootstrap/
 │   └── app.php                         # Middleware config (statefulApi enabled)
 ├── public/
-│   └── sw-reading-state.js             # SW addon for reading state persistence
+│   ├── sw-navigation.js                # SW addon: network-first nav with shell fallback
+│   ├── sw-reading-state.js             # SW addon: reading state persistence
+│   └── sw-share-target.js              # SW addon: share target handler
 └── vite.config.js                      # Vite + PWA (Workbox) configuration
 ```
 
@@ -118,6 +131,8 @@ spa-overhaul/
 
 | Route | Handler | Notes |
 |---|---|---|
+| `GET /sw.js` | Closure | Serves SW from build dir with correct headers |
+| `GET /manifest.webmanifest` | Closure | Dynamic manifest generation |
 | `GET /` | Inertia `Welcome` | Public landing page |
 | `GET /dashboard` | Redirect to `/articles` | Auth + verified |
 | auth.php routes | Breeze auth | **Loaded BEFORE catch-all** |
@@ -136,12 +151,13 @@ intercepts `/login`, `/register`, etc. and creates redirect loops.
 
 All routes under `auth:sanctum` middleware (session-based via `$middleware->statefulApi()`):
 
-**Articles**: GET /api/articles, GET /api/articles/search, GET /api/articles/{id}, PATCH /api/articles/{id}, POST /api/articles/mark-all-read
+**Articles**: GET /api/articles, GET /api/articles/search, GET /api/articles/{article}, PATCH /api/articles/{article}, POST /api/articles/mark-all-read, POST /api/articles/save-url
 **Sidebar**: GET /api/sidebar
-**Feeds**: POST /api/feeds/preview, POST /api/feeds, PUT /api/feeds/{id}, DELETE /api/feeds/{id}, POST /api/feeds/{id}/reenable
+**Feeds**: GET /api/feeds/manage, POST /api/feeds/preview, POST /api/feeds, PUT /api/feeds/{feed}, DELETE /api/feeds/{feed}, POST /api/feeds/{feed}/reenable, POST /api/feeds/{feed}/refresh
 **Categories**: POST /api/categories, PUT /api/categories/{id}, DELETE /api/categories/{id}, POST /api/categories/reorder
 **Settings**: GET /api/settings, PATCH /api/settings, PATCH /api/settings/account, PATCH /api/settings/password
 **OPML**: POST /api/opml/preview, POST /api/opml/import
+**Highlights**: GET /api/highlights, POST /api/highlights, PUT /api/highlights/{highlight}, DELETE /api/highlights/{highlight}
 
 ### `resources/js/router.js` (Vue Router)
 
@@ -149,12 +165,14 @@ All routes under `auth:sanctum` middleware (session-based via `$middleware->stat
 |---|---|---|
 | `/articles` | `articles.index` | `ArticleListView` |
 | `/articles/search` | `articles.search` | `SearchView` |
+| `/articles/highlights` | `articles.highlights` | `HighlightsView` |
 | `/articles/:id` | `articles.show` | `ArticleDetailView` |
 | `/feeds/manage` | `feeds.manage` | `FeedManageView` |
 | `/feeds/create` | `feeds.create` | `FeedCreateView` |
 | `/feeds/:id/edit` | `feeds.edit` | `FeedEditView` |
 | `/settings` | `settings` | `SettingsView` |
 | `/opml/import` | `opml.import` | `OpmlImportView` |
+| `/highlights` | — | Redirect to `/articles/highlights` |
 | `/:pathMatch(.*)` | — | Redirect to `/articles` |
 
 All routes use lazy imports. The catch-all redirects unknown paths to `/articles`.
@@ -163,11 +181,14 @@ All routes use lazy imports. The catch-all redirects unknown paths to `/articles
 
 ## Frontend Boot Sequence (`app.js`)
 
-1. Registers SW (`/build/sw.js`), stores Promise in `window.__swReady`
-2. Queries reading state from SW via MessageChannel — if saved URL differs, redirects before mounting (avoids flash)
-3. Mounts Inertia via `createInertiaApp`, resolves pages from `./Pages/**/*.vue`
-4. **Conditionally mounts Vue Router**: only when `props.initialPage.component === 'AppShell'`
-5. Mounts Pinia (always)
+1. Registers SW (`/sw.js` — served by Laravel, not from `/build/`), stores Promise in `window.__swReady`
+2. Sets up reload-on-controllerchange (skips first install to avoid bouncing first-time visitors)
+3. Runs `idbCleanup()` for expired IndexedDB entries
+4. Queries reading state from SW via MessageChannel (800ms timeout), falls back to localStorage — if saved URL differs from current, redirects before mounting (avoids flash)
+5. Validates bookmark URL is a local path (not `//evil.example.com`)
+6. Mounts Inertia via `createInertiaApp`, resolves pages from `./Pages/**/*.vue`
+7. **Conditionally mounts Vue Router**: only when `props.initialPage.component === 'AppShell'`
+8. Mounts Pinia (always)
 
 ---
 
@@ -188,18 +209,48 @@ All routes use lazy imports. The catch-all redirects unknown paths to `/articles
 
 ## Pinia Stores
 
-### `useArticleStore` — Article list, content cache, mutations
-- `articles` — flat array of article metadata (no content)
-- `contentCache` — `Map<id, content>`, LRU max 20 entries
-- `inFlightRequests` — dedup concurrent fetch calls
-- Actions: `fetchArticles(view)`, `fetchContent(id)`, `prefetchAdjacent(id)`, `markRead(id)`, `markUnread(id)`, `toggleReadLater(id)`, `markAllRead(feedId?)`
+### `useArticleStore` — Article list, content cache, offline, mutations
+- **State**: `articles`, `contentCache` (Map), `activeView`, `loading`, `loaded`, `filterTitle`, `hasMore`, `loadingMore`, `nextCursor`, `showingCached`, `loadError`
+- **Getters**: `unreadCount`, `readLaterCount`, `unreadByFeed`, `getContent`, `adjacentIds`
+- **Actions**: `fetchArticles(view)`, `showAllArticles`, `loadMore`, `fetchContent(id)`, `prefetchAdjacent(id)`, `warmCache`, `cacheReadLater`, `cancelWarmCache`, `markRead(id)`, `markUnread(id)`, `toggleReadLater(id)`, `saveReadingProgress(id, progress)`, `markAllRead`, `dismissArticle`, `forceRefresh`
 - All writes are **optimistic** with rollback on failure
+- Uses `useOfflineQueue` for offline write persistence
 
 ### `useSidebarStore` — Categories, feeds, counts
 - `initialize(data)` — hydrates from Inertia prop
 - `fetchSidebar()` — refreshes from `/api/sidebar`
 
 ### `useUIStore` — Sidebar open/closed state
+
+---
+
+## Offline / PWA Architecture
+
+### Service Worker (Workbox + custom addons)
+- **`sw.js`** — Workbox-generated, precaches build assets, imports addons
+- **`sw-navigation.js`** — Network-first navigation handler with 5s timeout, shell cache (`navigation-cache`), fallback chain: exact URL → `/articles` → any cached SPA page → offline error page. Clears shell cache on activate (deploy = new asset hashes). Repopulates `/articles` on activate.
+- **`sw-reading-state.js`** — Persists reading bookmark in a dedicated SW cache so it survives app restarts and is available before the app boots
+- **`sw-share-target.js`** — Web Share Target handler for `/_share-target`
+
+### IndexedDB (`rreader` db, v2)
+- **`articles` store** — keyed by article id, holds `{ id, content, cachedAt, isRead, isReadLater, readAt }`. Cleanup evicts read articles older than 30 days but preserves read-later and the bookmarked article.
+- **`lists` store** — keyed by view string, holds `{ key, articles, filterTitle, cachedAt }`. Snapshots of article list per view for offline list rendering. Cleaned after 30 days.
+
+### Offline Queue (`useOfflineQueue`)
+- localStorage-backed, survives app restarts
+- Merge-on-update: repeated PATCHes to the same URL merge instead of appending
+- Entry validation (rejects non-local URLs, non-write methods)
+- Quota handling: on QuotaExceededError, drops oldest half and retries
+- Transient error awareness: retries on 5xx, 408, 419 (expired CSRF), 429
+
+### Reading State (`useReadingState`)
+- Dual-write: localStorage + SW cache
+- Read on boot: SW first (works offline), localStorage fallback
+- Protected from IDB eviction via `readingStateArticleId()`
+
+### Warm Cache
+- `warmCache()` — pre-fetches up to 50 unread articles into IDB (first 5 also in-memory for instant taps)
+- `cacheReadLater()` — independently ensures all read-later articles are in IDB for offline access
 
 ---
 
@@ -214,6 +265,7 @@ All routes use lazy imports. The catch-all redirects unknown paths to `/articles
 7. **Session-based feed preview**: `POST /api/feeds/preview` stores in PHP session, `POST /api/feeds` reads from session
 8. **Dual-use sidebar data**: `SidebarApiController::buildSidebarData($user)` is static, used by both API and catch-all route
 9. **Sanctum stateful API**: `$middleware->statefulApi()` in bootstrap/app.php enables session auth for API routes
+10. **Cursor-based pagination**: Article list uses cursor pagination with `loadMore`
 
 ---
 
@@ -223,7 +275,8 @@ All routes use lazy imports. The catch-all redirects unknown paths to `/articles
 User → hasMany Category, Feed; belongsToMany Article (via user_articles)
 Category → belongsTo User; hasMany Feed (category_id nullable, sort_order for reordering)
 Feed → belongsTo User, Category; hasMany Article
-Article → belongsTo Feed; belongsToMany User (pivot: is_read, is_read_later, read_at)
+Article → belongsTo Feed; belongsToMany User (pivot: is_read, is_read_later, read_at, reading_progress)
+Highlight → belongsTo User, Article (user text highlights/annotations)
 ```
 
 Articles are shared across users. Per-user state lives in `user_articles` pivot.

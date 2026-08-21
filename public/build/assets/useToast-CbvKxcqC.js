@@ -1,4 +1,4 @@
-import { p as a } from './app-BfCHckOi.js'
+import { p as a } from './app-D65n-LCD.js'
 const s = a([])
 let l = 0
 function m() {

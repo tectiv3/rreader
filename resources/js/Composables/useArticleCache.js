@@ -93,6 +93,7 @@ export async function idbPut(id, content) {
             content,
             cachedAt: Date.now(),
             isRead: existing?.isRead ?? false,
+            isReadLater: content?.is_read_later ?? existing?.isReadLater ?? false,
             readAt: existing?.readAt ?? null,
         }
 
@@ -123,6 +124,7 @@ export async function idbUpdateMeta(id, fields) {
         if (!record?.content) return
 
         Object.assign(record.content, fields)
+        if ('is_read_later' in fields) record.isReadLater = !!fields.is_read_later
         await reqToPromise(store.put(record))
     } catch {
         // Silent failure
@@ -160,7 +162,12 @@ async function cleanupArticles() {
             req.onsuccess = () => {
                 const cursor = req.result
                 if (!cursor) return resolve()
-                if (cursor.value.isRead && cursor.value.id !== bookmarked) cursor.delete()
+                if (
+                    cursor.value.isRead &&
+                    !cursor.value.isReadLater &&
+                    cursor.value.id !== bookmarked
+                )
+                    cursor.delete()
                 cursor.continue()
             }
             req.onerror = () => reject(req.error)

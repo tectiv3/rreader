@@ -468,6 +468,21 @@ export const useArticleStore = defineStore('articles', () => {
         }
     }
 
+    async function cacheReadLater() {
+        const cachedIds = new Set(await idbList())
+        const toCache = articles.value
+            .filter(a => a.is_read_later && !cachedIds.has(a.id))
+            .map(a => a.id)
+        for (const id of toCache) {
+            try {
+                const res = await axios.get(`/api/articles/${id}`)
+                await idbPut(id, res.data)
+            } catch {
+                return
+            }
+        }
+    }
+
     function _isToday(dateString) {
         const d = new Date(dateString)
         const now = new Date()
@@ -535,6 +550,8 @@ export const useArticleStore = defineStore('articles', () => {
         idbUpdateMeta(id, idbFields)
         syncArticleCopies(id, idbFields)
         scheduleSnapshot()
+
+        if (!was) fetchContent(id).catch(() => {})
 
         persist('patch', `/api/articles/${id}`, payload, () => {
             article.is_read_later = was
@@ -669,6 +686,7 @@ export const useArticleStore = defineStore('articles', () => {
         fetchContent,
         prefetchAdjacent,
         warmCache,
+        cacheReadLater,
         cancelWarmCache,
         markRead,
         markUnread,

@@ -75,6 +75,7 @@ articleStore.fetchArticles(deriveView()).then(async () => {
         }
     }
     articleStore.warmCache()
+    articleStore.cacheReadLater()
 })
 
 // Keep document title in sync with the current filter
@@ -91,7 +92,10 @@ watch(
         if (route.name === 'articles.index') {
             closeArticlePanel()
             showFeedInfo.value = false
-            articleStore.fetchArticles(deriveView()).then(() => articleStore.warmCache())
+            articleStore.fetchArticles(deriveView()).then(() => {
+                articleStore.warmCache()
+                articleStore.cacheReadLater()
+            })
         }
     },
     { deep: true }
