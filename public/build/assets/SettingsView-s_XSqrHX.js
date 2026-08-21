@@ -1,35 +1,34 @@
 import {
-    s as T,
+    s as D,
     o as N,
     q as m,
-    f as o,
+    f as d,
     g as e,
     F as j,
-    r as D,
+    r as $,
     l as b,
     v as H,
     h as f,
-    t as d,
+    t as n,
     i as C,
     Q as p,
     j as h,
     k as A,
-    Y as I,
     a4 as x,
     p as _,
-    b as i,
-} from './app-BO6VQ9fp.js'
-import { u as $ } from './useDarkMode-DRhgZMM1.js'
-import { u as G } from './useToast-w_qnOgVX.js'
+    b as u,
+} from './app-BnURHHqH.js'
+import { u as I } from './useDarkMode-CRp9DEOA.js'
+import { u as G } from './useToast-B2RcqhN9.js'
 import { _ as R } from './_plugin-vue_export-helper-DlAUqK2U.js'
 const q = { key: 0, class: 'flex items-center justify-center py-20' },
     Q = { key: 1, class: 'mx-auto max-w-lg px-4 py-6 space-y-5' },
-    Y = { class: 'rounded-xl bg-neutral-50 dark:bg-neutral-900 p-5 mb-5' },
+    Z = { class: 'rounded-xl bg-neutral-50 dark:bg-neutral-900 p-5 mb-5' },
     J = { class: 'space-y-4' },
     K = { class: 'grid grid-cols-3 gap-2' },
     W = ['onClick'],
     X = { class: 'rounded-xl bg-neutral-50 dark:bg-neutral-900 p-5 mb-5' },
-    Z = { class: 'space-y-4' },
+    Y = { class: 'space-y-4' },
     ee = { class: 'flex items-center justify-between' },
     te = ['aria-checked'],
     re = { class: 'flex items-center justify-between' },
@@ -39,16 +38,17 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
     ne = { key: 0, class: 'mt-1 text-sm text-red-600 dark:text-red-400' },
     oe = { key: 0, class: 'mt-1 text-sm text-red-600 dark:text-red-400' },
     de = ['disabled'],
-    ie = { class: 'rounded-xl bg-neutral-50 dark:bg-neutral-900 p-5' },
-    ue = { key: 0, class: 'mt-1 text-sm text-red-600 dark:text-red-400' },
+    ue = { class: 'rounded-xl bg-neutral-50 dark:bg-neutral-900 p-5' },
+    ie = { key: 0, class: 'mt-1 text-sm text-red-600 dark:text-red-400' },
     ce = { key: 0, class: 'mt-1 text-sm text-red-600 dark:text-red-400' },
     be = ['disabled'],
     me = {
         __name: 'SettingsView',
         setup(fe) {
-            const V = T(),
-                { setTheme: M } = $(),
+            const V = D(),
+                { setTheme: M } = I(),
                 { success: y, error: k } = G(),
+                F = `2963880 (${new Date('2026-08-21T14:58:58.399Z').toLocaleDateString()})`,
                 S = _(!0),
                 r = x({
                     theme: 'dark',
@@ -59,9 +59,9 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                     hide_read_articles: !1,
                 }),
                 g = _(!1),
-                n = x({ name: '', email: '' }),
+                o = x({ name: '', email: '' }),
                 v = _(!1),
-                u = x({}),
+                i = x({}),
                 l = x({ current_password: '', password: '', password_confirmation: '' }),
                 w = _(!1),
                 c = x({})
@@ -75,15 +75,15 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                         (r.refresh_interval = t.refresh_interval || 30),
                         (r.mark_read_on_scroll = t.mark_read_on_scroll || !0),
                         (r.hide_read_articles = t.hide_read_articles || !1),
-                        (n.name = a.name || ''),
-                        (n.email = a.email || ''))
+                        (o.name = a.name || ''),
+                        (o.email = a.email || ''))
                 } catch {
                     k('Failed to load settings')
                 } finally {
                     S.value = !1
                 }
             })
-            async function F() {
+            async function L() {
                 g.value = !0
                 try {
                     ;(await m.patch('/api/settings', {
@@ -106,19 +106,19 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                 ;((r.theme = s), M(s))
             }
             async function z() {
-                ;((v.value = !0), Object.keys(u).forEach(s => delete u[s]))
+                ;((v.value = !0), Object.keys(i).forEach(s => delete i[s]))
                 try {
-                    ;(await m.patch('/api/settings/account', { name: n.name, email: n.email }),
+                    ;(await m.patch('/api/settings/account', { name: o.name, email: o.email }),
                         y('Account updated'))
                 } catch (s) {
                     s.response?.status === 422
-                        ? Object.assign(u, s.response.data.errors || {})
+                        ? Object.assign(i, s.response.data.errors || {})
                         : k('Failed to update account')
                 } finally {
                     v.value = !1
                 }
             }
-            async function L() {
+            async function P() {
                 ;((w.value = !0), Object.keys(c).forEach(s => delete c[s]))
                 try {
                     ;(await m.patch('/api/settings/password', {
@@ -140,25 +140,25 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                     w.value = !1
                 }
             }
-            function P() {
+            function B() {
                 V.push({ name: 'opml.import' })
             }
-            function B() {
+            function E() {
                 window.location.href = '/opml/export'
             }
-            async function E() {
+            async function O() {
                 try {
                     ;(await m.post('/logout'), (window.location.href = '/'))
                 } catch {
                     window.location.href = '/'
                 }
             }
-            function O() {
+            function T() {
                 V.back()
             }
             return (s, t) => (
-                i(),
-                o(
+                u(),
+                d(
                     j,
                     null,
                     [
@@ -179,7 +179,7 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                                                 e(
                                                     'button',
                                                     {
-                                                        onClick: O,
+                                                        onClick: T,
                                                         class: 'rounded-lg p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors -ml-2',
                                                         'aria-label': 'Go back',
                                                     },
@@ -225,8 +225,8 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                             ]
                         ),
                         S.value
-                            ? (i(),
-                              o('div', q, [
+                            ? (u(),
+                              d('div', q, [
                                   ...(t[10] ||
                                       (t[10] = [
                                           e(
@@ -255,13 +255,13 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                                           ),
                                       ])),
                               ]))
-                            : (i(),
-                              o('div', Q, [
+                            : (u(),
+                              d('div', Q, [
                                   e(
                                       'form',
-                                      { onSubmit: C(F, ['prevent']) },
+                                      { onSubmit: C(L, ['prevent']) },
                                       [
-                                          e('div', Y, [
+                                          e('div', Z, [
                                               t[12] ||
                                                   (t[12] = e(
                                                       'h2',
@@ -283,11 +283,11 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                                                               -1
                                                           )),
                                                       e('div', K, [
-                                                          (i(),
-                                                          o(
+                                                          (u(),
+                                                          d(
                                                               j,
                                                               null,
-                                                              D(
+                                                              $(
                                                                   [
                                                                       {
                                                                           value: 'dark',
@@ -318,7 +318,7 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                                                                                       : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700',
                                                                               ]),
                                                                           },
-                                                                          d(a.label),
+                                                                          n(a.label),
                                                                           11,
                                                                           W
                                                                       )
@@ -339,7 +339,7 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                                                       ' Feeds ',
                                                       -1
                                                   )),
-                                              e('div', Z, [
+                                              e('div', Y, [
                                                   e('div', null, [
                                                       t[14] ||
                                                           (t[14] = e(
@@ -537,7 +537,7 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                                                   class: 'w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-25',
                                                   disabled: g.value,
                                               },
-                                              d(g.value ? 'Saving...' : 'Save Preferences'),
+                                              n(g.value ? 'Saving...' : 'Save Preferences'),
                                               9,
                                               se
                                           ),
@@ -576,17 +576,17 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                                                               id: 'name',
                                                               'onUpdate:modelValue':
                                                                   t[3] ||
-                                                                  (t[3] = a => (n.name = a)),
+                                                                  (t[3] = a => (o.name = a)),
                                                               type: 'text',
                                                               class: 'w-full rounded-lg border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-base text-neutral-800 dark:text-neutral-200 focus:border-blue-500 focus:ring-blue-500 focus:ring-offset-white dark:focus:ring-offset-neutral-900',
                                                           },
                                                           null,
                                                           512
                                                       ),
-                                                      [[p, n.name]]
+                                                      [[p, o.name]]
                                                   ),
-                                                  u.name
-                                                      ? (i(), o('p', ne, d(u.name[0]), 1))
+                                                  i.name
+                                                      ? (u(), d('p', ne, n(i.name[0]), 1))
                                                       : h('', !0),
                                               ]),
                                               e('div', null, [
@@ -607,17 +607,17 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                                                               id: 'email',
                                                               'onUpdate:modelValue':
                                                                   t[4] ||
-                                                                  (t[4] = a => (n.email = a)),
+                                                                  (t[4] = a => (o.email = a)),
                                                               type: 'email',
                                                               class: 'w-full rounded-lg border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-base text-neutral-800 dark:text-neutral-200 focus:border-blue-500 focus:ring-blue-500 focus:ring-offset-white dark:focus:ring-offset-neutral-900',
                                                           },
                                                           null,
                                                           512
                                                       ),
-                                                      [[p, n.email]]
+                                                      [[p, o.email]]
                                                   ),
-                                                  u.email
-                                                      ? (i(), o('p', oe, d(u.email[0]), 1))
+                                                  i.email
+                                                      ? (u(), d('p', oe, n(i.email[0]), 1))
                                                       : h('', !0),
                                               ]),
                                               e(
@@ -627,7 +627,7 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                                                       class: 'w-full rounded-lg bg-neutral-200 dark:bg-neutral-800 px-4 py-3 text-sm font-medium text-neutral-800 dark:text-neutral-200 transition hover:bg-neutral-300 dark:hover:bg-neutral-700 disabled:opacity-25',
                                                       disabled: v.value,
                                                   },
-                                                  d(
+                                                  n(
                                                       v.value
                                                           ? 'Updating...'
                                                           : 'Update Account'
@@ -639,7 +639,7 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                                           32
                                       ),
                                   ]),
-                                  e('div', ie, [
+                                  e('div', ue, [
                                       t[24] ||
                                           (t[24] = e(
                                               'h2',
@@ -651,7 +651,7 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                                           )),
                                       e(
                                           'form',
-                                          { onSubmit: C(L, ['prevent']), class: 'space-y-4' },
+                                          { onSubmit: C(P, ['prevent']), class: 'space-y-4' },
                                           [
                                               e('div', null, [
                                                   t[21] ||
@@ -683,11 +683,11 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                                                       [[p, l.current_password]]
                                                   ),
                                                   c.current_password
-                                                      ? (i(),
-                                                        o(
+                                                      ? (u(),
+                                                        d(
                                                             'p',
-                                                            ue,
-                                                            d(c.current_password[0]),
+                                                            ie,
+                                                            n(c.current_password[0]),
                                                             1
                                                         ))
                                                       : h('', !0),
@@ -721,7 +721,7 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                                                       [[p, l.password]]
                                                   ),
                                                   c.password
-                                                      ? (i(), o('p', ce, d(c.password[0]), 1))
+                                                      ? (u(), d('p', ce, n(c.password[0]), 1))
                                                       : h('', !0),
                                               ]),
                                               e('div', null, [
@@ -761,7 +761,7 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                                                       class: 'w-full rounded-lg bg-neutral-200 dark:bg-neutral-800 px-4 py-3 text-sm font-medium text-neutral-800 dark:text-neutral-200 transition hover:bg-neutral-300 dark:hover:bg-neutral-700 disabled:opacity-25',
                                                       disabled: w.value,
                                                   },
-                                                  d(
+                                                  n(
                                                       w.value
                                                           ? 'Updating...'
                                                           : 'Update Password'
@@ -792,7 +792,7 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                                               e(
                                                   'button',
                                                   {
-                                                      onClick: P,
+                                                      onClick: B,
                                                       class: 'flex w-full items-center gap-3 rounded-lg bg-neutral-200 dark:bg-neutral-800 px-4 py-3 text-sm text-neutral-800 dark:text-neutral-200 transition hover:bg-neutral-300 dark:hover:bg-neutral-700',
                                                   },
                                                   [
@@ -825,7 +825,7 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                                               e(
                                                   'button',
                                                   {
-                                                      onClick: B,
+                                                      onClick: E,
                                                       class: 'flex w-full items-center gap-3 rounded-lg bg-neutral-200 dark:bg-neutral-800 px-4 py-3 text-sm text-neutral-800 dark:text-neutral-200 transition hover:bg-neutral-300 dark:hover:bg-neutral-700',
                                                   },
                                                   [
@@ -858,15 +858,70 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
                                           ]),
                                       ]
                                   ),
-                                  t[28] ||
-                                      (t[28] = I(
-                                          '<div class="rounded-xl bg-neutral-50 dark:bg-neutral-900 p-5" data-v-42c56364><h2 class="text-base font-medium text-neutral-800 dark:text-neutral-200 mb-3" data-v-42c56364>About</h2><div class="space-y-2 text-sm text-neutral-500 dark:text-neutral-400" data-v-42c56364><div class="flex justify-between" data-v-42c56364><span data-v-42c56364>Version</span><span class="text-neutral-700 dark:text-neutral-300" data-v-42c56364>1.0.0</span></div><div class="flex justify-between" data-v-42c56364><span data-v-42c56364>Source code</span><a href="https://github.com/tectiv3/rreader" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300" data-v-42c56364> GitHub </a></div></div></div>',
-                                          1
-                                      )),
+                                  e(
+                                      'div',
+                                      {
+                                          class: 'rounded-xl bg-neutral-50 dark:bg-neutral-900 p-5',
+                                      },
+                                      [
+                                          t[30] ||
+                                              (t[30] = e(
+                                                  'h2',
+                                                  {
+                                                      class: 'text-base font-medium text-neutral-800 dark:text-neutral-200 mb-3',
+                                                  },
+                                                  'About',
+                                                  -1
+                                              )),
+                                          e(
+                                              'div',
+                                              {
+                                                  class: 'space-y-2 text-sm text-neutral-500 dark:text-neutral-400',
+                                              },
+                                              [
+                                                  e('div', { class: 'flex justify-between' }, [
+                                                      t[28] ||
+                                                          (t[28] = e(
+                                                              'span',
+                                                              null,
+                                                              'Version',
+                                                              -1
+                                                          )),
+                                                      e(
+                                                          'span',
+                                                          {
+                                                              class: 'text-neutral-700 dark:text-neutral-300',
+                                                          },
+                                                          n(F)
+                                                      ),
+                                                  ]),
+                                                  t[29] ||
+                                                      (t[29] = e(
+                                                          'div',
+                                                          { class: 'flex justify-between' },
+                                                          [
+                                                              e('span', null, 'Source code'),
+                                                              e(
+                                                                  'a',
+                                                                  {
+                                                                      href: 'https://github.com/tectiv3/rreader',
+                                                                      target: '_blank',
+                                                                      rel: 'noopener noreferrer',
+                                                                      class: 'text-blue-400 hover:text-blue-300',
+                                                                  },
+                                                                  ' GitHub '
+                                                              ),
+                                                          ],
+                                                          -1
+                                                      )),
+                                              ]
+                                          ),
+                                      ]
+                                  ),
                                   e(
                                       'button',
                                       {
-                                          onClick: E,
+                                          onClick: O,
                                           class: 'w-full rounded-lg bg-red-50 dark:bg-red-900/50 border border-red-300 dark:border-red-800 px-4 py-3 text-sm font-medium text-red-700 dark:text-red-300 transition hover:bg-red-100 dark:hover:bg-red-900/70',
                                       },
                                       ' Log Out '
@@ -878,5 +933,5 @@ const q = { key: 0, class: 'flex items-center justify-center py-20' },
             )
         },
     },
-    we = R(me, [['__scopeId', 'data-v-42c56364']])
+    we = R(me, [['__scopeId', 'data-v-1d385e3d']])
 export { we as default }

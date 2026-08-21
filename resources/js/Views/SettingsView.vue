@@ -9,6 +9,8 @@ const router = useRouter()
 const { theme, setTheme } = useDarkMode()
 const { success, error: showError } = useToast()
 
+const buildVersion = `${__BUILD_VERSION__} (${new Date(__BUILD_TIME__).toLocaleDateString()})`
+
 const loading = ref(true)
 
 // Preferences form
@@ -532,7 +534,7 @@ function goBack() {
             <div class="space-y-2 text-sm text-neutral-500 dark:text-neutral-400">
                 <div class="flex justify-between">
                     <span>Version</span>
-                    <span class="text-neutral-700 dark:text-neutral-300">1.0.0</span>
+                    <span class="text-neutral-700 dark:text-neutral-300">{{ buildVersion }}</span>
                 </div>
                 <div class="flex justify-between">
                     <span>Source code</span>
