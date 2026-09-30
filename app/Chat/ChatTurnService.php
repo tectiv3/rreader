@@ -1,0 +1,201 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Chat;
+
+use App\Models\AgentConversation;
+use App\Models\User;
+use Closure;
+use Generator;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
+use Laravel\Ai\Exceptions\AiException;
+use Laravel\Ai\Exceptions\InsufficientCreditsException;
+use Laravel\Ai\Exceptions\ProviderConnectionException;
+use Laravel\Ai\Exceptions\ProviderOverloadedException;
+use Laravel\Ai\Exceptions\RateLimitedException;
+use Laravel\Ai\Exceptions\StreamErrorException;
+use Laravel\Ai\Responses\StreamableAgentResponse;
+use Laravel\Ai\Streaming\Events\Error as ErrorEvent;
+use Laravel\Ai\Streaming\Events\ReasoningDelta;
+use Laravel\Ai\Streaming\Events\StreamEnd;
+use Laravel\Ai\Streaming\Events\TextDelta;
+use Laravel\Ai\Streaming\Events\TextEnd;
+use Laravel\Ai\Streaming\Events\ToolCall as ToolCallEvent;
+use Laravel\Ai\Streaming\Events\ToolResult as ToolResultEvent;
+use Throwable;
+
+/**
+ * Executes one chat turn and maps the package's stream events to SSE frames.
+ *
+ * Concurrency (spec): a turn holds a per-conversation and a per-user cache
+ * lock for its whole duration. The TTL is the hard-kill backstop and must
+ * stay >= per-step timeout 120s x maxSteps 8 + tool time (~1160s) and <= FPM
+ * request_terminate_timeout; a killed worker leaves the conversation locked
+ * for up to 20 minutes — accepted by the spec.
+ */
+final class ChatTurnService
+{
+    public const LOCK_TTL = 1200;
+
+    public const CONVERSATION_LOCK_PREFIX = 'chat-turn:';
+
+    public const USER_LOCK_PREFIX = 'chat-user:';
+
+    /**
+     * Builds the package stream for one turn. Injectable so tests can fake
+     * the provider stream; the default resolves provider/model from the
+     * conversation row via the agent's provider()/model().
+     *
+     * @var Closure(AgentConversation, User, string): StreamableAgentResponse
+     */
+    private Closure $streamFactory;
+
+    public function __construct(
+        private readonly ChatProviders $providers,
+        ?Closure $streamFactory = null,
+    ) {
+        $this->streamFactory = $streamFactory ?? static fn (AgentConversation $conversation, User $user, string $content): StreamableAgentResponse => (new ArticleChatAgent($conversation, $user))
+            ->continue((string) $conversation->getKey(), $user)
+            ->stream($content);
+    }
+
+    /**
+     * Gate and lock one turn. Throws the 409 conflicts before any provider
+     * work starts, so the controller can still answer with a plain JSON
+     * error instead of an already-started SSE stream.
+     *
+     * @throws ChatTurnConflictException provider unconfigured or a turn in flight
+     */
+    public function begin(User $user, AgentConversation $conversation, string $content): ChatTurn
+    {
+        $provider = (string) $conversation->provider;
+
+        if (! $this->providers->isConfigured($provider)) {
+            throw ChatTurnConflictException::providerUnavailable($provider);
+        }
+
+        // Both locks are always taken in this fixed order (conversation, then
+        // user) — with one global order, two concurrent turns can never each
+        // hold the lock the other needs.
+        $conversationLock = Cache::lock(self::CONVERSATION_LOCK_PREFIX.$conversation->id, self::LOCK_TTL);
+
+        if (! $conversationLock->get()) {
+            throw ChatTurnConflictException::conversationInFlight();
+        }
+
+        $userLock = Cache::lock(self::USER_LOCK_PREFIX.$user->id, self::LOCK_TTL);
+
+        if (! $userLock->get()) {
+            // Never hold the first lock past a failed second acquisition.
+            $conversationLock->release();
+
+            throw ChatTurnConflictException::userInFlight();
+        }
+
+        return new ChatTurn(
+            $this->frames($user, $conversation, $content),
+            $conversationLock,
+            $userLock,
+        );
+    }
+
+    /**
+     * Map one package stream to SSE frames (`event: <name>\ndata: <json>\n\n`).
+     *
+     * Tool result payloads never leave the server (name + status only);
+     * preliminary tool results are dropped entirely (spike surprise 7). A
+     * provider failure arrives as an Error event AND a thrown
+     * StreamErrorException — exactly one error frame is emitted per turn.
+     *
+     * @return Generator<string>
+     */
+    private function frames(User $user, AgentConversation $conversation, string $content): Generator
+    {
+        $response = ($this->streamFactory)($conversation, $user, $content);
+
+        $errorSent = false;
+
+        try {
+            foreach ($response as $event) {
+                if ($errorSent) {
+                    // After an Error event the stream is terminal; keep pulling
+                    // only so the follow-up exception surfaces and the package
+                    // records the failed turn (RememberConversation's catch).
+                    continue;
+                }
+
+                if ($event instanceof TextDelta) {
+                    yield self::frame('delta', ['text' => $event->delta]);
+                } elseif ($event instanceof ReasoningDelta) {
+                    yield self::frame('reasoning', ['text' => $event->delta]);
+                } elseif ($event instanceof TextEnd) {
+                    // Lets the frontend flush its delta buffer at a safe boundary
+                    yield self::frame('delta_end');
+                } elseif ($event instanceof ToolCallEvent) {
+                    yield self::frame('tool', ['name' => $event->toolCall->name, 'status' => 'running']);
+                } elseif ($event instanceof ToolResultEvent && ! $event->preliminary) {
+                    yield self::frame('tool', [
+                        'name' => $event->toolResult->name,
+                        'status' => $event->successful ? 'completed' : 'failed',
+                    ]);
+                } elseif ($event instanceof StreamEnd) {
+                    yield self::frame('done', ['reason' => $event->reason]);
+                } elseif ($event instanceof ErrorEvent) {
+                    $errorSent = true;
+
+                    yield self::frame('error', [
+                        'message' => Str::limit($event->message, 200),
+                        'code' => $event->type,
+                    ]);
+                }
+
+                // StreamStart/TextStart/ReasoningStart/ReasoningEnd/citations and
+                // unknown future event types are ignored, never fatal.
+            }
+        } catch (Throwable $exception) {
+            if (! $errorSent) {
+                yield self::frame('error', $this->errorPayload($exception));
+            }
+
+            // A StreamErrorException only echoes an Error event already
+            // forwarded above; anything else is a bug worth the log.
+            if (! $exception instanceof StreamErrorException) {
+                report($exception);
+            }
+        }
+    }
+
+    /**
+     * Map the package exception taxonomy to a terse, human-facing message.
+     *
+     * @return array{message: string, code: string}
+     */
+    private function errorPayload(Throwable $exception): array
+    {
+        $message = match (true) {
+            $exception instanceof RateLimitedException => 'The provider is rate limiting requests. Please try again in a moment.',
+            $exception instanceof ProviderOverloadedException => 'The provider is overloaded right now. Please try again in a moment.',
+            $exception instanceof ProviderConnectionException => 'The provider could not be reached. Check that it is running and try again.',
+            $exception instanceof InsufficientCreditsException => 'The provider account is out of credits or quota.',
+            $exception instanceof StreamErrorException => 'The provider reported an error: '.Str::limit($exception->getMessage(), 200),
+            $exception instanceof AiException => 'The request to the provider failed.',
+            default => 'The chat turn failed unexpectedly.',
+        };
+
+        return ['message' => $message, 'code' => Str::snake(class_basename($exception))];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private static function frame(string $event, array $data = []): string
+    {
+        $json = json_encode((object) $data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+
+        // INVALID_UTF8_SUBSTITUTE makes failure practically impossible; stay
+        // well-formed regardless so the client's parser never desynchronizes.
+        return "event: {$event}\ndata: ".($json === false ? '{}' : $json)."\n\n";
+    }
+}

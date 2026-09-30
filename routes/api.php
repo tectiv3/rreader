@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\ArticleApiController;
 use App\Http\Controllers\Api\CategoryApiController;
 use App\Http\Controllers\Api\ChatConversationApiController;
+use App\Http\Controllers\Api\ChatMessageApiController;
 use App\Http\Controllers\Api\ChatModelsApiController;
 use App\Http\Controllers\Api\FeedApiController;
 use App\Http\Controllers\Api\HighlightApiController;
@@ -56,11 +57,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/highlights/{highlight}', [HighlightApiController::class, 'update']);
     Route::delete('/highlights/{highlight}', [HighlightApiController::class, 'destroy']);
 
-    // Chat (turn-streaming POST /chat/conversations/{id}/messages lands in a later task)
+    // Chat
     Route::get('/chat/models', [ChatModelsApiController::class, 'index']);
     Route::get('/chat/conversations', [ChatConversationApiController::class, 'index']);
     Route::post('/chat/conversations', [ChatConversationApiController::class, 'store']);
     Route::get('/chat/conversations/{id}', [ChatConversationApiController::class, 'show']);
     Route::patch('/chat/conversations/{id}', [ChatConversationApiController::class, 'update']);
     Route::delete('/chat/conversations/{id}', [ChatConversationApiController::class, 'destroy']);
+    Route::post('/chat/conversations/{id}/messages', [ChatMessageApiController::class, 'store']);
 });
