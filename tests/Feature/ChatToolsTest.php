@@ -7,6 +7,9 @@ use App\Chat\Tools\GetArticleTool;
 use App\Chat\Tools\GetHighlightsTool;
 use App\Chat\Tools\SearchArticlesTool;
 use App\Chat\Tools\SearchChatHistoryTool;
+use App\Chat\Tools\WebFetchTool;
+use App\Chat\WebFetchClient;
+use App\Chat\WebFetchHopResponse;
 use App\Models\AgentConversation;
 use App\Models\Article;
 use App\Models\Feed;
@@ -169,6 +172,90 @@ class ChatToolsTest extends TestCase
         $this->assertSame(
             'No chat history found matching "zeppelin".',
             $tool->handle(new Request(['query' => 'zeppelin'])),
+        );
+    }
+
+    public function test_web_fetch_returns_readable_text_stripped_with_final_url(): void
+    {
+        $tool = new WebFetchTool($this->webFetchClient([
+            new WebFetchHopResponse(302, ['Location: https://cdn.example.org/airships'], ''),
+            new WebFetchHopResponse(200, [], '<html><head><title>Zeppelin Field Notes</title></head><body><article><p>Readable <b>passage</b> &amp; entities about airships</p></article></body></html>'),
+        ]));
+
+        $result = $tool->handle(new Request(['url' => 'https://example.com/airships']));
+
+        $this->assertStringContainsString('Title: Zeppelin Field Notes', $result);
+        $this->assertStringContainsString('URL: https://cdn.example.org/airships', $result);
+        $this->assertStringContainsString('Readable passage & entities about airships', $result);
+        $this->assertStringNotContainsString('<b>', $result);
+        $this->assertStringNotContainsString('&amp;', $result);
+        $this->assertStringNotContainsString('https://example.com/airships', $result);
+    }
+
+    public function test_web_fetch_truncates_huge_pages(): void
+    {
+        $body = '<html><head><title>Big</title></head><body>'.str_repeat('<p>HEADMARK filler '.str_repeat('paragraph ', 900).'TAILMARK</p>', 50).'</body></html>';
+
+        $tool = new WebFetchTool($this->webFetchClient([
+            new WebFetchHopResponse(200, [], $body),
+        ]));
+
+        $result = $tool->handle(new Request(['url' => 'https://example.com/big']));
+
+        $this->assertLessThanOrEqual(24_200, mb_strlen($result));
+        $this->assertStringContainsString('characters truncated', $result);
+        $this->assertStringContainsString('HEADMARK', $result);
+        $this->assertStringContainsString('TAILMARK', $result);
+    }
+
+    public function test_web_fetch_surfaces_fetch_failures(): void
+    {
+        $tool = new WebFetchTool($this->webFetchClient([
+            new WebFetchHopResponse(302, ['Location: http://192.168.1.1/router'], ''),
+        ]));
+
+        $result = $tool->handle(new Request(['url' => 'https://example.com/redirector']));
+
+        $this->assertSame(
+            'Fetch failed: Blocked address: 192.168.1.1 is in a private or reserved range.',
+            $result,
+        );
+    }
+
+    public function test_web_fetch_reports_pages_without_readable_text(): void
+    {
+        $tool = new WebFetchTool($this->webFetchClient([
+            new WebFetchHopResponse(200, [], '<html><body><div></div></body></html>'),
+        ]));
+
+        $result = $tool->handle(new Request(['url' => 'https://example.com/empty']));
+
+        $this->assertSame('The page at https://example.com/empty contained no readable text.', $result);
+    }
+
+    public function test_web_fetch_requires_a_url(): void
+    {
+        $tool = new WebFetchTool($this->webFetchClient([]));
+
+        $this->assertSame('Provide a URL to fetch.', $tool->handle(new Request));
+    }
+
+    /**
+     * @param  array<int, WebFetchHopResponse>  $hops
+     */
+    private function webFetchClient(array $hops): WebFetchClient
+    {
+        $hops = array_values($hops);
+
+        return new WebFetchClient(
+            transport: function (string $url, array $resolve, int $maxBytes) use (&$hops): WebFetchHopResponse {
+                if ($hops === []) {
+                    $this->fail('Unexpected extra transport call for '.$url);
+                }
+
+                return array_shift($hops);
+            },
+            resolver: fn (string $host): array => ['93.184.216.34'],
         );
     }
 

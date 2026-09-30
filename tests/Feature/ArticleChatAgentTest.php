@@ -7,6 +7,7 @@ use App\Chat\Tools\GetArticleTool;
 use App\Chat\Tools\GetHighlightsTool;
 use App\Chat\Tools\SearchArticlesTool;
 use App\Chat\Tools\SearchChatHistoryTool;
+use App\Chat\Tools\WebFetchTool;
 use App\Models\AgentConversation;
 use App\Models\Article;
 use App\Models\Feed;
@@ -43,7 +44,7 @@ class ArticleChatAgentTest extends TestCase
         $this->assertSame('qwen3.8-27b', $agent->model());
     }
 
-    public function test_tools_are_the_four_db_tools_bound_to_user_and_article(): void
+    public function test_tools_are_the_five_chat_tools_bound_to_user_and_article(): void
     {
         $agent = $this->agent();
 
@@ -53,17 +54,18 @@ class ArticleChatAgentTest extends TestCase
         foreach ($tools as $tool) {
             // name() is duck-typed by the package (not on the Tool contract), so
             // narrow to our concrete classes before calling it.
-            assert($tool instanceof GetArticleTool || $tool instanceof SearchArticlesTool || $tool instanceof GetHighlightsTool || $tool instanceof SearchChatHistoryTool);
+            assert($tool instanceof GetArticleTool || $tool instanceof SearchArticlesTool || $tool instanceof GetHighlightsTool || $tool instanceof SearchChatHistoryTool || $tool instanceof WebFetchTool);
             $names[] = $tool->name();
         }
         $this->assertSame(
-            ['get_article', 'search_articles', 'get_highlights', 'search_chat_history'],
+            ['get_article', 'search_articles', 'get_highlights', 'search_chat_history', 'web_fetch'],
             $names,
         );
         $this->assertInstanceOf(GetArticleTool::class, $tools[0]);
         $this->assertInstanceOf(SearchArticlesTool::class, $tools[1]);
         $this->assertInstanceOf(GetHighlightsTool::class, $tools[2]);
         $this->assertInstanceOf(SearchChatHistoryTool::class, $tools[3]);
+        $this->assertInstanceOf(WebFetchTool::class, $tools[4]);
     }
 
     public function test_loop_limits_follow_the_spec(): void

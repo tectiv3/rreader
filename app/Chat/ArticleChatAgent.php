@@ -6,6 +6,7 @@ use App\Chat\Tools\GetArticleTool;
 use App\Chat\Tools\GetHighlightsTool;
 use App\Chat\Tools\SearchArticlesTool;
 use App\Chat\Tools\SearchChatHistoryTool;
+use App\Chat\Tools\WebFetchTool;
 use App\Models\AgentConversation;
 use App\Models\User;
 use Laravel\Ai\Concerns\RemembersConversations;
@@ -64,6 +65,7 @@ class ArticleChatAgent implements Agent, Conversational, HasTools
             new SearchArticlesTool($this->user),
             new GetHighlightsTool($this->user),
             new SearchChatHistoryTool($this->user, (string) $this->conversation->getKey()),
+            new WebFetchTool,
         ];
     }
 

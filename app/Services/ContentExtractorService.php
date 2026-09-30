@@ -89,7 +89,12 @@ class ContentExtractorService
         return null;
     }
 
-    private function extractReadableContent(string $html, string $url): ?array
+    /**
+     * Parsing-only layer (no fetching), reused by WebFetchTool.
+     *
+     * @return array{title: string|null, content: string, excerpt: string|null}|null
+     */
+    public function extractReadableContent(string $html, string $url): ?array
     {
         try {
             $config = new ReadabilityConfig([
