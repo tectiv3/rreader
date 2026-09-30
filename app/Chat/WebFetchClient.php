@@ -2,6 +2,7 @@
 
 namespace App\Chat;
 
+use App\Services\CurlImpersonateClient;
 use Closure;
 use GuzzleHttp\Psr7\Exception\MalformedUriException;
 use GuzzleHttp\Psr7\Uri;
@@ -53,14 +54,22 @@ class WebFetchClient
 
     private readonly Closure $resolver;
 
+    private readonly Closure $impersonateTransport;
+
     /**
      * @param  null|Closure(string $url, array<int, string> $resolve, int $maxBytes): WebFetchHopResponse  $transport
      * @param  null|Closure(string $host): array<int, string>  $resolver
+     * @param  null|Closure(string $url, array<int, string> $resolve, int $maxBytes): WebFetchHopResponse  $impersonateTransport
      */
-    public function __construct(?Closure $transport = null, ?Closure $resolver = null)
-    {
+    public function __construct(
+        ?Closure $transport = null,
+        ?Closure $resolver = null,
+        private readonly CurlImpersonateClient $impersonate = new CurlImpersonateClient,
+        ?Closure $impersonateTransport = null,
+    ) {
         $this->transport = $transport ?? $this->defaultTransport();
         $this->resolver = $resolver ?? $this->defaultResolver();
+        $this->impersonateTransport = $impersonateTransport ?? $this->defaultImpersonateTransport();
     }
 
     public function fetch(string $url): WebFetchResult
@@ -111,7 +120,8 @@ class WebFetchClient
 
         for ($hop = 1; $hop <= self::MAX_HOPS; $hop++) {
             $resolve = $this->resolveAndPin($uri);
-            $response = ($this->transport)((string) $uri, $resolve, self::MAX_BYTES);
+            $transport = $this->impersonate->configured() ? $this->impersonateTransport : $this->transport;
+            $response = $transport((string) $uri, $resolve, self::MAX_BYTES);
 
             if ($response->error !== null) {
                 throw new WebFetchException($response->error);
@@ -313,6 +323,37 @@ class WebFetchClient
             }
 
             return array_values(array_unique($addresses));
+        };
+    }
+
+    private function defaultImpersonateTransport(): Closure
+    {
+        return function (string $url, array $resolve, int $maxBytes): WebFetchHopResponse {
+            $result = $this->impersonate->fetch(
+                $url,
+                resolve: $resolve,
+                followRedirects: false,
+                maxBytes: $maxBytes,
+                connectTimeout: self::CONNECT_TIMEOUT,
+                totalTimeout: self::TOTAL_TIMEOUT,
+                processTimeout: self::TOTAL_TIMEOUT + 5,
+            );
+
+            if ($result->error !== null) {
+                return new WebFetchHopResponse($result->status, [], '', $result->error);
+            }
+
+            $headerLines = ['Content-Length: '.$result->sizeDownload];
+
+            if ($result->contentType !== null) {
+                $headerLines[] = 'Content-Type: '.$result->contentType;
+            }
+
+            if ($result->redirectUrl !== null) {
+                $headerLines[] = 'Location: '.$result->redirectUrl;
+            }
+
+            return new WebFetchHopResponse($result->status, $headerLines, $result->body);
         };
     }
 

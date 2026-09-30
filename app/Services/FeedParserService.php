@@ -7,11 +7,13 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Process;
+use Laminas\Feed\Reader\Entry\AbstractEntry;
 use Laminas\Feed\Reader\Reader as FeedReader;
 
 class FeedParserService
 {
+    public function __construct(private readonly CurlImpersonateClient $impersonate = new CurlImpersonateClient) {}
+
     /**
      * Discover and parse a feed from a URL.
      * Accepts direct feed URLs or website URLs (auto-discovery).
@@ -115,45 +117,23 @@ class FeedParserService
      */
     private function fetchImpersonated(string $url): ?Response
     {
-        $binary = config('services.curl_impersonate.binary');
-
-        if (! $binary) {
+        if (! $this->impersonate->configured()) {
             return null;
         }
 
-        $marker = '__CURL_META__';
+        $result = $this->impersonate->fetch($url, followRedirects: true, processTimeout: 25, totalTimeout: 15);
 
-        $result = Process::timeout(25)->run([
-            $binary, '-s', '-L', '--max-time', '15',
-            '-w', "\n{$marker} %{http_code} %{content_type}",
-            $url,
-        ]);
-
-        if (! $result->successful()) {
+        if ($result->error !== null || $result->status === 0) {
             Log::warning('curl-impersonate fetch failed', [
                 'url' => $url,
-                'exit_code' => $result->exitCode(),
-                'error' => $result->errorOutput(),
+                'status' => $result->status,
+                'error' => $result->error,
             ]);
 
             return null;
         }
 
-        $output = $result->output();
-        $pos = strrpos($output, "\n{$marker} ");
-
-        if ($pos === false) {
-            return null;
-        }
-
-        $body = substr($output, 0, $pos);
-        [$status, $contentType] = array_pad(
-            explode(' ', trim(substr($output, $pos + strlen("\n{$marker} "))), 2),
-            2,
-            ''
-        );
-
-        return new Response(new Psr7Response((int) $status, ['Content-Type' => $contentType], $body));
+        return new Response(new Psr7Response($result->status, ['Content-Type' => $result->contentType ?? ''], $result->body));
     }
 
     private function normalizeUrl(string $url): string
@@ -265,7 +245,7 @@ class FeedParserService
                 }
             }
 
-            if (! $imageUrl) {
+            if (! $imageUrl && $entry instanceof AbstractEntry) {
                 $imageUrl = $this->extractMediaContent($entry->getElement());
             }
 
@@ -274,7 +254,7 @@ class FeedParserService
                 'title' => $entry->getTitle(),
                 'author' => $entry->getAuthor()['name'] ?? null,
                 'content' => $entry->getContent(),
-                'summary' => strip_tags($entry->getDescription() ?? ''),
+                'summary' => strip_tags($entry->getDescription()),
                 'url' => $entry->getLink(),
                 'image_url' => $imageUrl,
                 'published_at' => $entry->getDateCreated()?->format('Y-m-d H:i:s')

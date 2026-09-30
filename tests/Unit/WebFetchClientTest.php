@@ -4,6 +4,8 @@ namespace Tests\Unit;
 
 use App\Chat\WebFetchClient;
 use App\Chat\WebFetchHopResponse;
+use Illuminate\Process\PendingProcess;
+use Illuminate\Support\Facades\Process;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -407,6 +409,87 @@ class WebFetchClientTest extends TestCase
         $result = $client->fetch('https://example.com/missing');
 
         $this->assertSame('HTTP 404 from https://example.com/missing.', $result->error);
+    }
+
+    public function test_uses_the_impersonate_transport_when_configured(): void
+    {
+        config(['services.curl_impersonate.binary' => PHP_BINARY]);
+
+        $inProcessCalled = false;
+        $captured = [];
+
+        $client = new WebFetchClient(
+            transport: function (string $url, array $resolve, int $maxBytes) use (&$inProcessCalled): WebFetchHopResponse {
+                $inProcessCalled = true;
+
+                return new WebFetchHopResponse(200, [], 'in-process');
+            },
+            resolver: fn (string $host): array => ['93.184.216.34'],
+            impersonateTransport: function (string $url, array $resolve, int $maxBytes) use (&$captured): WebFetchHopResponse {
+                $captured = [$url, $resolve, $maxBytes];
+
+                return new WebFetchHopResponse(200, [], 'impersonated');
+            },
+        );
+
+        $result = $client->fetch('https://example.com/page');
+
+        $this->assertFalse($result->failed());
+        $this->assertSame('impersonated', $result->body);
+        $this->assertFalse($inProcessCalled);
+        $this->assertSame([
+            'https://example.com/page',
+            ['example.com:443:93.184.216.34'],
+            WebFetchClient::MAX_BYTES,
+        ], $captured);
+    }
+
+    public function test_ssrf_validation_precedes_impersonate_transport_selection(): void
+    {
+        config(['services.curl_impersonate.binary' => PHP_BINARY]);
+
+        $impersonateCalled = false;
+
+        $client = new WebFetchClient(
+            transport: fn (string $url, array $resolve, int $maxBytes): WebFetchHopResponse => new WebFetchHopResponse(200, [], ''),
+            resolver: fn (string $host): array => ['10.0.0.8'],
+            impersonateTransport: function (string $url, array $resolve, int $maxBytes) use (&$impersonateCalled): WebFetchHopResponse {
+                $impersonateCalled = true;
+
+                return new WebFetchHopResponse(200, [], '');
+            },
+        );
+
+        $result = $client->fetch('https://internal.example/x');
+
+        $this->assertTrue($result->failed());
+        $this->assertSame('Blocked address: "internal.example" resolves to 10.0.0.8, which is in a private or reserved range.', $result->error);
+        $this->assertFalse($impersonateCalled);
+    }
+
+    public function test_default_impersonate_transport_synthesizes_redirects_and_content_length(): void
+    {
+        config(['services.curl_impersonate.binary' => PHP_BINARY]);
+
+        $outputs = [
+            "\n__CURL_META__302\ttext/html\thttps://example.com/next\t0",
+            "final body\n__CURL_META__200\ttext/html\t\t10",
+        ];
+        $call = 0;
+
+        Process::fake(function (PendingProcess $process) use (&$outputs, &$call): mixed {
+            return Process::result($outputs[$call++]);
+        });
+
+        $client = new WebFetchClient(
+            resolver: fn (string $host): array => ['93.184.216.34'],
+        );
+
+        $result = $client->fetch('https://example.com/start');
+
+        $this->assertFalse($result->failed());
+        $this->assertSame('final body', $result->body);
+        $this->assertSame('https://example.com/next', $result->finalUrl);
     }
 
     /**
