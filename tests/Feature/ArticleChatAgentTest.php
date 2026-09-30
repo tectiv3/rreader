@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Chat\ArticleChatAgent;
+use App\Chat\BudgetedTool;
 use App\Chat\Tools\GetArticleTool;
 use App\Chat\Tools\GetHighlightsTool;
 use App\Chat\Tools\SearchArticlesTool;
@@ -50,29 +51,28 @@ class ArticleChatAgentTest extends TestCase
 
         $tools = $agent->tools();
 
-        $names = [];
-        foreach ($tools as $tool) {
-            // name() is duck-typed by the package (not on the Tool contract), so
-            // narrow to our concrete classes before calling it.
-            assert($tool instanceof GetArticleTool || $tool instanceof SearchArticlesTool || $tool instanceof GetHighlightsTool || $tool instanceof SearchChatHistoryTool || $tool instanceof WebFetchTool);
-            $names[] = $tool->name();
-        }
+        $this->assertCount(5, $tools);
+        $this->assertContainsOnlyInstancesOf(BudgetedTool::class, $tools);
+
+        // name() is duck-typed by the package (not on the Tool contract), so
+        // the wrapper forwards the wrapped tool's name through the resolver.
+        $names = array_map(fn (BudgetedTool $tool): string => $tool->name(), $tools);
         $this->assertSame(
             ['get_article', 'search_articles', 'get_highlights', 'search_chat_history', 'web_fetch'],
             $names,
         );
-        $this->assertInstanceOf(GetArticleTool::class, $tools[0]);
-        $this->assertInstanceOf(SearchArticlesTool::class, $tools[1]);
-        $this->assertInstanceOf(GetHighlightsTool::class, $tools[2]);
-        $this->assertInstanceOf(SearchChatHistoryTool::class, $tools[3]);
-        $this->assertInstanceOf(WebFetchTool::class, $tools[4]);
+        $this->assertInstanceOf(GetArticleTool::class, $tools[0]->tool());
+        $this->assertInstanceOf(SearchArticlesTool::class, $tools[1]->tool());
+        $this->assertInstanceOf(GetHighlightsTool::class, $tools[2]->tool());
+        $this->assertInstanceOf(SearchChatHistoryTool::class, $tools[3]->tool());
+        $this->assertInstanceOf(WebFetchTool::class, $tools[4]->tool());
     }
 
     public function test_loop_limits_follow_the_spec(): void
     {
         $agent = $this->agent();
 
-        $this->assertSame(8, $agent->maxSteps());
+        $this->assertSame(5, $agent->maxSteps());
         $this->assertSame(120, $agent->timeout());
 
         $maxConversationMessages = \Closure::bind(

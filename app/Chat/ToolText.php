@@ -35,7 +35,7 @@ class ToolText
             return $text;
         }
 
-        $marker = sprintf("\n\n[… %s characters truncated …]\n\n", number_format($length));
+        $marker = sprintf("\n\n[… %s characters truncated …]\n\n", number_format($length - $max));
 
         if ($max <= mb_strlen($marker) + 2) {
             return mb_substr($text, 0, $max);

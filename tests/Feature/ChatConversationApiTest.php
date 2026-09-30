@@ -7,6 +7,7 @@ use App\Models\AgentConversation;
 use App\Models\Article;
 use App\Models\Feed;
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -259,7 +260,7 @@ class ChatConversationApiTest extends TestCase
         $second = $this->actingAs($user)->postJson('/api/chat/conversations', ['article_id' => $article->id]);
 
         $first->assertCreated();
-        $second->assertCreated();
+        $second->assertOk();
         $this->assertSame($first->json('id'), $second->json('id'));
         $this->assertDatabaseCount('agent_conversations', 1);
     }
@@ -317,6 +318,47 @@ class ChatConversationApiTest extends TestCase
 
         $this->assertSame($winnerId, $returned->id);
         $this->assertDatabaseCount('agent_conversations', 1);
+    }
+
+    public function test_find_or_create_rethrows_a_primary_key_collision(): void
+    {
+        $user = User::factory()->create();
+        $article = $this->articleFor($user);
+        $service = app(ChatService::class);
+
+        $intruder = User::factory()->create();
+        $collisionId = null;
+
+        // Force a PK collision with another participant's row; the article-scoped
+        // fallback cannot resolve it, so the original violation must surface.
+        AgentConversation::creating(function (AgentConversation $conversation) use ($intruder, &$collisionId): bool {
+            if ($collisionId !== null) {
+                return true;
+            }
+
+            $collisionId = $conversation->id;
+
+            AgentConversation::query()->insert([
+                'id' => $collisionId,
+                'participant_type' => AgentConversation::participantType($intruder),
+                'participant_id' => $intruder->id,
+                'article_id' => null,
+                'title' => 'PK collision',
+                'provider' => 'lmstudio',
+                'model' => 'qwen3.8-27b',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return true;
+        });
+
+        try {
+            $this->expectException(UniqueConstraintViolationException::class);
+            $service->findOrCreate($user, $article);
+        } finally {
+            AgentConversation::flushEventListeners();
+        }
     }
 
     public function test_store_rejects_articles_from_other_users_feeds(): void

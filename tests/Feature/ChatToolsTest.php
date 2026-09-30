@@ -175,6 +175,86 @@ class ChatToolsTest extends TestCase
         );
     }
 
+    public function test_search_articles_treats_like_wildcards_literally(): void
+    {
+        [$user, $article] = $this->userWithArticle();
+
+        Article::create([
+            'feed_id' => $article->feed_id,
+            'guid' => (string) Str::uuid7(),
+            'title' => 'Efficiency hit 100% in trials',
+        ]);
+        Article::create([
+            'feed_id' => $article->feed_id,
+            'guid' => (string) Str::uuid7(),
+            'title' => 'Unrelated title',
+        ]);
+
+        $tool = new SearchArticlesTool($user);
+
+        $literal = $tool->handle(new Request(['query' => '%']));
+        $this->assertStringContainsString('Efficiency hit 100% in trials', $literal);
+        $this->assertStringNotContainsString('Unrelated title', $literal);
+
+        $this->assertSame(
+            'No articles found matching "100_".',
+            $tool->handle(new Request(['query' => '100_'])),
+        );
+    }
+
+    public function test_search_chat_history_treats_like_wildcards_literally(): void
+    {
+        [$user, $article] = $this->userWithArticle();
+
+        $current = $this->createConversation($user, $article, 'current');
+        $past = $this->createConversation($user, null, 'past');
+
+        $this->createMessage($past, $user, 'user', 'Battery at 100% after the update');
+        $this->createMessage($past, $user, 'user', 'Unrelated message without the symbol');
+
+        $tool = new SearchChatHistoryTool($user, $current);
+
+        $literal = $tool->handle(new Request(['query' => '%']));
+        $this->assertStringContainsString('Battery at 100% after the update', $literal);
+        $this->assertStringNotContainsString('Unrelated message without the symbol', $literal);
+
+        $this->assertSame(
+            'No chat history found matching "100_".',
+            $tool->handle(new Request(['query' => '100_'])),
+        );
+    }
+
+    public function test_article_chat_agent_omits_a_null_url_line(): void
+    {
+        $user = User::factory()->create();
+        $feed = $this->createFeed($user);
+
+        $article = Article::create([
+            'feed_id' => $feed->id,
+            'guid' => (string) Str::uuid7(),
+            'title' => 'No URL article',
+        ]);
+
+        $conversationId = (string) Str::uuid7();
+
+        AgentConversation::create([
+            'id' => $conversationId,
+            'participant_type' => AgentConversation::participantType($user),
+            'participant_id' => $user->id,
+            'article_id' => $article->id,
+            'title' => 'No URL article',
+            'provider' => 'lmstudio',
+            'model' => 'qwen3.8-27b',
+        ]);
+
+        $conversation = AgentConversation::query()->with('article.feed')->findOrFail($conversationId);
+
+        $instructions = (new ArticleChatAgent($conversation, $user))->instructions();
+
+        $this->assertStringContainsString('Title: No URL article', $instructions);
+        $this->assertStringNotContainsString('URL:', $instructions);
+    }
+
     public function test_web_fetch_returns_readable_text_stripped_with_final_url(): void
     {
         $tool = new WebFetchTool($this->webFetchClient([

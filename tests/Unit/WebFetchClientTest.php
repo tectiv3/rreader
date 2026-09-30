@@ -29,6 +29,10 @@ class WebFetchClientTest extends TestCase
             'unique-local fc00::/7' => ['fc00::1'],
             'unique-local fd (ULA)' => ['fd12:3456:789a::1'],
             'link-local v6' => ['fe80::1'],
+            'nat64 loopback' => ['64:ff9b::7f00:1'],
+            'nat64 prefix edge' => ['64:ff9b::'],
+            '6to4 loopback' => ['2002:7f00:1::'],
+            'teredo' => ['2001:0:4136:e378:8000:63bf:3fff:fdd2'],
             'v4-mapped loopback' => ['::ffff:127.0.0.1'],
             'v4-mapped private' => ['::ffff:10.0.0.5'],
             'v4-mapped hex form' => ['::ffff:7f00:1'],
@@ -136,12 +140,89 @@ class WebFetchClientTest extends TestCase
         );
 
         $client->fetch('https://example.com/page');
-        $client->fetch('http://example.com:8080/page');
+        $client->fetch('http://example.com:80/page');
 
         $this->assertSame([
-            ['https://example.com/page', ['example.com:443:93.184.216.34', 'example.com:443:2606:4700::']],
-            ['http://example.com:8080/page', ['example.com:8080:93.184.216.34', 'example.com:8080:2606:4700::']],
+            ['https://example.com/page', ['example.com:443:93.184.216.34', 'example.com:443:[2606:4700::]']],
+            ['http://example.com/page', ['example.com:80:93.184.216.34', 'example.com:80:[2606:4700::]']],
         ], $captured);
+    }
+
+    public function test_normalizes_and_validates_bracketed_ipv6_literal_hosts(): void
+    {
+        $resolverCalled = false;
+        $client = new WebFetchClient(
+            transport: fn (string $url, array $resolve, int $maxBytes): WebFetchHopResponse => new WebFetchHopResponse(200, [], ''),
+            resolver: function (string $host) use (&$resolverCalled): array {
+                $resolverCalled = true;
+
+                return ['93.184.216.34'];
+            },
+        );
+
+        $blocked = $client->fetch('http://[::1]/');
+
+        $this->assertTrue($blocked->failed());
+        $this->assertSame('Blocked address: ::1 is in a private or reserved range.', $blocked->error);
+
+        $this->assertFalse($client->fetch('https://[2606:4700::]/')->failed());
+        $this->assertFalse($resolverCalled);
+    }
+
+    public function test_rejects_ports_other_than_80_and_443(): void
+    {
+        $requestedUrls = [];
+        $client = $this->client([], requestedUrls: $requestedUrls);
+
+        foreach (['http://example.com:22/', 'https://example.com:8080/', 'http://example.com:0/'] as $url) {
+            $result = $client->fetch($url);
+
+            $this->assertTrue($result->failed(), $url);
+            $this->assertStringStartsWith('Port ', $result->error, $url);
+        }
+
+        $this->assertSame([], $requestedUrls);
+    }
+
+    public function test_rejects_redirects_to_disallowed_ports(): void
+    {
+        $requestedUrls = [];
+        $client = $this->client([
+            new WebFetchHopResponse(302, ['Location: http://example.com:22/admin'], ''),
+        ], requestedUrls: $requestedUrls);
+
+        $result = $client->fetch('https://example.com/start');
+
+        $this->assertSame('Port 22 rejected: only ports 80 and 443 can be fetched.', $result->error);
+        $this->assertSame(['https://example.com/start'], $requestedUrls);
+    }
+
+    public function test_allows_explicit_ports_80_and_443(): void
+    {
+        $captured = [];
+        $client = new WebFetchClient(
+            transport: function (string $url, array $resolve, int $maxBytes) use (&$captured): WebFetchHopResponse {
+                $captured[] = [$url, $resolve];
+
+                return new WebFetchHopResponse(200, [], '');
+            },
+            resolver: fn (string $host): array => ['93.184.216.34'],
+        );
+
+        $this->assertFalse($client->fetch('http://example.com:443/')->failed());
+        $this->assertFalse($client->fetch('https://example.com:80/')->failed());
+
+        $this->assertSame([
+            ['http://example.com:443/', ['example.com:443:93.184.216.34']],
+            ['https://example.com:80/', ['example.com:80:93.184.216.34']],
+        ], $captured);
+    }
+
+    public function test_hardened_budget_constants(): void
+    {
+        $this->assertSame(3, WebFetchClient::MAX_HOPS);
+        $this->assertSame(5, WebFetchClient::CONNECT_TIMEOUT);
+        $this->assertSame(10, WebFetchClient::TOTAL_TIMEOUT);
     }
 
     public function test_ip_literal_hosts_are_validated_without_dns(): void
@@ -158,7 +239,7 @@ class WebFetchClientTest extends TestCase
 
         $this->assertFalse($client->fetch('https://93.184.216.34/')->failed());
 
-        $blocked = $client->fetch('http://127.0.0.1:8080/');
+        $blocked = $client->fetch('http://127.0.0.1/');
         $this->assertTrue($blocked->failed());
         $this->assertSame('Blocked address: 127.0.0.1 is in a private or reserved range.', $blocked->error);
 
@@ -245,14 +326,14 @@ class WebFetchClientTest extends TestCase
         $this->assertSame('Scheme "file" rejected: only http and https URLs can be fetched.', $result->error);
     }
 
-    public function test_accepts_a_chain_of_exactly_five_hops(): void
+    public function test_accepts_a_chain_of_exactly_three_hops(): void
     {
         $requested = 0;
         $client = new WebFetchClient(
             transport: function (string $url, array $resolve, int $maxBytes) use (&$requested): WebFetchHopResponse {
                 $requested++;
 
-                return $requested === 5
+                return $requested === 3
                     ? new WebFetchHopResponse(200, [], 'final body')
                     : new WebFetchHopResponse(302, ['Location: https://example.com/hop-'.$requested], '');
             },
@@ -263,10 +344,10 @@ class WebFetchClientTest extends TestCase
 
         $this->assertFalse($result->failed());
         $this->assertSame('final body', $result->body);
-        $this->assertSame(5, $requested);
+        $this->assertSame(3, $requested);
     }
 
-    public function test_rejects_chains_longer_than_five_hops(): void
+    public function test_rejects_chains_longer_than_three_hops(): void
     {
         $requested = 0;
         $client = new WebFetchClient(
@@ -280,8 +361,8 @@ class WebFetchClientTest extends TestCase
 
         $result = $client->fetch('https://example.com/start');
 
-        $this->assertSame('Too many redirects (more than 5 hops).', $result->error);
-        $this->assertSame(5, $requested);
+        $this->assertSame('Too many redirects (more than 3 hops).', $result->error);
+        $this->assertSame(3, $requested);
     }
 
     public function test_enforces_the_size_cap_on_declared_content_length(): void

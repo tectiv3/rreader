@@ -21,6 +21,15 @@ class ArticleChatAgent implements Agent, Conversational, HasTools
     use Promptable;
     use RemembersConversations;
 
+    /**
+     * Cumulative tool wall-time per turn. Together with maxSteps() and
+     * timeout() this bounds the turn at 5x120 + 300 + ~30 = 930s, under the
+     * 1200s turn lock TTL.
+     */
+    private const TOOL_BUDGET_SECONDS = 300.0;
+
+    private ?ToolBudget $toolBudget = null;
+
     public function __construct(
         protected readonly AgentConversation $conversation,
         protected readonly User $user,
@@ -43,7 +52,7 @@ class ArticleChatAgent implements Agent, Conversational, HasTools
             $article->author !== null ? 'Author: '.$article->author : null,
             $article->feed?->title !== null ? 'Feed: '.$article->feed->title : null,
             $article->published_at !== null ? 'Published: '.$article->published_at->format('Y-m-d') : null,
-            'URL: '.$article->url,
+            $article->url !== null ? 'URL: '.$article->url : null,
         ], fn (?string $line): bool => $line !== null);
 
         return implode("\n", [
@@ -60,12 +69,14 @@ class ArticleChatAgent implements Agent, Conversational, HasTools
      */
     public function tools(): array
     {
+        $budget = $this->toolBudget ??= new ToolBudget(self::TOOL_BUDGET_SECONDS);
+
         return [
-            new GetArticleTool($this->conversation->article),
-            new SearchArticlesTool($this->user),
-            new GetHighlightsTool($this->user),
-            new SearchChatHistoryTool($this->user, (string) $this->conversation->getKey()),
-            new WebFetchTool,
+            new BudgetedTool(new GetArticleTool($this->conversation->article), $budget),
+            new BudgetedTool(new SearchArticlesTool($this->user), $budget),
+            new BudgetedTool(new GetHighlightsTool($this->user), $budget),
+            new BudgetedTool(new SearchChatHistoryTool($this->user, (string) $this->conversation->getKey()), $budget),
+            new BudgetedTool(new WebFetchTool, $budget),
         ];
     }
 
@@ -81,7 +92,7 @@ class ArticleChatAgent implements Agent, Conversational, HasTools
 
     public function maxSteps(): int
     {
-        return 8;
+        return 5;
     }
 
     public function timeout(): int

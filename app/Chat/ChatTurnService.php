@@ -8,6 +8,7 @@ use App\Models\AgentConversation;
 use App\Models\User;
 use Closure;
 use Generator;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Laravel\Ai\Exceptions\AiException;
@@ -30,8 +31,9 @@ use Throwable;
  * Executes one chat turn and maps the package's stream events to SSE frames.
  *
  * Concurrency (spec): a turn holds a per-conversation and a per-user cache
- * lock for its whole duration. The TTL is the hard-kill backstop and must
- * stay >= per-step timeout 120s x maxSteps 8 + tool time (~1160s) and <= FPM
+ * lock for its whole duration. The TTL is the hard-kill backstop. The
+ * enforced worst case is maxSteps(5) x timeout(120s) + tool budget(300s) +
+ * the largest single tool (~30s) = 930s, below LOCK_TTL and below the FPM
  * request_terminate_timeout; a killed worker leaves the conversation locked
  * for up to 20 minutes — accepted by the spec.
  */
@@ -67,9 +69,18 @@ final class ChatTurnService
      * error instead of an already-started SSE stream.
      *
      * @throws ChatTurnConflictException provider unconfigured or a turn in flight
+     * @throws ModelNotFoundException the conversation belongs to another user
      */
     public function begin(User $user, AgentConversation $conversation, string $content): ChatTurn
     {
+        // begin() is the only choke point before the package's ownership-free
+        // continue(), so never trust the caller: an unowned conversation is a
+        // 404, not a cross-user stream.
+        if ($conversation->getAttribute('participant_type') !== AgentConversation::participantType($user)
+            || (string) $conversation->getAttribute('participant_id') !== (string) $user->id) {
+            throw (new ModelNotFoundException)->setModel(AgentConversation::class, [$conversation->getKey()]);
+        }
+
         $provider = (string) $conversation->provider;
 
         if (! $this->providers->isConfigured($provider)) {
@@ -113,11 +124,15 @@ final class ChatTurnService
      */
     private function frames(User $user, AgentConversation $conversation, string $content): Generator
     {
-        $response = ($this->streamFactory)($conversation, $user, $content);
-
         $errorSent = false;
 
         try {
+            // Construction is inside the try: the package's default factory can
+            // throw eagerly (before the first event) while resolving provider
+            // config or replaying history, and the SSE response headers are
+            // already on the wire by now.
+            $response = ($this->streamFactory)($conversation, $user, $content);
+
             foreach ($response as $event) {
                 if ($errorSent) {
                     // After an Error event the stream is terminal; keep pulling

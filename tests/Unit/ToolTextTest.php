@@ -32,6 +32,14 @@ class ToolTextTest extends TestCase
         $this->assertStringContainsString('characters truncated', $truncated);
     }
 
+    public function test_truncate_reports_the_elided_character_count(): void
+    {
+        $truncated = ToolText::truncate(str_repeat('x', 30_000), 100);
+
+        $this->assertStringContainsString(number_format(30_000 - 100).' characters truncated', $truncated);
+        $this->assertStringNotContainsString(number_format(30_000).' characters truncated', $truncated);
+    }
+
     public function test_truncate_honors_a_custom_cap(): void
     {
         $text = str_repeat('x', 500);

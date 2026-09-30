@@ -111,12 +111,22 @@ class Article extends Model
         });
     }
 
+    /**
+     * Escape LIKE metacharacters so a user-supplied term matches literally.
+     */
+    public static function escapeLike(string $term): string
+    {
+        return addcslashes($term, '\\%_');
+    }
+
     public function scopeSearch(Builder $query, string $term): Builder
     {
-        return $query->where(function ($q) use ($term) {
-            $q->where('title', 'like', "%{$term}%")
-                ->orWhere('summary', 'like', "%{$term}%")
-                ->orWhere('content', 'like', "%{$term}%");
+        $pattern = '%'.self::escapeLike($term).'%';
+
+        return $query->where(function ($q) use ($pattern) {
+            $q->whereRaw('title LIKE ? ESCAPE ?', [$pattern, '\\'])
+                ->orWhereRaw('summary LIKE ? ESCAPE ?', [$pattern, '\\'])
+                ->orWhereRaw('content LIKE ? ESCAPE ?', [$pattern, '\\']);
         });
     }
 }

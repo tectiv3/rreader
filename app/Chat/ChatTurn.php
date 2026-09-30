@@ -7,6 +7,7 @@ namespace App\Chat;
 use Closure;
 use Generator;
 use Illuminate\Contracts\Cache\Lock;
+use Throwable;
 
 /**
  * One in-flight chat turn: the SSE frame generator plus the two concurrency
@@ -64,7 +65,18 @@ final class ChatTurn
 
         $this->released = true;
 
-        $this->conversationLock->release();
-        $this->userLock->release();
+        // Independent guards: a cache-backend failure releasing one lock must
+        // never strand the other (the flag keeps the attempt single-shot).
+        try {
+            $this->conversationLock->release();
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+
+        try {
+            $this->userLock->release();
+        } catch (Throwable $exception) {
+            report($exception);
+        }
     }
 }

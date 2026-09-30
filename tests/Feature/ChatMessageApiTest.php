@@ -4,12 +4,15 @@ namespace Tests\Feature;
 
 use App\Chat\ChatProviders;
 use App\Chat\ChatService;
+use App\Chat\ChatTurn;
 use App\Chat\ChatTurnService;
 use App\Models\AgentConversation;
 use App\Models\Article;
 use App\Models\Feed;
 use App\Models\User;
 use Generator;
+use Illuminate\Contracts\Cache\Lock;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -29,6 +32,7 @@ use Laravel\Ai\Streaming\Events\TextDelta;
 use Laravel\Ai\Streaming\Events\TextEnd;
 use Laravel\Ai\Streaming\Events\ToolCall as ToolCallEvent;
 use Laravel\Ai\Streaming\Events\ToolResult as ToolResultEvent;
+use RuntimeException;
 use Tests\TestCase;
 use Throwable;
 
@@ -245,6 +249,62 @@ class ChatMessageApiTest extends TestCase
                 'code' => 'rate_limited_exception',
             ],
         ]], $this->parseFrames($sse));
+    }
+
+    public function test_a_factory_failure_before_the_first_event_still_emits_one_error_frame(): void
+    {
+        $user = User::factory()->create();
+        $conversation = $this->conversationFor($user);
+
+        // The eager provider/history path can throw while the SSE response is
+        // already committed; the factory runs on first pull, inside the try.
+        $this->app->instance(ChatTurnService::class, new ChatTurnService(
+            $this->app->make(ChatProviders::class),
+            static function (AgentConversation $conversation, User $user, string $content): StreamableAgentResponse {
+                throw new RateLimitedException('Application rate limited by AI provider [lmstudio].');
+            },
+        ));
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/chat/conversations/'.$conversation->id.'/messages', ['content' => 'hi']);
+
+        $sse = $response->streamedContent();
+
+        $this->assertSame([[
+            'event' => 'error',
+            'data' => [
+                'message' => 'The provider is rate limiting requests. Please try again in a moment.',
+                'code' => 'rate_limited_exception',
+            ],
+        ]], $this->parseFrames($sse));
+
+        $this->assertSame(1, substr_count($sse, 'event: error'));
+        $this->assertStringNotContainsString('event: done', $sse);
+    }
+
+    public function test_begin_refuses_a_conversation_owned_by_another_user(): void
+    {
+        $owner = User::factory()->create();
+        $conversation = $this->conversationFor($owner);
+
+        $this->expectException(ModelNotFoundException::class);
+
+        $this->app->make(ChatTurnService::class)->begin(User::factory()->create(), $conversation, 'hi');
+    }
+
+    public function test_one_lock_release_failure_does_not_strand_the_other_lock(): void
+    {
+        $conversationLock = $this->mock(Lock::class);
+        $conversationLock->shouldReceive('release')->once()->andThrow(new RuntimeException('cache backend down'));
+
+        $userLock = $this->mock(Lock::class);
+        $userLock->shouldReceive('release')->once();
+
+        $frames = (static function (): Generator {
+            yield from [];
+        })();
+
+        (new ChatTurn($frames, $conversationLock, $userLock))->release();
     }
 
     public function test_a_client_abort_stops_consuming_and_releases_the_locks(): void

@@ -36,16 +36,16 @@ final class ChatConversationApiController extends Controller
             'model' => ['nullable', 'string'],
         ]);
 
-        $conversation = $service->findOrCreate(
+        [$conversation, $created] = $service->resolveConversation(
             $request->user(),
             Article::findOrFail($validated['article_id']),
             $validated['provider'] ?? null,
             $validated['model'] ?? null,
         );
 
-        // Upsert semantics: 201 whether a row was inserted or an existing
-        // conversation was returned — the SPA navigates on the body either way.
-        return response()->json($service->conversationData($conversation), 201);
+        // Get-or-create is idempotent: 200 when the row already existed, 201
+        // only when a conversation was inserted.
+        return response()->json($service->conversationData($conversation), $created ? 201 : 200);
     }
 
     public function show(Request $request, ChatService $service, string $id): JsonResponse

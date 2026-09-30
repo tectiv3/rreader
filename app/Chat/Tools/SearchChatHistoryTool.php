@@ -3,6 +3,7 @@
 namespace App\Chat\Tools;
 
 use App\Models\AgentConversation;
+use App\Models\Article;
 use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Carbon;
@@ -45,7 +46,7 @@ class SearchChatHistoryTool implements Tool
             ->where('participant_id', $this->user->id)
             ->where('conversation_id', '!=', $this->currentConversationId)
             ->whereIn('role', ['user', 'assistant'])
-            ->where('content', 'like', "%{$term}%")
+            ->whereRaw('content LIKE ? ESCAPE ?', ['%'.Article::escapeLike($term).'%', '\\'])
             ->orderByDesc('updated_at')
             ->limit(self::LIMIT)
             ->get(['id', 'conversation_id', 'role', 'content', 'created_at']);

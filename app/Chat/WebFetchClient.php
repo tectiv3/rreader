@@ -19,13 +19,15 @@ use Psr\Http\Message\UriInterface;
 class WebFetchClient
 {
     /** Total request budget: the initial request counts as the first hop. */
-    public const MAX_HOPS = 5;
+    public const MAX_HOPS = 3;
 
     public const CONNECT_TIMEOUT = 5;
 
-    public const TOTAL_TIMEOUT = 15;
+    public const TOTAL_TIMEOUT = 10;
 
     public const MAX_BYTES = 2 * 1024 * 1024;
+
+    public const MAX_HEADER_BYTES = 64 * 1024;
 
     /** 100.64.0.0/10 is the tailnet this deployment itself runs on. */
     private const BLOCKED_V4 = [
@@ -41,6 +43,10 @@ class WebFetchClient
     private const BLOCKED_V6 = [
         'fc00::/7',
         'fe80::/10',
+        // IPv6 transition/tunnel prefixes are routed to the embedded IPv4 destination.
+        '64:ff9b::/96',
+        '2002::/16',
+        '2001::/32',
     ];
 
     private readonly Closure $transport;
@@ -160,6 +166,12 @@ class WebFetchClient
             throw new WebFetchException('URL rejected: no host.');
         }
 
+        $port = $uri->getPort();
+
+        if ($port !== null && ! in_array($port, [80, 443], true)) {
+            throw new WebFetchException(sprintf('Port %d rejected: only ports 80 and 443 can be fetched.', $port));
+        }
+
         return $uri;
     }
 
@@ -171,6 +183,13 @@ class WebFetchClient
     private function resolveAndPin(UriInterface $uri): array
     {
         $host = $uri->getHost();
+
+        // Uri::getHost() keeps the brackets around IPv6 literals; strip them so
+        // literals run through the same validation as resolved addresses.
+        if (str_starts_with($host, '[') && str_ends_with($host, ']')) {
+            $host = substr($host, 1, -1);
+        }
+
         $port = $uri->getPort() ?? ($uri->getScheme() === 'https' ? 443 : 80);
 
         if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
@@ -193,7 +212,17 @@ class WebFetchClient
             }
         }
 
-        return array_map(fn (string $address): string => sprintf('%s:%d:%s', $host, $port, $address), $addresses);
+        return array_map(fn (string $address): string => sprintf('%s:%d:%s', $host, $port, self::formatResolveAddress($address)), $addresses);
+    }
+
+    /**
+     * CURLOPT_RESOLVE documents an IPv6 address bracketed: host:port:[address].
+     */
+    private static function formatResolveAddress(string $address): string
+    {
+        $packed = @inet_pton($address);
+
+        return $packed !== false && strlen($packed) === 16 ? '['.$address.']' : $address;
     }
 
     /**
@@ -260,6 +289,11 @@ class WebFetchClient
         return sprintf('%.1f MB', self::MAX_BYTES / 1024 / 1024);
     }
 
+    private static function headerCapLabel(): string
+    {
+        return sprintf('%d KB', intdiv(self::MAX_HEADER_BYTES, 1024));
+    }
+
     /**
      * dns_get_record over gethostbynamel: A+AAAA in one query, so dual-stack
      * hosts are fully validated and pinnable — gethostbynamel is IPv4-only.
@@ -288,16 +322,29 @@ class WebFetchClient
             $body = '';
             $headerLines = [];
             $received = 0;
+            $headerBytes = 0;
+            $headersTruncated = false;
 
             $options = [
                 CURLOPT_URL => $url,
                 // Redirects are driven by the client loop so every hop is re-validated.
                 CURLOPT_FOLLOWLOCATION => false,
+                // An environment proxy would resolve the host itself, defeating CURLOPT_RESOLVE.
+                CURLOPT_PROXY => '',
+                CURLOPT_NOPROXY => '*',
                 CURLOPT_CONNECTTIMEOUT => self::CONNECT_TIMEOUT,
                 // Hard total cap per hop: chat turns run under set_time_limit(0),
                 // so a slow or looping server must not pin an FPM worker.
                 CURLOPT_TIMEOUT => self::TOTAL_TIMEOUT,
-                CURLOPT_HEADERFUNCTION => function ($handle, string $line) use (&$headerLines): int {
+                CURLOPT_HEADERFUNCTION => function ($handle, string $line) use (&$headerLines, &$headerBytes, &$headersTruncated): int {
+                    $headerBytes += strlen($line);
+
+                    if ($headerBytes > self::MAX_HEADER_BYTES) {
+                        $headersTruncated = true;
+
+                        return -1; // a length mismatch aborts the transfer at the cap
+                    }
+
                     $headerLines[] = $line;
 
                     return strlen($line);
@@ -327,6 +374,10 @@ class WebFetchClient
 
             $errno = curl_errno($handle);
             $error = $errno !== 0 ? sprintf('cURL error %d: %s', $errno, curl_error($handle)) : null;
+
+            if ($headersTruncated) {
+                $error = sprintf('Response headers exceed the %s cap.', self::headerCapLabel());
+            }
 
             if ($errno === CURLE_WRITE_ERROR && $received > $maxBytes) {
                 $error = sprintf('Response exceeds the %s size cap.', self::sizeCapLabel());

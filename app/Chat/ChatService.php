@@ -75,9 +75,17 @@ class ChatService
      */
     public function findOrCreate(User $user, Article $article, ?string $provider = null, ?string $model = null): AgentConversation
     {
+        return $this->resolveConversation($user, $article, $provider, $model)[0];
+    }
+
+    /**
+     * @return array{0: AgentConversation, 1: bool} the conversation and whether it was created
+     */
+    public function resolveConversation(User $user, Article $article, ?string $provider = null, ?string $model = null): array
+    {
         $existing = $this->scoped($user)->where('article_id', $article->id)->first();
         if ($existing !== null) {
-            return $existing;
+            return [$existing, false];
         }
 
         [$provider, $model] = $this->validateProviderChoice($provider, $model);
@@ -95,13 +103,25 @@ class ChatService
                 'provider' => $provider,
                 'model' => $model,
             ]);
-        } catch (UniqueConstraintViolationException) {
-            // Lost the race — fall through and return the winning row below.
+        } catch (UniqueConstraintViolationException $exception) {
+            // Two unique constraints can fire here: the PK and
+            // UNIQUE(participant, article). Only the article race may be
+            // absorbed; a PK collision with a row outside this participant
+            // must surface rather than leak it.
+            $winner = $this->scoped($user)->whereKey($id)->first()
+                ?? $this->scoped($user)->where('article_id', $article->id)->first();
+
+            if ($winner === null) {
+                throw $exception;
+            }
+
+            return [$winner, false];
         }
 
         // Conversation::create() returns a clobbered id on Laravel 12
-        // (WithoutIncrementing is inert), so never trust the created instance.
-        return $this->scoped($user)->where('article_id', $article->id)->firstOrFail();
+        // (WithoutIncrementing is inert), so re-read the row by the id we
+        // generated.
+        return [$this->scoped($user)->whereKey($id)->firstOrFail(), true];
     }
 
     /**
