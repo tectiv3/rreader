@@ -11,6 +11,8 @@ const routeTitles = {
     'feeds.edit': 'Edit Feed',
     settings: 'Settings',
     'opml.import': 'Import OPML',
+    'chat.index': 'Chat',
+    'chat.show': 'Chat', // set dynamically from the conversation (Task 7)
 }
 
 const routes = [
@@ -60,6 +62,17 @@ const routes = [
         path: '/opml/import',
         name: 'opml.import',
         component: () => import('@/Views/OpmlImportView.vue'),
+    },
+    {
+        path: '/chat',
+        name: 'chat.index',
+        component: () => import('@/Views/ChatView.vue'),
+    },
+    // Conversation ids are UUIDs — kept as strings, unlike the numeric article ids
+    {
+        path: '/chat/:conversationId',
+        name: 'chat.show',
+        component: () => import('@/Views/ChatView.vue'),
     },
     {
         path: '/highlights',
