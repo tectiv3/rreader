@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-
-const appName = import.meta.env.VITE_APP_NAME || 'RReader'
+import { appName } from '@/appName.js'
 
 const routeTitles = {
     'articles.index': null, // set dynamically from filterTitle

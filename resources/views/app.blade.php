@@ -21,6 +21,7 @@
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="apple-mobile-web-app-title" content="RReader">
+        <meta name="app-name" content="{{ config('app.name', 'RReader') }}">
 
         <title inertia>{{ config('app.name', 'RReader') }}</title>
 

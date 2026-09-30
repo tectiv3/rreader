@@ -6,9 +6,9 @@ import { createInertiaApp } from '@inertiajs/vue3'
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers'
 import { createApp, h } from 'vue'
 import router from '@/router.js'
+import { appName } from '@/appName.js'
 import { idbCleanup } from '@/Composables/useArticleCache.js'
 import { readReadingState } from '@/Composables/useReadingState.js'
-const appName = import.meta.env.VITE_APP_NAME || 'RReader'
 
 // Register SW and store promise globally for composables to use
 window.__swReady =
