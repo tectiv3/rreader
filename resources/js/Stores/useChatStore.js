@@ -78,6 +78,11 @@ export const useChatStore = defineStore('chat', () => {
         messagesLoading.value = true
         currentConversation.value = null
         messages.value = []
+        // Per-turn state belongs to the conversation that produced it; without
+        // these resets the previous turn's Thinking block / tool rows render
+        // against the new conversation's last message.
+        toolActivity.value = []
+        reasoningBuffer.value = ''
         try {
             const data = await fetchConversation(id)
             currentConversation.value = data.conversation

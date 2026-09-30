@@ -12,7 +12,7 @@ const routeTitles = {
     settings: 'Settings',
     'opml.import': 'Import OPML',
     'chat.index': 'Chat',
-    'chat.show': 'Chat', // set dynamically from the conversation (Task 7)
+    'chat.show': null, // set dynamically from the conversation's article title
 }
 
 const routes = [
@@ -72,7 +72,8 @@ const routes = [
     {
         path: '/chat/:conversationId',
         name: 'chat.show',
-        component: () => import('@/Views/ChatView.vue'),
+        component: () => import('@/Views/ChatConversationView.vue'),
+        props: route => ({ conversationId: route.params.conversationId }),
     },
     {
         path: '/highlights',

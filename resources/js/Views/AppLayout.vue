@@ -9,6 +9,7 @@ import SidebarDrawer from '@/Components/SidebarDrawer.vue'
 import { useArticleStore } from '@/Stores/useArticleStore.js'
 import { useSidebarStore } from '@/Stores/useSidebarStore.js'
 import { useUIStore } from '@/Stores/useUIStore.js'
+import { useChatStore } from '@/Stores/useChatStore.js'
 import { useRouter, useRoute } from 'vue-router'
 import { ref, computed, onMounted, onUnmounted, provide, watch } from 'vue'
 
@@ -19,8 +20,13 @@ useDarkMode()
 const articleStore = useArticleStore()
 const sidebarStore = useSidebarStore()
 const uiStore = useUIStore()
+const chat = useChatStore()
 const router = useRouter()
 const route = useRoute()
+
+// Populate chat.enabled app-wide so article entry points can gate on it; the
+// store guards the request itself (enabled !== null).
+onMounted(() => chat.loadModels())
 
 const { isAddFeedModalOpen, initialTab, initialUrl, openAddFeedModal, closeAddFeedModal } =
     useAddFeedModal()
@@ -74,7 +80,12 @@ const activeFilter = computed(() => route.query.filter || null)
 
 // navigator.onLine only reports link state — the server can also just be
 // unreachable, in which case the store falls back to its cached snapshot.
-const showOfflineBanner = computed(() => !isOnline.value || articleStore.showingCached)
+// Chat is online-only and shows its own offline notice, so "viewing cached
+// content" would be misleading there.
+const isChatRoute = computed(() => route.name?.startsWith('chat'))
+const showOfflineBanner = computed(
+    () => !isChatRoute.value && (!isOnline.value || articleStore.showingCached)
+)
 
 // Coming back online doesn't make a cached snapshot fresh, so refetch rather than
 // just clearing the flag — otherwise the banner sticks and the list stays stale.
@@ -184,7 +195,7 @@ function navigateTo(params) {
                 <!-- Sidebar toggle (hamburger) -->
                 <button
                     @click="toggleSidebar()"
-                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
+                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1.5 text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
                     title="Open sidebar"
                     aria-label="Open sidebar">
                     <svg
@@ -204,7 +215,7 @@ function navigateTo(params) {
                 <!-- Read Later (bookmark) -->
                 <button
                     @click="navigateTo({ filter: 'read_later' })"
-                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors"
+                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1.5 transition-colors"
                     :class="
                         activeFilter === 'read_later'
                             ? 'text-amber-500'
@@ -229,7 +240,7 @@ function navigateTo(params) {
                 <!-- Highlights (quotes) -->
                 <button
                     @click="router.push({ name: 'articles.highlights' })"
-                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors"
+                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1.5 transition-colors"
                     :class="
                         route.name === 'articles.highlights'
                             ? 'text-blue-500'
@@ -254,7 +265,7 @@ function navigateTo(params) {
                 <!-- Feed view (grid icon) -->
                 <button
                     @click="navigateTo({})"
-                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors"
+                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1.5 transition-colors"
                     :class="
                         !activeFilter &&
                         !activeFeedId &&
@@ -279,10 +290,36 @@ function navigateTo(params) {
                     <span class="text-[10px]">Feeds</span>
                 </button>
 
+                <!-- Chat -->
+                <button
+                    v-if="chat.enabled === true && isOnline"
+                    @click="router.push({ name: 'chat.index' })"
+                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1.5 transition-colors"
+                    :class="
+                        isChatRoute
+                            ? 'text-blue-500'
+                            : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'
+                    "
+                    title="Chat"
+                    aria-label="Chat">
+                    <svg
+                        class="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+                    </svg>
+                    <span class="text-[10px]">Chat</span>
+                </button>
+
                 <!-- Add Feed (RSS+ icon) -->
                 <button
                     @click="openAddFeedModal()"
-                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200"
+                    class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1.5 transition-colors text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200"
                     title="Add feed"
                     aria-label="Add feed">
                     <svg

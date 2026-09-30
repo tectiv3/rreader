@@ -2,12 +2,14 @@
 import axios from 'axios'
 import DOMPurify from 'dompurify'
 import ArticleListErrorState from '@/Components/ArticleListErrorState.vue'
+import ChatPanel from '@/Components/ChatPanel.vue'
 import {
     saveReadingState,
     clearReadingState,
     readReadingState,
 } from '@/Composables/useReadingState.js'
 import { useArticleStore } from '@/Stores/useArticleStore.js'
+import { useChatStore } from '@/Stores/useChatStore.js'
 import { useSidebarStore } from '@/Stores/useSidebarStore.js'
 import { useOnlineStatus } from '@/Composables/useOnlineStatus.js'
 import { useToast } from '@/Composables/useToast.js'
@@ -19,6 +21,7 @@ import { ref, computed, onMounted, onUnmounted, onActivated, watch, nextTick, in
 defineOptions({ name: 'ArticleListView' })
 
 const articleStore = useArticleStore()
+const chat = useChatStore()
 const sidebarStore = useSidebarStore()
 const router = useRouter()
 const route = useRoute()
@@ -240,6 +243,8 @@ function onDesktopScroll() {
 
 const selectedArticleId = ref(null)
 const selectedArticle = ref(null)
+// Article id whose docked chat panel is open; null = no inline chat
+const inlineChatArticleId = ref(null)
 const loadingArticle = ref(false)
 const selectedIsReadLater = ref(false)
 const navigatingArticleId = ref(null)
@@ -253,6 +258,8 @@ function checkDesktop() {
 let loadMoreObserver = null
 
 onMounted(() => {
+    // Idempotent: covers the case where AppLayout's mount call has not landed.
+    chat.loadModels()
     window.addEventListener('resize', checkDesktop)
     window.addEventListener('keydown', onKeyDown)
     document.addEventListener('selectionchange', onInlineSelectionChange)
@@ -299,6 +306,8 @@ function openArticle(article) {
             closeArticlePanel()
             return
         }
+        // Switching articles: the docked chat belongs to the previous one
+        closeInlineChat()
         selectedArticleId.value = article.id
         loadArticleInline(article.id)
     } else {
@@ -368,6 +377,7 @@ function closeArticlePanel() {
     selectedArticle.value = null
     selectedArticleId.value = null
     hasInlineSelection.value = false
+    closeInlineChat()
     clearReadingState()
 }
 
@@ -402,6 +412,29 @@ function shareInlineArticle() {
             .then(() => success('Link copied to clipboard'))
             .catch(() => {})
     }
+}
+
+// --- Desktop inline chat ---
+async function startInlineChat() {
+    if (!selectedArticle.value) return
+    let conversation
+    try {
+        conversation = await chat.startConversation(selectedArticle.value.id)
+    } catch {
+        showError('Failed to start chat')
+        return
+    }
+    try {
+        await chat.openConversation(conversation.id)
+        inlineChatArticleId.value = selectedArticle.value.id
+    } catch {
+        // openConversation already surfaced the failure via the store
+    }
+}
+
+function closeInlineChat() {
+    inlineChatArticleId.value = null
+    chat.closeConversation()
 }
 
 const showHeroImage = computed(() => {
@@ -1077,6 +1110,25 @@ function getSwipeDirection(articleId) {
                                             </svg>
                                         </button>
                                         <button
+                                            v-if="
+                                                selectedArticle && chat.enabled === true && isOnline
+                                            "
+                                            @click.stop="startInlineChat"
+                                            class="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors cursor-pointer"
+                                            title="Chat about this article">
+                                            <svg
+                                                class="h-4 w-4"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke-width="1.5"
+                                                stroke="currentColor">
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+                                            </svg>
+                                        </button>
+                                        <button
                                             @click.stop="closeArticlePanel"
                                             class="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors cursor-pointer"
                                             title="Collapse (Esc)">
@@ -1219,6 +1271,13 @@ function getSwipeDirection(articleId) {
                                             >
                                         </div>
                                     </article>
+
+                                    <!-- Docked chat for this expanded article -->
+                                    <div
+                                        v-if="inlineChatArticleId === article.id"
+                                        class="mx-auto max-w-3xl px-6 pb-6">
+                                        <ChatPanel inline @close="closeInlineChat" />
+                                    </div>
                                 </template>
                             </div>
                         </template>

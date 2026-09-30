@@ -16,7 +16,7 @@ const NAV_FALLBACKS = ['/articles']
 // AppShell page, so serving /login as a shell renders a login form at the wrong
 // URL with no router and no navigation — and a standalone iOS PWA has no address
 // bar to escape with.
-const SPA_PATHS = /^\/(articles|feeds|settings|opml|highlights)(\/|$)/
+const SPA_PATHS = /^\/(articles|feeds|settings|opml|highlights|chat)(\/|$)/
 const NAV_MAX_ENTRIES = 20
 const NETWORK_TIMEOUT_MS = 5000
 
