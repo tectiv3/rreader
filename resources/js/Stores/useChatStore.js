@@ -25,6 +25,7 @@ export const useChatStore = defineStore('chat', () => {
     // null = not yet answered; the nav (Task 7) treats non-true as hidden.
     const enabled = ref(null)
     const providers = ref({})
+    let modelsRequest = null
 
     // --- Hub list ---
     const conversations = ref([])
@@ -42,19 +43,31 @@ export const useChatStore = defineStore('chat', () => {
     const toolActivity = ref([]) // [{name, status}] for the running turn
     const reasoningBuffer = ref('') // reasoning deltas of the running turn
     let abortController = null
+    // Generation token for the single in-flight turn. Callbacks compare against
+    // it so a turn that was switched away from cannot write shared state.
+    let activeTurnId = null
+    let turnSeq = 0
 
     const { error: showError } = useToast()
 
     async function loadModels(force = false) {
         if (enabled.value !== null && !force) return
-        try {
-            const data = await fetchChatModels()
-            enabled.value = data.enabled
-            providers.value = data.providers ?? {}
-        } catch {
-            // Leave enabled at null: gating falls back to "hidden", which is
-            // safe. The hub surfaces its own load errors.
-        }
+        // Cold boot can fire this from the layout, the article list and the
+        // conversation view in the same tick; share the one request.
+        if (modelsRequest) return modelsRequest
+        modelsRequest = (async () => {
+            try {
+                const data = await fetchChatModels()
+                enabled.value = data.enabled
+                providers.value = data.providers ?? {}
+            } catch {
+                // Leave enabled at null: gating falls back to "hidden", which is
+                // safe. The hub surfaces its own load errors.
+            } finally {
+                modelsRequest = null
+            }
+        })()
+        return modelsRequest
     }
 
     async function fetchConversationList() {
@@ -75,6 +88,9 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     async function openConversation(id) {
+        // Any turn still running belongs to the conversation being left; abort
+        // it so it cannot keep writing into this one's messages/buffers.
+        cancelActiveTurn()
         messagesLoading.value = true
         currentConversation.value = null
         messages.value = []
@@ -129,8 +145,11 @@ export const useChatStore = defineStore('chat', () => {
         await deleteConversation(id)
         conversations.value = conversations.value.filter(c => c.id !== id)
         if (currentConversation.value?.id === id) {
+            cancelActiveTurn()
             currentConversation.value = null
             messages.value = []
+            toolActivity.value = []
+            reasoningBuffer.value = ''
         }
     }
 
@@ -170,6 +189,9 @@ export const useChatStore = defineStore('chat', () => {
             return
         }
 
+        const conversationId = conversation.id
+        const isCurrentConversation = () => currentConversation.value?.id === conversationId
+
         const now = new Date().toISOString()
         messages.value.push({
             id: `local-${now}`,
@@ -188,17 +210,49 @@ export const useChatStore = defineStore('chat', () => {
         // Mutate the reactive proxies, not the raw objects just pushed
         const assistant = messages.value[messages.value.length - 1]
 
-        streaming.value = true
-        toolActivity.value = []
-        reasoningBuffer.value = ''
-        abortController = new AbortController()
+        // A turn owns both its conversation and a generation token: callbacks
+        // arriving after the user switched conversations or started a newer turn
+        // must not touch shared state.
+        const turnId = ++turnSeq
+        activeTurnId = turnId
+        const isActiveTurn = () => activeTurnId === turnId
 
-        function finish(status) {
-            assistant.status = status
+        const controller = new AbortController()
+        abortController = controller
+        streaming.value = true
+
+        // The previous turn's Thinking block / tool rows stay visible until the
+        // replacement actually streams, so a rejected 409 does not erase them.
+        let turnStarted = false
+        function markTurnStarted() {
+            if (turnStarted) return
+            turnStarted = true
+            toolActivity.value = []
+            reasoningBuffer.value = ''
+        }
+
+        function releaseTurn() {
+            if (!isActiveTurn()) return false
             streaming.value = false
             abortController = null
-            const hubRow = conversations.value.find(c => c.id === conversation.id)
-            if (hubRow) hubRow.last_message_at = now
+            activeTurnId = null
+            return true
+        }
+
+        function finish(status) {
+            if (!isActiveTurn()) return
+            assistant.status = status
+            // A turn that streamed nothing would otherwise leave the previous
+            // turn's Thinking/tool rows attached to this message.
+            if (!turnStarted) {
+                toolActivity.value = []
+                reasoningBuffer.value = ''
+            }
+            releaseTurn()
+            // Recorded on drain, not on send: the hub's "just now" should date
+            // the answer, not the question.
+            const hubRow = conversations.value.find(c => c.id === conversationId)
+            if (hubRow) hubRow.last_message_at = new Date().toISOString()
         }
 
         function discardOptimisticTurn() {
@@ -209,25 +263,34 @@ export const useChatStore = defineStore('chat', () => {
 
         try {
             await streamTurn(
-                conversation.id,
+                conversationId,
                 content,
                 {
                     onDelta: ({ text }) => {
+                        if (!isCurrentConversation()) return
+                        markTurnStarted()
                         assistant.content += text
                     },
                     onReasoning: ({ text }) => {
+                        if (!isCurrentConversation()) return
+                        markTurnStarted()
                         reasoningBuffer.value += text
                     },
-                    onTool: ({ name, status }) => recordTool(name, status),
+                    onTool: ({ name, status }) => {
+                        if (!isCurrentConversation()) return
+                        markTurnStarted()
+                        recordTool(name, status)
+                    },
                     onDone: () => finish('completed'),
                     onError: ({ message }) => {
+                        if (!isCurrentConversation()) return
                         finish('failed')
                         showError(message || 'The chat response failed.')
                     },
                 },
-                abortController.signal
+                controller.signal
             )
-            if (assistant.status === 'streaming') {
+            if (isActiveTurn() && assistant.status === 'streaming') {
                 // Resolved without a terminal frame — the stream was cut short
                 finish('failed')
                 showError('Connection lost during the response.')
@@ -236,25 +299,23 @@ export const useChatStore = defineStore('chat', () => {
             if (e instanceof ChatApiError && e.code === 'aborted') {
                 // Abort leaves zero rows server-side — retry is clean
                 discardOptimisticTurn()
-                streaming.value = false
-                abortController = null
+                releaseTurn()
                 return
             }
             if (e.code === 'provider_unavailable') {
-                if (currentConversation.value?.id === conversation.id) {
+                if (currentConversation.value?.id === conversationId) {
                     currentConversation.value.provider_available = false
                 }
-                const hubRow = conversations.value.find(c => c.id === conversation.id)
+                const hubRow = conversations.value.find(c => c.id === conversationId)
                 if (hubRow) hubRow.provider_available = false
             }
             if (e.status === 409) {
                 // Never reached the server — no rows were persisted
                 discardOptimisticTurn()
-            } else {
-                finish('failed')
+            } else if (isActiveTurn()) {
+                assistant.status = 'failed'
             }
-            streaming.value = false
-            abortController = null
+            releaseTurn()
             showError(e.message || 'The chat request failed.')
         }
     }
@@ -263,9 +324,20 @@ export const useChatStore = defineStore('chat', () => {
         abortController?.abort()
     }
 
+    /** Abort and forget the in-flight turn (used when the view leaves it). */
+    function cancelActiveTurn() {
+        abortController?.abort()
+        abortController = null
+        activeTurnId = null
+        streaming.value = false
+    }
+
     function closeConversation() {
+        cancelActiveTurn()
         currentConversation.value = null
         messages.value = []
+        toolActivity.value = []
+        reasoningBuffer.value = ''
     }
 
     return {

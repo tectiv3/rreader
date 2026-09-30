@@ -159,10 +159,13 @@ export default defineConfig({
                         // article bodies are deliberately excluded: the store owns those
                         // in IndexedDB, where the offline copy stays in step with reads
                         // and read-later toggles. A second, stale copy here would win
-                        // offline and silently undo them.
+                        // offline and silently undo them. Chat is online-only, so its
+                        // GETs are excluded too — a cached conversation list/detail
+                        // must never be served.
                         urlPattern: ({ url }) =>
                             /\/api\//.test(url.pathname) &&
-                            !/^\/api\/articles(\/\d+)?$/.test(url.pathname),
+                            !/^\/api\/articles(\/\d+)?$/.test(url.pathname) &&
+                            !/^\/api\/chat(\/|$)/.test(url.pathname),
                         handler: 'NetworkFirst',
                         options: {
                             cacheName: 'api-cache',

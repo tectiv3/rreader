@@ -78,7 +78,9 @@ export function createSseParser(onFrame) {
     let buffer = ''
 
     return chunk => {
-        buffer += chunk
+        // SSE allows CR, LF or CRLF line endings. The server emits LF, but a
+        // proxy may normalize to CRLF; folding to LF keeps one boundary form.
+        buffer = (buffer + chunk).replace(/\r\n/g, '\n').replace(/\r/g, '\n')
         let separator = buffer.indexOf('\n\n')
         while (separator !== -1) {
             const rawFrame = buffer.slice(0, separator)
@@ -127,7 +129,7 @@ async function httpError(response) {
 /**
  * Send one chat turn and dispatch its SSE stream.
  *
- * `callbacks` may provide onDelta({text}), onDeltaEnd(), onReasoning({text}),
+ * `callbacks` may provide onDelta({text}), onReasoning({text}),
  * onTool({name, status}), onDone({reason}) and onError({message, code}).
  * Unknown event names are ignored, mirroring the server's own tolerance.
  *
@@ -137,6 +139,11 @@ async function httpError(response) {
  * responses (409 conflict body, 422 validation, …), network failures and —
  * with code 'aborted' — when `signal` aborts.
  */
+// A dead stream must not hold the turn open forever. The agent's per-step
+// HTTP timeout is 120s, so a one-step silent gap can legitimately approach
+// that; 180s leaves headroom before we abort.
+const STALL_TIMEOUT_MS = 180_000
+
 export async function streamTurn(conversationId, content, callbacks = {}, signal = null) {
     const headers = {
         'Content-Type': 'application/json',
@@ -146,6 +153,29 @@ export async function streamTurn(conversationId, content, callbacks = {}, signal
     const token = xsrfToken()
     if (token) headers['X-XSRF-TOKEN'] = token
 
+    // The caller's signal covers user aborts only; a local controller adds the
+    // stall abort without consuming the caller's signal.
+    const controller = new AbortController()
+    const abortFromCaller = () => controller.abort()
+    if (signal) {
+        if (signal.aborted) controller.abort()
+        else signal.addEventListener('abort', abortFromCaller, { once: true })
+    }
+
+    let stallTimer = null
+    let stalled = false
+    function armStall() {
+        clearTimeout(stallTimer)
+        stallTimer = setTimeout(() => {
+            stalled = true
+            controller.abort()
+        }, STALL_TIMEOUT_MS)
+    }
+    function cleanup() {
+        clearTimeout(stallTimer)
+        signal?.removeEventListener('abort', abortFromCaller)
+    }
+
     let response
     try {
         response = await fetch(`/api/chat/conversations/${conversationId}/messages`, {
@@ -153,33 +183,59 @@ export async function streamTurn(conversationId, content, callbacks = {}, signal
             credentials: 'same-origin',
             headers,
             body: JSON.stringify({ content }),
-            signal,
+            signal: controller.signal,
         })
     } catch (error) {
+        cleanup()
+        if (stalled)
+            throw new ChatApiError('The response stalled. Try again.', { code: 'stalled' })
         if (isAbort(error)) throw new ChatApiError('Turn cancelled', { code: 'aborted' })
         throw new ChatApiError('Could not reach the server', { code: 'network' })
     }
 
     if (!response.ok) {
+        cleanup()
         throw await httpError(response)
     }
 
     let sawTerminalFrame = false
-    const parse = createSseFrameDispatcher(callbacks, () => {
-        sawTerminalFrame = true
-    })
-
-    const reader = response.body.getReader()
     const decoder = new TextDecoder()
     try {
+        // Parser and reader live inside the guard so a malformed 200 (null
+        // body, failed reader) surfaces as a ChatApiError, not a raw TypeError.
+        const parse = createSseFrameDispatcher(callbacks, () => {
+            sawTerminalFrame = true
+        })
+        const reader = response.body?.getReader()
+        if (!reader) {
+            throw new ChatApiError('The server returned an empty response.', {
+                code: 'empty_body',
+            })
+        }
+
         for (;;) {
+            armStall()
             const { done, value } = await reader.read()
+            clearTimeout(stallTimer)
             if (done) break
             parse(decoder.decode(value, { stream: true }))
+            if (sawTerminalFrame) {
+                // Stop reading: a reset after done/error must not undo the
+                // terminal state the store already recorded.
+                reader.cancel().catch(() => {})
+                break
+            }
         }
     } catch (error) {
+        if (sawTerminalFrame) return
+        if (stalled) {
+            throw new ChatApiError('The response stalled. Try again.', { code: 'stalled' })
+        }
+        if (error instanceof ChatApiError) throw error
         if (isAbort(error)) throw new ChatApiError('Turn cancelled', { code: 'aborted' })
         throw new ChatApiError('Connection lost during the response', { code: 'network' })
+    } finally {
+        cleanup()
     }
 
     if (!sawTerminalFrame) {
@@ -190,13 +246,10 @@ export async function streamTurn(conversationId, content, callbacks = {}, signal
 }
 
 function createSseFrameDispatcher(callbacks, onTerminalFrame) {
-    const parse = createSseFrame(({ event, data }) => {
+    const parse = createSseParser(({ event, data }) => {
         switch (event) {
             case 'delta':
                 callbacks.onDelta?.(data)
-                break
-            case 'delta_end':
-                callbacks.onDeltaEnd?.()
                 break
             case 'reasoning':
                 callbacks.onReasoning?.(data)

@@ -16,7 +16,17 @@ import { useToast } from '@/Composables/useToast.js'
 import { useAddFeedModal } from '@/Composables/useAddFeedModal.js'
 import { useRouter, useRoute } from 'vue-router'
 import { setTitle } from '@/router.js'
-import { ref, computed, onMounted, onUnmounted, onActivated, watch, nextTick, inject } from 'vue'
+import {
+    ref,
+    computed,
+    onMounted,
+    onUnmounted,
+    onActivated,
+    onDeactivated,
+    watch,
+    nextTick,
+    inject,
+} from 'vue'
 
 defineOptions({ name: 'ArticleListView' })
 
@@ -288,6 +298,12 @@ onUnmounted(() => {
 
 onActivated(() => {
     navigatingArticleId.value = null
+})
+
+onDeactivated(() => {
+    // Keep-alive would otherwise preserve the docked conversation (and any
+    // in-flight turn) across a navigation to a full-page chat view.
+    closeInlineChat()
 })
 
 watch(loadMoreSentinel, el => {

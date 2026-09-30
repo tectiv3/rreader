@@ -93,6 +93,19 @@ function isLastMessage(index) {
     return index === chat.messages.length - 1
 }
 
+// Settled messages never change once complete, so their sanitized HTML is
+// cached by object identity: streaming ticks re-render the list but must not
+// re-parse every earlier message.
+const settledMarkdown = new WeakMap()
+
+function renderSettledMarkdown(message) {
+    const cached = settledMarkdown.get(message)
+    if (cached && cached.content === message.content) return cached.html
+    const html = renderMarkdown(message.content)
+    settledMarkdown.set(message, { content: message.content, html })
+    return html
+}
+
 // --- Reasoning / tool activity (current turn only; cleared by the store) ---
 
 const reasoningOpen = ref(false)
@@ -115,6 +128,8 @@ function submit() {
 }
 
 function onComposerKeydown(e) {
+    // IME confirmation also sends Enter; let the composition finish first.
+    if (e.isComposing) return
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault()
         submit()
@@ -192,6 +207,7 @@ function goToArticle() {
             <div class="flex items-center gap-2">
                 <button
                     v-if="!inline"
+                    type="button"
                     @click="goToHub"
                     class="-ml-2 rounded-lg p-2 text-neutral-500 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200"
                     aria-label="Back to conversations">
@@ -209,6 +225,7 @@ function goToArticle() {
                 </button>
                 <button
                     v-else
+                    type="button"
                     @click="emit('close')"
                     class="-ml-2 rounded-lg p-2 text-neutral-500 dark:text-neutral-400 transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-neutral-800 dark:hover:text-neutral-200"
                     aria-label="Close chat">
@@ -228,6 +245,7 @@ function goToArticle() {
                 <div class="min-w-0 flex-1">
                     <component
                         :is="conversation?.article_id ? 'button' : 'p'"
+                        :type="conversation?.article_id ? 'button' : null"
                         class="block max-w-full truncate text-left text-sm font-semibold text-neutral-800 dark:text-neutral-200"
                         :class="
                             conversation?.article_id
@@ -256,6 +274,7 @@ function goToArticle() {
                     v-else
                     v-model="selectedRouting"
                     :disabled="chat.streaming || switching"
+                    aria-label="Model for the next message"
                     title="Switch model — applies from your next message"
                     class="max-w-[16rem] truncate rounded-md border border-neutral-300 bg-white px-1.5 py-1 text-xs text-neutral-700 transition-colors focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300">
                     <option value="" disabled>
@@ -361,7 +380,9 @@ function goToArticle() {
                                 v-if="isLastMessage(index) && chat.reasoningBuffer"
                                 class="mb-2 rounded-lg bg-neutral-100 dark:bg-neutral-800/60">
                                 <button
+                                    type="button"
                                     @click="reasoningOpen = !reasoningOpen"
+                                    :aria-controls="`reasoning-panel-${index}`"
                                     class="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-neutral-500 dark:text-neutral-400 transition-colors hover:text-neutral-700 dark:hover:text-neutral-200"
                                     :aria-expanded="reasoningOpen">
                                     <svg
@@ -380,6 +401,7 @@ function goToArticle() {
                                 </button>
                                 <div
                                     v-if="reasoningOpen"
+                                    :id="`reasoning-panel-${index}`"
                                     class="max-h-48 overflow-y-auto whitespace-pre-wrap border-t border-neutral-200 px-2.5 py-2 text-xs leading-relaxed text-neutral-500 dark:border-neutral-700/60 dark:text-neutral-400">
                                     {{ chat.reasoningBuffer }}
                                 </div>
@@ -461,7 +483,7 @@ function goToArticle() {
                             <div
                                 v-else-if="message.content"
                                 :class="mdClasses"
-                                v-html="renderMarkdown(message.content)" />
+                                v-html="renderSettledMarkdown(message)" />
                         </div>
                     </div>
                 </template>
