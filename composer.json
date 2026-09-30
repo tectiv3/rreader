@@ -6,10 +6,11 @@
     "keywords": ["laravel", "framework"],
     "license": "MIT",
     "require": {
-        "php": "^8.2",
+        "php": "^8.3",
         "fivefilters/readability.php": ">=3.0",
         "inertiajs/inertia-laravel": "^2.0",
         "laminas/laminas-feed": "^2.26",
+        "laravel/ai": "^1.0.1",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1"
