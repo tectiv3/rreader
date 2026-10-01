@@ -33,7 +33,10 @@ class WebFetchClientTest extends TestCase
             'link-local v6' => ['fe80::1'],
             'nat64 loopback' => ['64:ff9b::7f00:1'],
             'nat64 prefix edge' => ['64:ff9b::'],
+            'nat64 private 10/8' => ['64:ff9b::a00:5'],
+            'nat64 local-use loopback' => ['64:ff9b:1::7f00:1'],
             '6to4 loopback' => ['2002:7f00:1::'],
+            '6to4 private 10/8' => ['2002:a00:5::'],
             'teredo' => ['2001:0:4136:e378:8000:63bf:3fff:fdd2'],
             'v4-mapped loopback' => ['::ffff:127.0.0.1'],
             'v4-mapped private' => ['::ffff:10.0.0.5'],
@@ -60,6 +63,9 @@ class WebFetchClientTest extends TestCase
             'above 172.16/12' => ['172.32.0.1'],
             'public v6' => ['2606:4700::'],
             'public v6 google dns' => ['2001:4860:4860::8888'],
+            'nat64 public v4' => ['64:ff9b::5db8:d822'],
+            'nat64 local-use public v4' => ['64:ff9b:1::5db8:d822'],
+            '6to4 public v4' => ['2002:5db8:d822::'],
             'v4-mapped public v4' => ['::ffff:93.184.216.34'],
         ];
     }

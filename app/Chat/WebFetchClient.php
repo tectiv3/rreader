@@ -44,9 +44,7 @@ class WebFetchClient
     private const BLOCKED_V6 = [
         'fc00::/7',
         'fe80::/10',
-        // IPv6 transition/tunnel prefixes are routed to the embedded IPv4 destination.
-        '64:ff9b::/96',
-        '2002::/16',
+        // Teredo obfuscates the embedded IPv4 destination (bits are inverted), so it stays blocked wholesale.
         '2001::/32',
     ];
 
@@ -88,7 +86,11 @@ class WebFetchClient
      * equivalents. Anything unparseable fails closed. IPv4-mapped
      * (::ffff:0:0/96) and IPv4-compatible (::/96, which also covers "::" and
      * "::1") addresses carry an embedded IPv4 address some stacks connect to
-     * as IPv4, so the embedded address is validated too.
+     * as IPv4, so the embedded address is validated too. The same applies to
+     * NAT64 (64:ff9b::/96 and the local-use 64:ff9b:1::/48, where the IPv4
+     * destination is the last 32 bits) and 6to4 (2002::/16, where it is bytes
+     * 2..5): the embedded destination is validated rather than the whole
+     * prefix being rejected. Teredo (2001::/32) is blocked wholesale.
      */
     public static function isBlockedAddress(string $address): bool
     {
@@ -106,6 +108,14 @@ class WebFetchClient
 
         if ($prefix === str_repeat("\0", 10)."\xff\xff" || $prefix === str_repeat("\0", 12)) {
             return self::matchesAnyRange(substr($packed, 12), self::BLOCKED_V4);
+        }
+
+        if (self::matchesAnyRange($packed, ['64:ff9b::/96', '64:ff9b:1::/48'])) {
+            return self::matchesAnyRange(substr($packed, 12, 4), self::BLOCKED_V4);
+        }
+
+        if (self::matchesAnyRange($packed, ['2002::/16'])) {
+            return self::matchesAnyRange(substr($packed, 2, 4), self::BLOCKED_V4);
         }
 
         return self::matchesAnyRange($packed, self::BLOCKED_V6);
