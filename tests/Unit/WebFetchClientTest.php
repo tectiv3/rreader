@@ -4,9 +4,11 @@ namespace Tests\Unit;
 
 use App\Chat\WebFetchClient;
 use App\Chat\WebFetchHopResponse;
+use Closure;
 use Illuminate\Process\PendingProcess;
 use Illuminate\Support\Facades\Process;
 use PHPUnit\Framework\Attributes\DataProvider;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class WebFetchClientTest extends TestCase
@@ -498,6 +500,70 @@ class WebFetchClientTest extends TestCase
         $this->assertSame('https://example.com/next', $result->finalUrl);
     }
 
+    public function test_default_transport_rejects_oversized_response_headers(): void
+    {
+        $server = $this->startOneShotServer(
+            "HTTP/1.1 200 OK\r\n"
+            .str_repeat('X-Fill: '.str_repeat('a', 100)."\r\n", 700)
+            ."Content-Length: 0\r\nConnection: close\r\n\r\n",
+        );
+
+        if ($server === null) {
+            $this->markTestSkipped('pcntl or stream_socket_server unavailable for the raw HTTP fixture.');
+        }
+
+        try {
+            $response = ($this->defaultTransport())('http://127.0.0.1:'.$server['port'].'/', [], WebFetchClient::MAX_BYTES);
+
+            $this->assertNotNull($response->error);
+            $this->assertStringContainsString('Response headers exceed the 64 KB cap', $response->error);
+        } finally {
+            $this->reapChild($server['pid']);
+        }
+    }
+
+    public function test_default_transport_ignores_proxy_environment_variables(): void
+    {
+        $server = $this->startOneShotServer(
+            "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok",
+        );
+
+        if ($server === null) {
+            $this->markTestSkipped('pcntl or stream_socket_server unavailable for the raw HTTP fixture.');
+        }
+
+        $proxyVariables = ['http_proxy', 'https_proxy', 'all_proxy'];
+        $saved = [];
+
+        foreach ($proxyVariables as $variable) {
+            $saved[$variable] = getenv($variable);
+        }
+
+        try {
+            foreach ($proxyVariables as $variable) {
+                putenv($variable.'=http://127.0.0.1:1');
+                $_ENV[$variable] = 'http://127.0.0.1:1';
+            }
+
+            $response = ($this->defaultTransport())('http://127.0.0.1:'.$server['port'].'/', [], WebFetchClient::MAX_BYTES);
+
+            $this->assertNull($response->error);
+            $this->assertSame('ok', $response->body);
+        } finally {
+            foreach ($saved as $variable => $value) {
+                if ($value === false) {
+                    putenv($variable);
+                    unset($_ENV[$variable]);
+                } else {
+                    putenv($variable.'='.$value);
+                    $_ENV[$variable] = $value;
+                }
+            }
+
+            $this->reapChild($server['pid']);
+        }
+    }
+
     /**
      * Client wired to a scripted transport (responses consumed in order) and a
      * resolver fed from a fixed map — no sockets anywhere.
@@ -522,5 +588,101 @@ class WebFetchClientTest extends TestCase
             },
             resolver: fn (string $host): array => $resolveMap[$host] ?? ['93.184.216.34'],
         );
+    }
+
+    /**
+     * @return Closure(string, array<int, string>, int): WebFetchHopResponse
+     */
+    private function defaultTransport(): Closure
+    {
+        $method = new ReflectionMethod(WebFetchClient::class, 'defaultTransport');
+        $method->setAccessible(true);
+
+        /** @var Closure(string, array<int, string>, int): WebFetchHopResponse $transport */
+        $transport = $method->invoke(new WebFetchClient);
+
+        return $transport;
+    }
+
+    /**
+     * One-shot raw HTTP server on an ephemeral loopback port. The child serves a
+     * single connection then exits, so it never reaches PHPUnit teardown.
+     *
+     * @return array{port: int, pid: int}|null
+     */
+    private function startOneShotServer(string $rawResponse): ?array
+    {
+        if (! function_exists('pcntl_fork')) {
+            return null;
+        }
+
+        $errno = 0;
+        $error = '';
+        $server = @stream_socket_server('tcp://127.0.0.1:0', $errno, $error);
+
+        if ($server === false) {
+            return null;
+        }
+
+        $name = stream_socket_get_name($server, false);
+        $separator = $name === false ? false : strrpos($name, ':');
+
+        if ($name === false || $separator === false) {
+            fclose($server);
+
+            return null;
+        }
+
+        $port = (int) substr($name, $separator + 1);
+        $pid = pcntl_fork();
+
+        if ($pid === -1) {
+            fclose($server);
+
+            return null;
+        }
+
+        if ($pid === 0) {
+            $connection = @stream_socket_accept($server, 10);
+
+            if ($connection !== false) {
+                $payload = $rawResponse;
+
+                while ($payload !== '') {
+                    $written = @fwrite($connection, $payload);
+
+                    if ($written === false || $written === 0) {
+                        break;
+                    }
+
+                    $payload = substr($payload, $written);
+                }
+
+                @fclose($connection);
+            }
+
+            @fclose($server);
+
+            exit(0);
+        }
+
+        fclose($server);
+
+        return ['port' => $port, 'pid' => $pid];
+    }
+
+    private function reapChild(int $pid): void
+    {
+        $status = 0;
+
+        for ($i = 0; $i < 200; $i++) {
+            if (pcntl_waitpid($pid, $status, WNOHANG) !== 0) {
+                return;
+            }
+
+            usleep(25_000);
+        }
+
+        pcntl_waitpid($pid, $status);
     }
 }
