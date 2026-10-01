@@ -16,6 +16,7 @@ use App\Models\Feed;
 use App\Models\Highlight;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Laravel\Ai\Enums\MessageStatus;
 use Laravel\Ai\Models\ConversationMessage;
@@ -139,7 +140,13 @@ class ChatToolsTest extends TestCase
         $this->createMessage($current, $user, 'user', 'kubernetes in the current conversation');
 
         $past = $this->createConversation($user, $this->createArticle($article->feed, 'Kubernetes Past Article'), 'past');
-        $this->createMessage($past, $user, 'user', 'Tell me about kubernetes operators');
+        $this->createMessage(
+            $past,
+            $user,
+            'user',
+            'Tell me about kubernetes operators',
+            createdAt: new Carbon('2026-09-30 12:00:00'),
+        );
         $this->createMessage($past, $user, 'assistant', 'Kubernetes operators are controllers');
 
         $foreign = $this->createConversation($otherUser, null, 'foreign');
@@ -402,8 +409,9 @@ class ChatToolsTest extends TestCase
         string $role,
         string $content,
         array $steps = [],
+        ?Carbon $createdAt = null,
     ): void {
-        ConversationMessage::create([
+        $attributes = [
             'id' => (string) Str::uuid7(),
             'conversation_id' => $conversationId,
             'participant_type' => AgentConversation::participantType($participant),
@@ -416,6 +424,13 @@ class ChatToolsTest extends TestCase
             'usage' => [],
             'meta' => [],
             'status' => MessageStatus::Completed,
-        ]);
+        ];
+
+        if ($createdAt !== null) {
+            $attributes['created_at'] = $createdAt;
+            $attributes['updated_at'] = $createdAt;
+        }
+
+        ConversationMessage::create($attributes);
     }
 }
