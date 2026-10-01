@@ -177,6 +177,7 @@ export async function streamTurn(conversationId, content, callbacks = {}, signal
     }
 
     let response
+    armStall()
     try {
         response = await fetch(`/api/chat/conversations/${conversationId}/messages`, {
             method: 'POST',
@@ -199,12 +200,14 @@ export async function streamTurn(conversationId, content, callbacks = {}, signal
     }
 
     let sawTerminalFrame = false
+    let terminalFrame = null
     const decoder = new TextDecoder()
     try {
         // Parser and reader live inside the guard so a malformed 200 (null
         // body, failed reader) surfaces as a ChatApiError, not a raw TypeError.
-        const parse = createSseFrameDispatcher(callbacks, () => {
+        const parse = createSseFrameDispatcher(callbacks, (event, data) => {
             sawTerminalFrame = true
+            terminalFrame = { event, data }
         })
         const reader = response.body?.getReader()
         if (!reader) {
@@ -227,13 +230,16 @@ export async function streamTurn(conversationId, content, callbacks = {}, signal
             }
         }
     } catch (error) {
-        if (sawTerminalFrame) return
-        if (stalled) {
-            throw new ChatApiError('The response stalled. Try again.', { code: 'stalled' })
+        // A read error after the terminal frame must not downgrade the turn;
+        // fall through so the recorded callback still dispatches below.
+        if (!sawTerminalFrame) {
+            if (stalled) {
+                throw new ChatApiError('The response stalled. Try again.', { code: 'stalled' })
+            }
+            if (error instanceof ChatApiError) throw error
+            if (isAbort(error)) throw new ChatApiError('Turn cancelled', { code: 'aborted' })
+            throw new ChatApiError('Connection lost during the response', { code: 'network' })
         }
-        if (error instanceof ChatApiError) throw error
-        if (isAbort(error)) throw new ChatApiError('Turn cancelled', { code: 'aborted' })
-        throw new ChatApiError('Connection lost during the response', { code: 'network' })
     } finally {
         cleanup()
     }
@@ -243,6 +249,12 @@ export async function streamTurn(conversationId, content, callbacks = {}, signal
         // completed turn.
         throw new ChatApiError('Connection lost during the response', { code: 'stream_ended' })
     }
+
+    // Dispatch outside the read-loop guard: a throwing terminal callback must
+    // propagate to the caller instead of being swallowed as a post-terminal
+    // read error.
+    if (terminalFrame.event === 'done') callbacks.onDone?.(terminalFrame.data)
+    else callbacks.onError?.(terminalFrame.data)
 }
 
 function createSseFrameDispatcher(callbacks, onTerminalFrame) {
@@ -258,12 +270,10 @@ function createSseFrameDispatcher(callbacks, onTerminalFrame) {
                 callbacks.onTool?.(data)
                 break
             case 'done':
-                onTerminalFrame()
-                callbacks.onDone?.(data)
-                break
             case 'error':
-                onTerminalFrame()
-                callbacks.onError?.(data)
+                // Recorded, not dispatched: the terminal callback runs after
+                // the read loop so a throw is not mistaken for a read error.
+                onTerminalFrame(event, data)
                 break
             default:
             // unknown events are ignored, never fatal

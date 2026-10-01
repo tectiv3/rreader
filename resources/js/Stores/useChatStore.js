@@ -190,7 +190,6 @@ export const useChatStore = defineStore('chat', () => {
         }
 
         const conversationId = conversation.id
-        const isCurrentConversation = () => currentConversation.value?.id === conversationId
 
         const now = new Date().toISOString()
         messages.value.push({
@@ -267,23 +266,23 @@ export const useChatStore = defineStore('chat', () => {
                 content,
                 {
                     onDelta: ({ text }) => {
-                        if (!isCurrentConversation()) return
+                        if (!isActiveTurn()) return
                         markTurnStarted()
                         assistant.content += text
                     },
                     onReasoning: ({ text }) => {
-                        if (!isCurrentConversation()) return
+                        if (!isActiveTurn()) return
                         markTurnStarted()
                         reasoningBuffer.value += text
                     },
                     onTool: ({ name, status }) => {
-                        if (!isCurrentConversation()) return
+                        if (!isActiveTurn()) return
                         markTurnStarted()
                         recordTool(name, status)
                     },
                     onDone: () => finish('completed'),
                     onError: ({ message }) => {
-                        if (!isCurrentConversation()) return
+                        if (!isActiveTurn()) return
                         finish('failed')
                         showError(message || 'The chat response failed.')
                     },
@@ -296,9 +295,10 @@ export const useChatStore = defineStore('chat', () => {
                 showError('Connection lost during the response.')
             }
         } catch (e) {
+            const wasActive = isActiveTurn()
             if (e instanceof ChatApiError && e.code === 'aborted') {
                 // Abort leaves zero rows server-side — retry is clean
-                discardOptimisticTurn()
+                if (wasActive) discardOptimisticTurn()
                 releaseTurn()
                 return
             }
@@ -311,12 +311,12 @@ export const useChatStore = defineStore('chat', () => {
             }
             if (e.status === 409) {
                 // Never reached the server — no rows were persisted
-                discardOptimisticTurn()
-            } else if (isActiveTurn()) {
-                assistant.status = 'failed'
+                if (wasActive) discardOptimisticTurn()
+            } else if (wasActive) {
+                finish('failed')
             }
             releaseTurn()
-            showError(e.message || 'The chat request failed.')
+            if (wasActive) showError(e.message || 'The chat request failed.')
         }
     }
 
