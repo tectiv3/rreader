@@ -280,7 +280,8 @@ export const useChatStore = defineStore('chat', () => {
                         markTurnStarted()
                         recordTool(name, status)
                     },
-                    onDone: () => finish('completed'),
+                    onDone: ({ reason }) =>
+                        finish(reason === 'cancelled' ? 'interrupted' : 'completed'),
                     onError: ({ message }) => {
                         if (!isActiveTurn()) return
                         finish('failed')

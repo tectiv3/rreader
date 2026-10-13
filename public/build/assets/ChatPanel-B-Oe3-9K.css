@@ -1,0 +1,6 @@
+.pt-safe[data-v-983d206a] {
+    padding-top: env(safe-area-inset-top, 0px);
+}
+.pb-safe[data-v-983d206a] {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
