@@ -7,31 +7,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-// Serve SW from root so its scope covers the entire origin
-Route::get('/sw.js', function () {
-    $path = public_path('build/sw.js');
-
-    abort_unless(is_file($path), 404);
-
-    return response()->file($path, [
-        'Content-Type' => 'application/javascript',
-        'Cache-Control' => 'no-cache',
-        'Service-Worker-Allowed' => '/',
-    ]);
-});
-
-// Vite emits the web app manifest into public/build, but it must be reachable
-// (and precacheable) from the root scope the service worker runs in.
-Route::get('/manifest.webmanifest', function () {
-    $path = public_path('build/manifest.webmanifest');
-
-    abort_unless(is_file($path), 404);
-
-    return response()->file($path, [
-        'Content-Type' => 'application/manifest+json',
-        'Cache-Control' => 'no-cache',
-    ]);
-});
+// /sw.js and /manifest.webmanifest are static files at the public root (lifted
+// there from public/build by scripts/pwa-root-assets.mjs). They must not go
+// through Laravel: routed here they carried session cookies and `Vary:
+// X-Inertia` and never returned 304, which defeated Safari's service-worker
+// update byte-comparison and looped reloads on deploy.
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -69,5 +49,5 @@ Route::middleware('auth')->group(function () {
             'initialSidebar' => $sidebarData,
             'user' => $user,
         ]);
-    })->where('any', '^(?!api/|build/).*$')->name('spa');
+    })->where('any', '^(?!api/|build/|sw\.js$|manifest\.webmanifest$).*$')->name('spa');
 });

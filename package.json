@@ -3,7 +3,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
+        "build": "vite build && node scripts/pwa-root-assets.mjs",
         "dev": "vite",
         "lint": "prettier --check .",
         "format": "prettier --write ./resources/**/*.{js,ts,vue,css,scss}"

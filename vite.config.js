@@ -54,6 +54,11 @@ export default defineConfig({
         }),
         tailwindcss(),
         VitePWA({
+            // NOTE: VitePWA emits sw.js/manifest.webmanifest into public/build,
+            // but the worker must be served from the origin root so the web server
+            // serves it as a static file. `scripts/pwa-root-assets.mjs` copies both
+            // to public/ after the build (see the `build` script in package.json).
+            //
             // app.js registers /sw.js by hand — don't emit or inject registerSW.js,
             // which would otherwise register /build/sw.js with a /build/ scope.
             injectRegister: null,
@@ -111,13 +116,13 @@ export default defineConfig({
                 skipWaiting: true,
                 clientsClaim: true,
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-                // The SW is served from / (see the /sw.js route) so its scope covers the
-                // whole origin, but Vite emits it into public/build. Inline the Workbox
-                // runtime instead of importing it relatively — `./workbox-*.js` would
-                // resolve against /sw.js and 404, which aborts installation entirely.
+                // The SW sits at the origin root (public/sw.js) so its scope covers the
+                // whole origin. Inline the Workbox runtime instead of importing it
+                // relatively — `./workbox-*.js` would resolve against /sw.js and 404,
+                // which aborts installation entirely.
                 inlineWorkboxRuntime: true,
-                // Same reason: precache entries are emitted relative to the build dir and
-                // would resolve to /assets/*. Prefix them with the real public path.
+                // Precache entries are emitted relative to the build dir and would
+                // resolve to /assets/*. Prefix them with the real public path.
                 manifestTransforms: [
                     manifest => ({
                         manifest: manifest.map(entry => ({
