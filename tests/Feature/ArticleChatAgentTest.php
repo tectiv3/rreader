@@ -9,12 +9,17 @@ use App\Chat\Tools\GetHighlightsTool;
 use App\Chat\Tools\SearchArticlesTool;
 use App\Chat\Tools\SearchChatHistoryTool;
 use App\Chat\Tools\WebFetchTool;
+use App\Chat\TurnDeadline;
 use App\Models\AgentConversation;
 use App\Models\Article;
 use App\Models\Feed;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Laravel\Ai\Contracts\HasMiddleware;
+use Laravel\Ai\Gateway\StepResult;
+use Laravel\Ai\Middleware\Stop;
+use Laravel\Ai\PendingStep;
 use Tests\TestCase;
 
 class ArticleChatAgentTest extends TestCase
@@ -84,7 +89,37 @@ class ArticleChatAgentTest extends TestCase
         $this->assertSame(40, $maxConversationMessages());
     }
 
-    private function agent(): ArticleChatAgent
+    public function test_the_agent_declares_a_stop_middleware_bound_to_the_deadline(): void
+    {
+        $agent = $this->agent();
+
+        $this->assertInstanceOf(HasMiddleware::class, $agent);
+        $this->assertCount(1, $agent->middleware());
+        $this->assertInstanceOf(Stop::class, $agent->middleware()[0]);
+    }
+
+    public function test_the_deadline_middleware_stops_an_expired_turn(): void
+    {
+        $agent = $this->agent(new TurnDeadline(0.0));
+        $middleware = $agent->middleware()[0];
+        $step = new PendingStep(0, false, 'lmstudio', 'qwen3.8-27b', null, [], [], null, null);
+
+        $result = $middleware->handle($step, fn () => throw new \RuntimeException('next must not run'));
+
+        $this->assertTrue($result->stopped());
+    }
+
+    public function test_the_deadline_middleware_passes_a_live_turn_through(): void
+    {
+        $agent = $this->agent(new TurnDeadline(60.0));
+        $middleware = $agent->middleware()[0];
+        $step = new PendingStep(0, false, 'lmstudio', 'qwen3.8-27b', null, [], [], null, null);
+        $sentinel = StepResult::stop();
+
+        $this->assertSame($sentinel, $middleware->handle($step, fn () => $sentinel));
+    }
+
+    private function agent(?TurnDeadline $deadline = null): ArticleChatAgent
     {
         [$user, $article] = $this->userWithArticle();
 
@@ -104,7 +139,7 @@ class ArticleChatAgentTest extends TestCase
             ->with('article.feed')
             ->findOrFail($conversationId);
 
-        return new ArticleChatAgent($conversation, $user);
+        return new ArticleChatAgent($conversation, $user, $deadline);
     }
 
     /**

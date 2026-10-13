@@ -35,7 +35,9 @@ use Throwable;
  * enforced worst case is maxSteps(5) x timeout(120s) + tool budget(300s) +
  * the largest single tool (~30s) = 930s, below LOCK_TTL and below the FPM
  * request_terminate_timeout; a killed worker leaves the conversation locked
- * for up to 20 minutes — accepted by the spec.
+ * for up to 20 minutes — accepted by the spec. ArticleChatAgent also declares
+ * a 1000s hard-deadline Stop middleware as a backstop against retry/overrun
+ * cases.
  */
 final class ChatTurnService
 {

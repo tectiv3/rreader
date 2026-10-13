@@ -12,14 +12,25 @@ use App\Models\User;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
+use Laravel\Ai\Contracts\HasMiddleware;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Contracts\Tool;
+use Laravel\Ai\Middleware\Stop;
+use Laravel\Ai\PendingStep;
 use Laravel\Ai\Promptable;
 
-class ArticleChatAgent implements Agent, Conversational, HasTools
+class ArticleChatAgent implements Agent, Conversational, HasMiddleware, HasTools
 {
     use Promptable;
     use RemembersConversations;
+
+    /**
+     * Hard wall-clock backstop for one turn, below ChatTurnService::LOCK_TTL
+     * (1200s). The enforced bound is maxSteps(5) x timeout(120s) + tool
+     * budget(300s) ≈ 930s; this only fires when retries or tool overruns
+     * push past it, ending the run with FinishReason::Cancelled.
+     */
+    private const HARD_DEADLINE_SECONDS = 1000.0;
 
     /**
      * Cumulative tool wall-time per turn. Together with maxSteps() and
@@ -33,7 +44,13 @@ class ArticleChatAgent implements Agent, Conversational, HasTools
     public function __construct(
         protected readonly AgentConversation $conversation,
         protected readonly User $user,
+        private ?TurnDeadline $deadline = null,
     ) {}
+
+    private function deadline(): TurnDeadline
+    {
+        return $this->deadline ??= new TurnDeadline(self::HARD_DEADLINE_SECONDS);
+    }
 
     public function instructions(): string
     {
@@ -98,6 +115,16 @@ class ArticleChatAgent implements Agent, Conversational, HasTools
     public function timeout(): int
     {
         return 120;
+    }
+
+    /**
+     * @return list<Stop>
+     */
+    public function middleware(): array
+    {
+        return [
+            Stop::when(fn (PendingStep $step): bool => $this->deadline()->exceeded()),
+        ];
     }
 
     protected function maxConversationMessages(): int
