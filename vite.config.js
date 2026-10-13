@@ -54,10 +54,10 @@ export default defineConfig({
         }),
         tailwindcss(),
         VitePWA({
-            // NOTE: VitePWA emits sw.js/manifest.webmanifest into public/build,
-            // but the worker must be served from the origin root so the web server
-            // serves it as a static file. `scripts/pwa-root-assets.mjs` copies both
-            // to public/ after the build (see the `build` script in package.json).
+            // VitePWA emits sw.js/manifest.webmanifest into public/build. The web
+            // server must serve them at the origin root (see the deploy notes) —
+            // `/sw.js` so the worker's scope is `/`, and both as static files rather
+            // than routed through Laravel's session/Inertia middleware.
             //
             // app.js registers /sw.js by hand — don't emit or inject registerSW.js,
             // which would otherwise register /build/sw.js with a /build/ scope.

@@ -7,11 +7,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-// /sw.js and /manifest.webmanifest are static files at the public root (lifted
-// there from public/build by scripts/pwa-root-assets.mjs). They must not go
-// through Laravel: routed here they carried session cookies and `Vary:
-// X-Inertia` and never returned 304, which defeated Safari's service-worker
-// update byte-comparison and looped reloads on deploy.
+// /sw.js and /manifest.webmanifest must be served as static files at the origin
+// root, not routed through Laravel: served here they carried session cookies and
+// `Vary: X-Inertia` and never returned 304, which defeated Safari's service-worker
+// update byte-comparison and looped reloads on deploy. The web server maps both
+// URLs onto public/build/* (nginx alias; see the deploy notes).
 
 Route::get('/', function () {
     if (auth()->check()) {
