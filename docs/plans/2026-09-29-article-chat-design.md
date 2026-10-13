@@ -437,3 +437,34 @@ anyway); our follow-up migration extends that set.
 - Multi-profile providers, per-user provider config, settings UI
 - Reasoning/"thinking" UI (SSE `reasoning` events plumbed, UI later)
 - Anthropic-compatible endpoints
+
+## Post-upgrade reassessment (laravel/ai v1.0.1 → v1.2.1, 2026-10-12)
+
+Package bumped v1.0.1 → v1.2.1 (composer.lock, commit `263d45e`). Findings vs the
+v1.0.1-based spec above:
+
+- **No storage change.** `DatabaseConversationStore`, the package migration, and
+  `MessageStatus` (`Completed`/`Failed`/`Paused`) are unchanged 1.0.1 → 1.2.1, so no
+  new migration is required.
+- **Retry-once on 429/overload.** `HandlesFailoverErrors::withErrorHandling()` now
+  wraps provider calls in `retry(2, …)`, retrying once when a response is 429 or an
+  overloaded status with a numeric `Retry-After ≤ 10s`. This adds up to +10s per step
+  inside the synchronous stream, so the worst-case budget (see below) must be
+  re-verified with a forced 429.
+- **OpenAI Responses terminal events fixed** (`response.failed` → Error,
+  `response.incomplete` → terminal, empty stream → null). Re-verify the SSE frame
+  sequence and the single-error invariant on a truncated LM Studio stream.
+- **Unsupported provider tools are now silently dropped** (they threw at 1.0.1). Not
+  hit by the current plain-`Tool` set; matters only if provider-native web search is
+  added in v2.
+- **`Stop` middleware available** (`Laravel\Ai\Middleware\Stop`), **not adopted**: it
+  ends the run with `FinishReason::Cancelled` *before* the next step, which conflicts
+  with `BudgetedTool`'s deliberate wrap-up message on budget exhaustion (the model must
+  get a step to compose the answer). Under evaluation.
+- **PHPStan 2.3.1** ships Turbo auto-enabled (native acceleration, verify with
+  `phpstan diagnose`); no install or flag needed.
+
+Known doc-vs-code drift in the spec body above (left as historical record): the
+implemented `ArticleChatAgent::maxSteps()` is **5**, not 8 (so the budget is
+5×120 + 300 ≈ 930s, not 1160s); the agent also implements `Conversational`; and the
+streaming consumer is `App\Chat\ChatTurnService`, not `ChatService`.

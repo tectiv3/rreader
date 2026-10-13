@@ -6,7 +6,6 @@ use App\Models\Feed;
 use App\Services\FeedParserService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Http\Client\ConnectionException;
 
 class FetchFeed implements ShouldQueue
 {
@@ -24,7 +23,7 @@ class FetchFeed implements ShouldQueue
 
         try {
             $data = $parser->discoverAndParse($this->feed->feed_url);
-        } catch (\RuntimeException|ConnectionException $e) {
+        } catch (\RuntimeException $e) {
             $this->feed->recordFailure($e->getMessage());
 
             return;
