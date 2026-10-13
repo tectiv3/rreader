@@ -48,6 +48,21 @@ final class ChatTurnService
     public const USER_LOCK_PREFIX = 'chat-user:';
 
     /**
+     * Provider-side conditions that occur in normal operation (the provider is
+     * down, rate limiting, overloaded, out of credits) and are already mapped
+     * to a client-facing message. They must not be reported as errors.
+     *
+     * @var list<class-string<AiException>>
+     */
+    private const EXPECTED_PROVIDER_FAILURES = [
+        RateLimitedException::class,
+        ProviderOverloadedException::class,
+        ProviderConnectionException::class,
+        InsufficientCreditsException::class,
+        StreamErrorException::class,
+    ];
+
+    /**
      * Builds the package stream for one turn. Injectable so tests can fake
      * the provider stream; the default resolves provider/model from the
      * conversation row via the agent's provider()/model().
@@ -176,9 +191,9 @@ final class ChatTurnService
                 yield self::frame('error', $this->errorPayload($exception));
             }
 
-            // A StreamErrorException only echoes an Error event already
-            // forwarded above; anything else is a bug worth the log.
-            if (! $exception instanceof StreamErrorException) {
+            // Only genuinely unexpected failures are bugs worth an error-level
+            // log; the mapped provider conditions are normal operation.
+            if (! $this->isExpectedProviderFailure($exception)) {
                 report($exception);
             }
         }
@@ -202,6 +217,21 @@ final class ChatTurnService
         };
 
         return ['message' => $message, 'code' => Str::snake(class_basename($exception))];
+    }
+
+    /**
+     * Whether the exception is a provider condition already mapped to a
+     * client-facing message rather than a bug worth reporting.
+     */
+    private function isExpectedProviderFailure(Throwable $exception): bool
+    {
+        foreach (self::EXPECTED_PROVIDER_FAILURES as $class) {
+            if ($exception instanceof $class) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
