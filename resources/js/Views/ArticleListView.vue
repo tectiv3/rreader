@@ -322,7 +322,7 @@ function openArticle(article) {
             closeArticlePanel()
             return
         }
-        // Switching articles: the docked chat belongs to the previous one
+        // Switching articles: the chat modal belongs to the previous one
         closeInlineChat()
         selectedArticleId.value = article.id
         loadArticleInline(article.id)
@@ -430,9 +430,13 @@ function shareInlineArticle() {
     }
 }
 
-// --- Desktop inline chat ---
+// --- Desktop chat modal ---
 async function startInlineChat() {
     if (!selectedArticle.value) return
+    if (inlineChatArticleId.value === selectedArticle.value.id) {
+        closeInlineChat()
+        return
+    }
     let conversation
     try {
         conversation = await chat.startConversation(selectedArticle.value.id)
@@ -579,7 +583,11 @@ function onKeyDown(e) {
         }
         case 'Escape': {
             e.preventDefault()
-            closeArticlePanel()
+            if (inlineChatArticleId.value !== null) {
+                closeInlineChat()
+            } else {
+                closeArticlePanel()
+            }
             break
         }
     }
@@ -1288,12 +1296,19 @@ function getSwipeDirection(articleId) {
                                         </div>
                                     </article>
 
-                                    <!-- Docked chat for this expanded article -->
-                                    <div
-                                        v-if="inlineChatArticleId === article.id"
-                                        class="mx-auto max-w-3xl px-6 pb-6">
-                                        <ChatPanel inline @close="closeInlineChat" />
-                                    </div>
+                                    <!-- Chat modal for this expanded article -->
+                                    <Teleport to="body">
+                                        <div
+                                            v-if="inlineChatArticleId === article.id"
+                                            class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                                            <div
+                                                class="absolute inset-0 bg-black/60"
+                                                @click="closeInlineChat" />
+                                            <div class="relative w-full max-w-3xl">
+                                                <ChatPanel inline @close="closeInlineChat" />
+                                            </div>
+                                        </div>
+                                    </Teleport>
                                 </template>
                             </div>
                         </template>
