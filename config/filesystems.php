@@ -42,7 +42,10 @@ return [
             'driver' => 'local',
             'root' => storage_path('app/public'),
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
-            'visibility' => 'public',
+            // No 'visibility': it makes Flysystem chmod every written file, which fails
+            // with EPERM when the file is owned by a different uid (group-write is not enough)
+            // and surfaces as put() === false even though the bytes were written.
+            'directory_visibility' => 'public',
             'throw' => false,
             'report' => false,
         ],
